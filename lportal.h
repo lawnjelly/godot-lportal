@@ -28,6 +28,7 @@
 
 
 #include "scene/3d/spatial.h"
+#include "lvector.h"
 
 class LRoom;
 
@@ -52,7 +53,7 @@ protected:
 	static void _bind_methods();
 
 	LPortal::eClipResult ClipWithPlane(const Plane &p) const;
-	void AddPlanes(const Vector3 &ptCam, Vector<Plane> &planes) const;
+	void AddPlanes(const Vector3 &ptCam, LVector<Plane> &planes) const;
 
 public:
 	// normal determined by winding order

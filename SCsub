@@ -6,6 +6,7 @@ sources = [
     "lroom.cpp",
     "lroom_manager.cpp",
     "lportal.cpp",
+    "lplanes_pool.cpp",
     "CoBitField_Dynamic.cpp",
 ]
 

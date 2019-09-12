@@ -23,17 +23,19 @@
 #include "scene/3d/mesh_instance.h"
 #include "lportal.h"
 #include "CoBitField_Dynamic.h"
+#include "lroom_manager.h"
 
 void LRoom::print(String sz)
 {
 //	print_line(sz);
+	LPortal::print(sz);
 }
 
 LRoom::LRoom() {
 	m_LocalRoomID = -1;
 }
 
-void LRoom::DetermineVisibility_Recursive(int depth, const LCamera &cam, const Vector<Plane> &planes, Core::CoBitField_Dynamic &BF_visible, ObjectID portalID_from)
+void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, Core::CoBitField_Dynamic &BF_visible, ObjectID portalID_from)
 {
 	// prevent too much depth
 	if (depth >= 8)
@@ -60,7 +62,7 @@ void LRoom::DetermineVisibility_Recursive(int depth, const LCamera &cam, const V
 		VisualInstance * pObj = Object::cast_to<VisualInstance>(pNode);
 		if (pObj)
 		{
-			Vector3 pt = pObj->get_global_transform().origin;
+			//Vector3 pt = pObj->get_global_transform().origin;
 
 			bool bShow = true;
 
@@ -102,7 +104,7 @@ void LRoom::DetermineVisibility_Recursive(int depth, const LCamera &cam, const V
 	// go through each portal out of here
 	int nPortals = m_portal_IDs.size();
 
-	ObjectID this_room_id = get_instance_id();
+//	ObjectID this_room_id = get_instance_id();
 
 	for (int p=0; p<nPortals; p++)
 	{
@@ -165,15 +167,30 @@ void LRoom::DetermineVisibility_Recursive(int depth, const LCamera &cam, const V
 		}
 
 		// else recurse into that portal
-		Vector<Plane> new_planes = planes;
+		unsigned int uiPoolMem = manager.m_Pool.Request();
+		if (uiPoolMem != -1)
+		{
+			// get a vector of planes from the pool
+			LVector<Plane> &new_planes = manager.m_Pool.Get(uiPoolMem);
 
-		// add the planes for the portal
-		pPortal->AddPlanes(cam.m_ptPos, new_planes);
+			// copy the existing planes
+			new_planes.copy_from(planes);
 
-		// get the room pointed to by the portal
-		LRoom * pLinkedRoom = pPortal->GetLinkedRoom();
-		if (pLinkedRoom)
-			pLinkedRoom->DetermineVisibility_Recursive(depth + 1, cam, new_planes, BF_visible, id);
+			// add the planes for the portal
+			pPortal->AddPlanes(cam.m_ptPos, new_planes);
+
+			// get the room pointed to by the portal
+			LRoom * pLinkedRoom = pPortal->GetLinkedRoom();
+			if (pLinkedRoom)
+				pLinkedRoom->DetermineVisibility_Recursive(manager, depth + 1, cam, new_planes, BF_visible, id);
+
+			manager.m_Pool.Free(uiPoolMem);
+		}
+		else
+		{
+			// planes pool is empty!
+			WARN_PRINT_ONCE("Planes pool is empty");
+		}
 	}
 }
 

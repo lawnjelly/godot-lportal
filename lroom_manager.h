@@ -28,9 +28,12 @@
 
 #include "scene/3d/spatial.h"
 #include "CoBitField_Dynamic.h"
+#include "lplanes_pool.h"
 
 class LRoomManager : public Spatial {
 	GDCLASS(LRoomManager, Spatial);
+
+	friend class LRoom;
 
 	// a quick list of object IDs of child rooms
 	Vector<ObjectID> m_room_IDs;
@@ -40,20 +43,24 @@ class LRoomManager : public Spatial {
 
 	// keep track of which rooms are visible, so we can hide ones that aren't hit that were previously on
 	Core::CoBitField_Dynamic m_BF_visible_rooms;
-//	Vector<int> m_VisibleRoomList[2];
-//	int m_CurrentVisibleRoomList;
+	Vector<int> m_VisibleRoomList[2];
+	int m_CurrentVisibleRoomList;
 
 public:
 	LRoomManager();
 
 	// convert empties and meshes to rooms and portals
 	void convert();
+
+	// choose which camera you want to use to determine visibility.
+	// normally this will be your main camera, but you can choose another for debugging
 	void set_camera(Node * pCam);
 
 protected:
 	static void _bind_methods();
 	void _notification(int p_what);
 
+	LPlanesPool m_Pool;
 private:
 	void Convert_Rooms();
 	bool Convert_Room(Spatial * pNode);

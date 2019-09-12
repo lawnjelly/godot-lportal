@@ -28,6 +28,7 @@ LRoomManager::LRoomManager()
 {
 	m_room_curr = 0;
 	m_cameraID = 0;
+
 }
 
 
@@ -232,7 +233,13 @@ void LRoomManager::FrameUpdate()
 	cam.m_ptPos = Vector3(0, 0, 0);
 	cam.m_ptDir = Vector3 (-1, 0, 0);
 
-	Vector<Plane> planes;
+	// reset the pool for another frame
+	m_Pool.Reset();
+	unsigned int pool_member = m_Pool.Request();
+	assert (pool_member != -1);
+
+	LVector<Plane> &planes = m_Pool.Get(pool_member);
+	planes.clear();
 
 	// get the camera desired and make into lcamera
 	if (m_cameraID)
@@ -246,11 +253,11 @@ void LRoomManager::FrameUpdate()
 			cam.m_ptPos = tr.origin;
 			cam.m_ptDir = tr.basis.get_row(2); // or possibly get_axis .. z is what we want
 
-			planes = pCamera->get_frustum();
+			planes.copy_from(pCamera->get_frustum());
 		}
 	}
 
-	pRoom->DetermineVisibility_Recursive(0, cam, planes, m_BF_visible_rooms);
+	pRoom->DetermineVisibility_Recursive(*this, 0, cam, planes, m_BF_visible_rooms);
 
 
 	// finally hide all the rooms that are currently visible but not in the visible bitfield as having been hit

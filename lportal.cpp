@@ -61,21 +61,32 @@ String LPortal::FindNameAfter(Node * pNode, String szStart)
 //////////////////////////////////////////////////////////
 
 // add clipping planes to the vector formed by each portal edge and the camera
-void LPortal::AddPlanes(const Vector3 &ptCam, Vector<Plane> &planes) const
+void LPortal::AddPlanes(const Vector3 &ptCam, LVector<Plane> &planes) const
 {
 	// short version
 	const Vector<Vector3> &pts = m_ptsWorld;
 
 	int nPoints = pts.size();
-//	ERR_FAIL_COND(nPoints < 3);
+	ERR_FAIL_COND(nPoints < 3);
 
 	Plane p;
 
 	for (int n=1; n<nPoints; n++)
 	{
 		p = Plane(ptCam, pts[n], pts[n-1]);
+
+		// detect null plane
+//		if (p.normal.length_squared() < 0.1f)
+//		{
+//			print("NULL plane detected from points : ");
+//			print(ptCam + pts[n] + pts[n-1]);
+//		}
 		planes.push_back(p);
 	}
+
+	// first and last
+	p = Plane(ptCam, pts[0], pts[nPoints-1]);
+	planes.push_back(p);
 }
 
 
@@ -93,7 +104,10 @@ LPortal::eClipResult LPortal::ClipWithPlane(const Plane &p) const
 	}
 
 	if (nOutside == nPoints)
+	{
+		print("LPortal::ClipWithPlane : Outside plane " + p);
 		return CLIP_OUTSIDE;
+	}
 
 	if (nOutside == 0)
 		return CLIP_INSIDE;

@@ -28,11 +28,13 @@
 
 
 #include "scene/3d/spatial.h"
+#include "lvector.h"
 
 
 namespace Core {class CoBitField_Dynamic;}
 
 class LPortal;
+class LRoomManager;
 class MeshInstance;
 
 class LCamera
@@ -68,7 +70,7 @@ public:
 	void MakePortalQuickList();
 
 	// main function
-	void DetermineVisibility_Recursive(int depth, const LCamera &cam, const Vector<Plane> &planes, Core::CoBitField_Dynamic &BF_visible, ObjectID portalID_from = 0);
+	void DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, Core::CoBitField_Dynamic &BF_visible, ObjectID portalID_from = 0);
 
 // specific
 public:
