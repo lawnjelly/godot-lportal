@@ -27,6 +27,7 @@
 */
 
 #include "scene/3d/spatial.h"
+#include "CoBitField_Dynamic.h"
 
 class LRoomManager : public Spatial {
 	GDCLASS(LRoomManager, Spatial);
@@ -35,12 +36,19 @@ class LRoomManager : public Spatial {
 	Vector<ObjectID> m_room_IDs;
 
 	ObjectID m_room_curr;
+	ObjectID m_cameraID;
+
+	// keep track of which rooms are visible, so we can hide ones that aren't hit that were previously on
+	Core::CoBitField_Dynamic m_BF_visible_rooms;
+//	Vector<int> m_VisibleRoomList[2];
+//	int m_CurrentVisibleRoomList;
 
 public:
 	LRoomManager();
 
 	// convert empties and meshes to rooms and portals
 	void convert();
+	void set_camera(Node * pCam);
 
 protected:
 	static void _bind_methods();

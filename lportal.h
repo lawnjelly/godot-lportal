@@ -29,16 +29,6 @@
 
 #include "scene/3d/spatial.h"
 
-
-// Smooth node allows fixed timestep interpolation without having to write any code.
-// It requires a proxy node (which is moved on physics tick), e.g. a rigid body or manually moved spatial..
-// and instead of having MeshInstance as a child of this, you add Smooth node to another part of the scene graph,
-// make the MeshInstance a child of the smooth node, then choose the proxy as the target for the smooth node.
-
-// Note that in the special case of manually moving the proxy to a completely new location, you should call
-// 'teleport' on the smooth node after setting the proxy node transform. This will ensure that the current AND
-// previous transform records are reset, so it moves instantaneously.
-
 class LRoom;
 
 class LPortal : public Spatial {
@@ -62,6 +52,7 @@ protected:
 	static void _bind_methods();
 
 	LPortal::eClipResult ClipWithPlane(const Plane &p) const;
+	void AddPlanes(const Vector3 &ptCam, Vector<Plane> &planes) const;
 
 public:
 	// normal determined by winding order
@@ -93,6 +84,7 @@ private:
 public:
 	static bool NameStartsWith(Node * pNode, String szSearch);
 	static String FindNameAfter(Node * pNode, String szStart);
+	static void print(String sz);
 };
 
 

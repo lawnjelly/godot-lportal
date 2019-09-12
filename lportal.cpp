@@ -22,6 +22,10 @@
 #include "core/engine.h"
 #include "lroom.h"
 
+void LPortal::print(String sz)
+{
+//	print_line(sz);
+}
 
 bool LPortal::NameStartsWith(Node * pNode, String szSearch)
 {
@@ -50,11 +54,30 @@ String LPortal::FindNameAfter(Node * pNode, String szStart)
 	String name = pNode->get_name();
 	szRes = name.substr(szStart.length());
 
-	print_line("\t\tNameAfter is " + szRes);
+	print("\t\tNameAfter is " + szRes);
 	return szRes;
 }
 
 //////////////////////////////////////////////////////////
+
+// add clipping planes to the vector formed by each portal edge and the camera
+void LPortal::AddPlanes(const Vector3 &ptCam, Vector<Plane> &planes) const
+{
+	// short version
+	const Vector<Vector3> &pts = m_ptsWorld;
+
+	int nPoints = pts.size();
+//	ERR_FAIL_COND(nPoints < 3);
+
+	Plane p;
+
+	for (int n=1; n<nPoints; n++)
+	{
+		p = Plane(ptCam, pts[n], pts[n-1]);
+		planes.push_back(p);
+	}
+}
+
 
 LPortal::eClipResult LPortal::ClipWithPlane(const Plane &p) const
 {
@@ -93,7 +116,7 @@ void LPortal::Link(LRoom * pParentRoom)
 
 	String szRoom = FindNameAfter(this, "lportal_");
 
-	print_line("LPortal::Link to room " + szRoom);
+	print("LPortal::Link to room " + szRoom);
 
 	// find the room group
 	Spatial * pGroup = Object::cast_to<Spatial>(pParentRoom->get_parent());
@@ -139,13 +162,13 @@ void LPortal::CreateGeometry(PoolVector<Vector3> p_vertices)
 	m_ptsLocal.resize(nPoints);
 	m_ptsWorld.resize(nPoints);
 
-	print_line("\tLPortal::CreateGeometry nPoints : " + itos(nPoints));
+	print("\tLPortal::CreateGeometry nPoints : " + itos(nPoints));
 
 	for (int n=0; n<nPoints; n++)
 	{
 		m_ptsLocal.set(n, p_vertices[n]);
 		Variant pt = p_vertices[n];
-		print_line("\t\t" + itos(n) + "\t: " + pt);
+		print("\t\t" + itos(n) + "\t: " + pt);
 	}
 
 	SortVertsClockwise();
@@ -250,12 +273,12 @@ void LPortal::CalculateLocalPoints()
 
 	Transform tr = get_transform();
 
-	print_line("\tCalculateLocalPoints");
+	print("\tCalculateLocalPoints");
 	for (int n=0; n<nPoints; n++)
 	{
 		m_ptsLocal.set(n, tr.xform_inv(m_ptsWorld[n]));
 		Variant pt = m_ptsLocal[n];
-		print_line("\t\t" + itos(n) + "\t: " + pt);
+		print("\t\t" + itos(n) + "\t: " + pt);
 	}
 }
 
@@ -267,18 +290,18 @@ void LPortal::CalculateWorldPoints()
 
 	Transform tr = get_global_transform();
 
-	print_line("\tCalculateWorldPoints");
+	print("\tCalculateWorldPoints");
 	for (int n=0; n<nPoints; n++)
 	{
 		m_ptsWorld.set(n, tr.xform(m_ptsLocal[n]));
 		Variant pt = m_ptsWorld[n];
-		print_line("\t\t" + itos(n) + "\t: " + pt);
+		print("\t\t" + itos(n) + "\t: " + pt);
 	}
 }
 
 void LPortal::CopyReversedGeometry(const LPortal &source)
 {
-	print_line("CopyReversedGeometry");
+	print("CopyReversedGeometry");
 	// points are the same but reverse winding order
 	int nPoints = source.m_ptsWorld.size();
 
@@ -289,7 +312,7 @@ void LPortal::CopyReversedGeometry(const LPortal &source)
 	{
 		m_ptsWorld.set(n, source.m_ptsWorld[nPoints - n - 1]);
 		Variant pt = m_ptsWorld[n];
-		print_line("\t\t" + itos(n) + "\t: " + pt);
+		print("\t\t" + itos(n) + "\t: " + pt);
 	}
 
 	CalculateLocalPoints();
@@ -306,7 +329,7 @@ void LPortal::PlaneFromPoints()
 	// create plane from points
 	m_Plane = Plane(m_ptsWorld[0], m_ptsWorld[1], m_ptsWorld[2]);
 
-	print_line("Plane normal world space : " + m_Plane);
+	print("Plane normal world space : " + m_Plane);
 
 //	Plane opp = Plane(m_ptsWorld[2], m_ptsWorld[1], m_ptsWorld[0]);
 //	print_line("Plane opposite : " + opp);
@@ -315,7 +338,7 @@ void LPortal::PlaneFromPoints()
 
 bool LPortal::AddRoom(NodePath path)
 {
-	print_line("LPortal::AddRoom path is " + path);
+	print("LPortal::AddRoom path is " + path);
 
 	if (has_node(path))
 	{

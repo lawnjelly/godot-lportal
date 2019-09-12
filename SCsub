@@ -6,6 +6,7 @@ sources = [
     "lroom.cpp",
     "lroom_manager.cpp",
     "lportal.cpp",
+    "CoBitField_Dynamic.cpp",
 ]
 
 module_env = env.Clone()

@@ -22,24 +22,82 @@
 #include "core/engine.h"
 #include "scene/3d/mesh_instance.h"
 #include "lportal.h"
+#include "CoBitField_Dynamic.h"
 
-
-LRoom::LRoom() {
+void LRoom::print(String sz)
+{
+//	print_line(sz);
 }
 
-void LRoom::DetermineVisibility_Recursive(int depth, const LCamera &cam, const Vector<Plane> &planes, ObjectID portalID_from)
+LRoom::LRoom() {
+	m_LocalRoomID = -1;
+}
+
+void LRoom::DetermineVisibility_Recursive(int depth, const LCamera &cam, const Vector<Plane> &planes, Core::CoBitField_Dynamic &BF_visible, ObjectID portalID_from)
 {
 	// prevent too much depth
 	if (depth >= 8)
 	{
-		print_line("\t\t\tDEPTH LIMIT REACHED");
+		print("\t\t\tDEPTH LIMIT REACHED");
 		return;
 	}
 
-	print_line("DetermineVisibility_Recursive from " + get_name());
+	print("DetermineVisibility_Recursive from " + get_name());
+
+	// show this room and add to visible list of rooms
+	show();
+	BF_visible.SetBit(m_LocalRoomID, true);
 
 	// clip all objects in this room to the clipping planes
-	// NYI
+	for (int n=0; n<get_child_count(); n++)
+	{
+		// ignore portals
+		Node * pNode = get_child(n);
+		LPortal * pPortal = Object::cast_to<LPortal>(pNode);
+		if (pPortal)
+			continue;
+
+		VisualInstance * pObj = Object::cast_to<VisualInstance>(pNode);
+		if (pObj)
+		{
+			Vector3 pt = pObj->get_global_transform().origin;
+
+			bool bShow = true;
+
+
+			// estimate the radius .. for now
+			AABB bb = pObj->get_transformed_aabb();
+
+			print("\t\t\tculling object " + pObj->get_name());
+
+			for (int p=0; p<planes.size(); p++)
+			{
+//				float dist = planes[p].distance_to(pt);
+//				print("\t\t\t\t" + itos(p) + " : dist " + String(Variant(dist)));
+
+				float r_min, r_max;
+				bb.project_range_in_plane(planes[p], r_min, r_max);
+
+				print("\t\t\t\t" + itos(p) + " : r_min " + String(Variant(r_min)) + ", r_max " + String(Variant(r_max)));
+
+
+				if (r_min > 0.0f)
+				{
+					bShow = false;
+					break;
+				}
+			}
+
+			if (bShow)
+				pObj->show();
+			else
+				pObj->hide();
+
+		}
+	}
+
+
+
 
 	// go through each portal out of here
 	int nPortals = m_portal_IDs.size();
@@ -67,14 +125,14 @@ void LRoom::DetermineVisibility_Recursive(int depth, const LCamera &cam, const V
 		}
 
 		const Vector3 &portal_normal = pPortal->m_Plane.normal;
-		print_line("\ttesting portal " + pPortal->get_name() + " normal " + portal_normal);
+		print("\ttesting portal " + pPortal->get_name() + " normal " + portal_normal);
 
 		// direction with the camera? (might not need to check)
 		float dot = cam.m_ptDir.dot(portal_normal);
 		if (dot <= 0.0f)
 		{
 			Variant vd = dot;
-			print_line("\t\tportal culled (wrong direction) dot is " + String(vd));
+			print("\t\tportal culled (wrong direction) dot is " + String(vd));
 			continue;
 		}
 
@@ -102,7 +160,7 @@ void LRoom::DetermineVisibility_Recursive(int depth, const LCamera &cam, const V
 		// this portal is culled
 		if (overall_res == LPortal::eClipResult::CLIP_OUTSIDE)
 		{
-			print_line("\t\tportal culled (outside planes)");
+			print("\t\tportal culled (outside planes)");
 			continue;
 		}
 
@@ -110,12 +168,12 @@ void LRoom::DetermineVisibility_Recursive(int depth, const LCamera &cam, const V
 		Vector<Plane> new_planes = planes;
 
 		// add the planes for the portal
-		// NYI
+		pPortal->AddPlanes(cam.m_ptPos, new_planes);
 
 		// get the room pointed to by the portal
 		LRoom * pLinkedRoom = pPortal->GetLinkedRoom();
 		if (pLinkedRoom)
-			pLinkedRoom->DetermineVisibility_Recursive(depth + 1, cam, new_planes, id);
+			pLinkedRoom->DetermineVisibility_Recursive(depth + 1, cam, new_planes, BF_visible, id);
 	}
 }
 
@@ -125,7 +183,7 @@ void LRoom::DetermineVisibility_Recursive(int depth, const LCamera &cam, const V
 // which will be auto converted to LPortals with this method
 void LRoom::DetectPortalMeshes()
 {
-	print_line("DetectPortalMeshes");
+	print("DetectPortalMeshes");
 
 	bool bFoundOne = true;
 
@@ -158,7 +216,7 @@ void LRoom::DetectPortalMeshes()
 
 void LRoom::DetectedPortalMesh(MeshInstance * pMeshInstance, String szLinkRoom)
 {
-	print_line("\tDetected PortalMesh");
+	print("\tDetected PortalMesh");
 
 	Ref<Mesh> rmesh = pMeshInstance->get_mesh();
 

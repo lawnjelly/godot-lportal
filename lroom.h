@@ -30,14 +30,7 @@
 #include "scene/3d/spatial.h"
 
 
-// Smooth node allows fixed timestep interpolation without having to write any code.
-// It requires a proxy node (which is moved on physics tick), e.g. a rigid body or manually moved spatial..
-// and instead of having MeshInstance as a child of this, you add Smooth node to another part of the scene graph,
-// make the MeshInstance a child of the smooth node, then choose the proxy as the target for the smooth node.
-
-// Note that in the special case of manually moving the proxy to a completely new location, you should call
-// 'teleport' on the smooth node after setting the proxy node transform. This will ensure that the current AND
-// previous transform records are reset, so it moves instantaneously.
+namespace Core {class CoBitField_Dynamic;}
 
 class LPortal;
 class MeshInstance;
@@ -55,9 +48,13 @@ class LRoom : public Spatial {
 	GDCLASS(LRoom, Spatial);
 
 	friend class LPortal;
+	friend class LRoomManager;
 private:
 	// a quick list of object IDs of child portals of this room
 	Vector<ObjectID> m_portal_IDs;
+
+	// in the Room Manager, NOT the godot object ID
+	int m_LocalRoomID;
 
 protected:
 	static void _bind_methods();
@@ -71,7 +68,7 @@ public:
 	void MakePortalQuickList();
 
 	// main function
-	void DetermineVisibility_Recursive(int depth, const LCamera &cam, const Vector<Plane> &planes, ObjectID portalID_from = 0);
+	void DetermineVisibility_Recursive(int depth, const LCamera &cam, const Vector<Plane> &planes, Core::CoBitField_Dynamic &BF_visible, ObjectID portalID_from = 0);
 
 // specific
 public:
@@ -83,6 +80,7 @@ private:
 	//	void SetupPortal(LPortal * pPortal);
 	void MakeOppositePortal(LPortal * pPortalFrom, LRoom * pRoomTo);
 	void DetectedPortalMesh(MeshInstance * pMeshInstance, String szLinkRoom);
+	static void print(String sz);
 };
 
 

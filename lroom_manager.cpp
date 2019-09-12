@@ -22,12 +22,31 @@
 #include "lportal.h"
 #include "lroom.h"
 #include "core/engine.h"
+#include "scene/3d/camera.h"
 
 LRoomManager::LRoomManager()
 {
 	m_room_curr = 0;
+	m_cameraID = 0;
 }
 
+
+void LRoomManager::set_camera(Node * pCam)
+{
+	m_cameraID = 0;
+
+	if (!pCam)
+		return;
+
+	Camera * pCamera = Object::cast_to<Camera>(pCam);
+	if (!pCamera)
+	{
+		WARN_PRINT("Not a camera");
+		return;
+	}
+
+	m_cameraID = pCam->get_instance_id();
+}
 
 // convert empties and meshes to rooms and portals
 void LRoomManager::convert()
@@ -52,7 +71,10 @@ void LRoomManager::Find_Rooms()
 		// don't want to handle already converted rooms
 		LRoom * pRoom = Object::cast_to<LRoom>(pChild);
 		if (pRoom)
+		{
+			pRoom->m_LocalRoomID = m_room_IDs.size();
 			m_room_IDs.push_back(pRoom->get_instance_id());
+		}
 	}
 
 	m_room_curr = 0;
@@ -63,6 +85,9 @@ void LRoomManager::Find_Rooms()
 		m_room_curr = m_room_IDs[0];
 		print_line("first room ID is " + itos(m_room_curr));
 	}
+
+	// make sure bitfield is right size for number of rooms
+	m_BF_visible_rooms.Create(m_room_IDs.size());
 }
 
 void LRoomManager::Convert_Rooms()
@@ -176,6 +201,12 @@ bool LRoomManager::Convert_Room(Spatial * pNode)
 
 void LRoomManager::FrameUpdate()
 {
+	if (Engine::get_singleton()->is_editor_hint())
+	{
+		WARN_PRINT_ONCE("LRoomManager::FrameUpdate should not be called in editor");
+		return;
+	}
+
 	// if not started
 	if (!m_room_curr)
 		return;
@@ -195,18 +226,51 @@ void LRoomManager::FrameUpdate()
 		return;
 	}
 
+	m_BF_visible_rooms.Blank();
+
 	LCamera cam;
 	cam.m_ptPos = Vector3(0, 0, 0);
 	cam.m_ptDir = Vector3 (-1, 0, 0);
 
 	Vector<Plane> planes;
 
-	pRoom->DetermineVisibility_Recursive(0, cam, planes);
+	// get the camera desired and make into lcamera
+	if (m_cameraID)
+	{
+		Object *pObj = ObjectDB::get_instance(m_cameraID);
+
+		Camera * pCamera = Object::cast_to<Camera>(pObj);
+		if (pCamera)
+		{
+			Transform tr = pCamera->get_global_transform();
+			cam.m_ptPos = tr.origin;
+			cam.m_ptDir = tr.basis.get_row(2); // or possibly get_axis .. z is what we want
+
+			planes = pCamera->get_frustum();
+		}
+	}
+
+	pRoom->DetermineVisibility_Recursive(0, cam, planes, m_BF_visible_rooms);
 
 
+	// finally hide all the rooms that are currently visible but not in the visible bitfield as having been hit
+	// NOTE this could be more efficient
+	for (int n=0; n<m_room_IDs.size(); n++)
+	{
+		Object *pObj = ObjectDB::get_instance(m_room_IDs[n]);
+
+		LRoom * pRoom = Object::cast_to<LRoom>(pObj);
+		if (pRoom)
+		{
+			if (!m_BF_visible_rooms.GetBit(n))
+			{
+				pRoom->hide();
+			}
+		}
+	}
 
 	// only do once for now
-	m_room_curr = 0;
+//	m_room_curr = 0;
 }
 
 
@@ -219,6 +283,8 @@ void LRoomManager::_notification(int p_what) {
 //			SetProcessing();
 			if (!Engine::get_singleton()->is_editor_hint())
 				set_process_internal(true);
+			else
+				set_process_internal(false);
 
 //			// we can't translate string name of Target to a node until we are in the tree
 //			ResolveTargetPath();
@@ -245,5 +311,6 @@ void LRoomManager::_notification(int p_what) {
 void LRoomManager::_bind_methods()
 {
 	ClassDB::bind_method(D_METHOD("convert"), &LRoomManager::convert);
+	ClassDB::bind_method(D_METHOD("set_camera"), &LRoomManager::set_camera);
 
 }
