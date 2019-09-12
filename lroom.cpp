@@ -24,18 +24,20 @@
 #include "lportal.h"
 
 
-//#define SMOOTHCLASS Smooth
-//#define SMOOTHNODE Spatial
-//#include "smooth_body.inl"
-
-
 LRoom::LRoom() {
-//	m_Flags = 0;
-//	SetFlags(SF_ENABLED | SF_TRANSLATE | SF_ROTATE);
 }
 
-void LRoom::DetermineVisibility_Recursive(LCamera &cam, const Vector<Plane> &planes, ObjectID portalID_from)
+void LRoom::DetermineVisibility_Recursive(int depth, const LCamera &cam, const Vector<Plane> &planes, ObjectID portalID_from)
 {
+	// prevent too much depth
+	if (depth >= 8)
+	{
+		print_line("\t\t\tDEPTH LIMIT REACHED");
+		return;
+	}
+
+	print_line("DetermineVisibility_Recursive from " + get_name());
+
 	// clip all objects in this room to the clipping planes
 	// NYI
 
@@ -65,11 +67,16 @@ void LRoom::DetermineVisibility_Recursive(LCamera &cam, const Vector<Plane> &pla
 		}
 
 		const Vector3 &portal_normal = pPortal->m_Plane.normal;
+		print_line("\ttesting portal " + pPortal->get_name() + " normal " + portal_normal);
 
 		// direction with the camera? (might not need to check)
 		float dot = cam.m_ptDir.dot(portal_normal);
 		if (dot <= 0.0f)
+		{
+			Variant vd = dot;
+			print_line("\t\tportal culled (wrong direction) dot is " + String(vd));
 			continue;
+		}
 
 		// is it culled by the planes?
 		LPortal::eClipResult overall_res = LPortal::eClipResult::CLIP_INSIDE;
@@ -94,7 +101,10 @@ void LRoom::DetermineVisibility_Recursive(LCamera &cam, const Vector<Plane> &pla
 
 		// this portal is culled
 		if (overall_res == LPortal::eClipResult::CLIP_OUTSIDE)
+		{
+			print_line("\t\tportal culled (outside planes)");
 			continue;
+		}
 
 		// else recurse into that portal
 		Vector<Plane> new_planes = planes;
@@ -102,7 +112,10 @@ void LRoom::DetermineVisibility_Recursive(LCamera &cam, const Vector<Plane> &pla
 		// add the planes for the portal
 		// NYI
 
-		DetermineVisibility_Recursive(cam, new_planes, id);
+		// get the room pointed to by the portal
+		LRoom * pLinkedRoom = pPortal->GetLinkedRoom();
+		if (pLinkedRoom)
+			pLinkedRoom->DetermineVisibility_Recursive(depth + 1, cam, new_planes, id);
 	}
 }
 
@@ -112,6 +125,8 @@ void LRoom::DetermineVisibility_Recursive(LCamera &cam, const Vector<Plane> &pla
 // which will be auto converted to LPortals with this method
 void LRoom::DetectPortalMeshes()
 {
+	print_line("DetectPortalMeshes");
+
 	bool bFoundOne = true;
 
 	while (bFoundOne)
@@ -128,7 +143,7 @@ void LRoom::DetectPortalMeshes()
 				// name must start with portal_
 				if (LPortal::NameStartsWith(pMesh, "portal_"))
 				{
-					String szLinkRoom = LPortal::FindNameAfter(pMesh, 8);
+					String szLinkRoom = LPortal::FindNameAfter(pMesh, "portal_");
 					DetectedPortalMesh(pMesh, szLinkRoom);
 					bFoundOne = true;
 				}
@@ -143,17 +158,21 @@ void LRoom::DetectPortalMeshes()
 
 void LRoom::DetectedPortalMesh(MeshInstance * pMeshInstance, String szLinkRoom)
 {
+	print_line("\tDetected PortalMesh");
+
 	Ref<Mesh> rmesh = pMeshInstance->get_mesh();
 
 	Array arrays = rmesh->surface_get_arrays(0);
 	PoolVector<Vector3> p_vertices = arrays[VS::ARRAY_VERTEX];
 
 	LPortal * pNew = memnew(LPortal);
-	pNew->set_name("lportal");
+	pNew->set_name("lportal_");
 	add_child(pNew);
 
+	pNew->set_transform(pMeshInstance->get_transform());
+
 	NodePath temppath = "../../" + szLinkRoom;
-	pNew->AddRoom(szLinkRoom);
+	pNew->AddRoom(temppath);
 
 	// create the portal geometry
 	pNew->CreateGeometry(p_vertices);
@@ -231,132 +250,6 @@ void LRoom::MakeOppositePortal(LPortal * pPortalFrom, LRoom * pRoomTo)
 
 void LRoom::_bind_methods() {
 
-//	BIND_ENUM_CONSTANT(MODE_LOCAL);
-//	BIND_ENUM_CONSTANT(MODE_GLOBAL);
-
-
-//	ClassDB::bind_method(D_METHOD("teleport"), &SMOOTHCLASS::teleport);
-
-//	ClassDB::bind_method(D_METHOD("set_enabled"), &SMOOTHCLASS::set_enabled);
-//	ClassDB::bind_method(D_METHOD("is_enabled"), &SMOOTHCLASS::is_enabled);
-//	ClassDB::bind_method(D_METHOD("set_smooth_translate"), &SMOOTHCLASS::set_interpolate_translation);
-//	ClassDB::bind_method(D_METHOD("get_smooth_translate"), &SMOOTHCLASS::get_interpolate_translation);
-//	ClassDB::bind_method(D_METHOD("set_smooth_rotate"), &SMOOTHCLASS::set_interpolate_rotation);
-//	ClassDB::bind_method(D_METHOD("get_smooth_rotate"), &SMOOTHCLASS::get_interpolate_rotation);
-//	ClassDB::bind_method(D_METHOD("set_smooth_scale"), &SMOOTHCLASS::set_interpolate_scale);
-//	ClassDB::bind_method(D_METHOD("get_smooth_scale"), &SMOOTHCLASS::get_interpolate_scale);
-
-//	ClassDB::bind_method(D_METHOD("set_input_mode", "mode"), &SMOOTHCLASS::set_input_mode);
-//	ClassDB::bind_method(D_METHOD("get_input_mode"), &SMOOTHCLASS::get_input_mode);
-//	ClassDB::bind_method(D_METHOD("set_output_mode", "mode"), &SMOOTHCLASS::set_output_mode);
-//	ClassDB::bind_method(D_METHOD("get_output_mode"), &SMOOTHCLASS::get_output_mode);
-
-//	ClassDB::bind_method(D_METHOD("set_target", "target"), &SMOOTHCLASS::set_target);
-//	ClassDB::bind_method(D_METHOD("set_target_path", "path"), &SMOOTHCLASS::set_target_path);
-//	ClassDB::bind_method(D_METHOD("get_target_path"), &SMOOTHCLASS::get_target_path);
-
-
-//	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "enabled"), "set_enabled", "is_enabled");
-
-//	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target"), "set_target_path", "get_target_path");
-
-
-//	ADD_GROUP("Components", "");
-//	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "smooth_translate"), "set_smooth_translate", "get_smooth_translate");
-//	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "smooth_rotate"), "set_smooth_rotate", "get_smooth_rotate");
-//	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "smooth_scale"), "set_smooth_scale", "get_smooth_scale");
-//	ADD_GROUP("Coords", "");
-//	ADD_PROPERTY(PropertyInfo(Variant::INT, "input", PROPERTY_HINT_ENUM, "Local,Global"), "set_input_mode", "get_input_mode");
-//	ADD_PROPERTY(PropertyInfo(Variant::INT, "output", PROPERTY_HINT_ENUM, "Local,Global"), "set_output_mode", "get_output_mode");
-
-//	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "lerp"), "set_lerp", "get_lerp");
-
-// finish the bind with custom stuff
-//BIND_ENUM_CONSTANT(METHOD_SLERP);
-//BIND_ENUM_CONSTANT(METHOD_LERP);
-//ClassDB::bind_method(D_METHOD("set_method", "method"), &LRoom::set_method);
-//ClassDB::bind_method(D_METHOD("get_method"), &LRoom::get_method);
-
-//ADD_GROUP("Misc", "");
-//ADD_PROPERTY(PropertyInfo(Variant::INT, "method", PROPERTY_HINT_ENUM, "Slerp,Lerp"), "set_method", "get_method");
 }
 
 
-
-//void LRoom::SetupPortal(LPortal * pPortal)
-//{
-//	ObjectID id = pPortal->get_instance_id();
-//	m_portal_IDs.push_back(id);
-
-//}
-
-//void LRoom::AddPortal(ObjectID id)
-//{
-//}
-
-//bool LRoom::AddPortal(LPortal * pNode)
-//{
-//	if (has_node(path))
-//	{
-//		LPortal * pNode = Object::cast_to<LPortal>(get_node(path));
-//		if (pNode)
-//		{
-//			ObjectID id = pNode->get_instance_id();
-
-//			m_portal_paths.push_back(path);
-//			m_portal_IDs.push_back(id);
-
-//			// add the room to the portal automatically
-//			NodePath self_path = get_path_to(this);
-//			pNode->AddRoom(self_path);
-//			return true;
-//		}
-//		else
-//		{
-//			WARN_PRINT("not a portal");
-//			return false;
-//		}
-//	}
-
-//	return false;
-//}
-
-//void Smooth::set_method(eMethod p_method)
-//{
-	//ChangeFlags(SF_LERP, p_method == METHOD_LERP);
-//}
-
-//Smooth::eMethod Smooth::get_method() const
-//{
-	//if (TestFlags(SF_LERP))
-		//return METHOD_LERP;
-
-	//return METHOD_SLERP;
-//}
-
-
-
-
-
-
-//bool Smooth::FindVisibility() const
-//{
-//	const Spatial *s = this;
-
-//	int count = 0;
-//	while (s) {
-
-//		if (!s->data.visible)
-//		{
-//			print_line(itos(count++) + " hidden");
-//			return false;
-//		}
-//		else
-//		{
-//			print_line(itos(count++) + " visible");
-//		}
-//		s = s->data.parent;
-//	}
-
-//	return true;
-//}

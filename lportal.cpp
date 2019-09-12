@@ -23,10 +23,6 @@
 #include "lroom.h"
 
 
-//#define SMOOTHCLASS Smooth
-//#define SMOOTHNODE Spatial
-//#include "smooth_body.inl"
-
 bool LPortal::NameStartsWith(Node * pNode, String szSearch)
 {
 	int sl = szSearch.length();
@@ -37,7 +33,9 @@ bool LPortal::NameStartsWith(Node * pNode, String szSearch)
 	if (l < sl)
 		return false;
 
-	String szStart = name.substr(sl);
+	String szStart = name.substr(0, sl);
+
+	//print_line("\t\tNameStartsWith szStart is " + szStart);
 
 	if (szStart == szSearch)
 		return true;
@@ -46,11 +44,13 @@ bool LPortal::NameStartsWith(Node * pNode, String szSearch)
 }
 
 
-String LPortal::FindNameAfter(Node * pNode, int CharsToMiss)
+String LPortal::FindNameAfter(Node * pNode, String szStart)
 {
 	String szRes;
 	String name = pNode->get_name();
-	szRes = name.substr(CharsToMiss);
+	szRes = name.substr(szStart.length());
+
+	print_line("\t\tNameAfter is " + szRes);
 	return szRes;
 }
 
@@ -85,13 +85,15 @@ LPortal::eClipResult LPortal::ClipWithPlane(const Plane &p) const
 void LPortal::Link(LRoom * pParentRoom)
 {
 	// should start with 'portal_'
-	if (!NameStartsWith(this, "portal_"))
+	if (!NameStartsWith(this, "lportal_"))
 	{
 		WARN_PRINT("Portal name should begin with lportal_");
 		return;
 	}
 
-	String szRoom = FindNameAfter(this, 8);
+	String szRoom = FindNameAfter(this, "lportal_");
+
+	print_line("LPortal::Link to room " + szRoom);
 
 	// find the room group
 	Spatial * pGroup = Object::cast_to<Spatial>(pParentRoom->get_parent());
@@ -134,27 +136,163 @@ void LPortal::CreateGeometry(PoolVector<Vector3> p_vertices)
 	int nPoints = p_vertices.size();
 	ERR_FAIL_COND(nPoints < 3);
 
+	m_ptsLocal.resize(nPoints);
 	m_ptsWorld.resize(nPoints);
+
+	print_line("\tLPortal::CreateGeometry nPoints : " + itos(nPoints));
 
 	for (int n=0; n<nPoints; n++)
 	{
-		m_ptsWorld.set(n, p_vertices[n]);
+		m_ptsLocal.set(n, p_vertices[n]);
+		Variant pt = p_vertices[n];
+		print_line("\t\t" + itos(n) + "\t: " + pt);
 	}
+
+	SortVertsClockwise();
+
+	CalculateWorldPoints();
 
 	PlaneFromPoints();
 }
 
+// assume first 3 determine the desired normal
+void LPortal::SortVertsClockwise()
+{
+	Vector<Vector3> &verts = m_ptsLocal;
+
+	// find normal
+	Plane plane = Plane(verts[0], verts[1], verts[2]);
+	Vector3 ptNormal = plane.normal;
+
+	// find centroid
+	int nPoints = verts.size();
+
+	Vector3 ptCentre = Vector3(0, 0, 0);
+
+	for (int n=0; n<nPoints; n++)
+	{
+		ptCentre += verts[n];
+	}
+	ptCentre /= nPoints;
+
+
+	// now algorithm
+	for (int n=0; n<nPoints-2; n++)
+	{
+		Vector3 a = verts[n] - ptCentre;
+		a.normalize();
+
+		Plane p = Plane(verts[n], ptCentre, ptCentre + ptNormal);
+
+		double SmallestAngle = -1;
+		int Smallest = -1;
+
+		for (unsigned int m=n+1; m<nPoints; m++)
+		{
+			if (p.distance_to(verts[m]) > 0.0f)
+//			if (p.WhichSideNDLCompatible(m_Verts[m], 0.0f) != CoPlane::NEGATIVE_SIDE)
+			{
+				Vector3 b = m_ptsLocal[m] - ptCentre;
+				b.normalize();
+
+				double Angle = a.dot(b);
+
+				if (Angle > SmallestAngle)
+				{
+					SmallestAngle = Angle;
+					Smallest = m;
+				}
+			} // which side
+
+		} // for m
+
+		// swap smallest and n+1 vert
+		if (Smallest != -1)
+		{
+			Vector3 temp = verts[Smallest];
+			verts.set(Smallest, verts[n+1]);
+			verts.set(n+1, temp);
+		}
+	} // for n
+
+
+	// the vertices are now sorted, but may be in the opposite order to that wanted.
+	// we detect this by calculating the normal of the poly, then flipping the order if the normal is pointing
+	// the wrong way.
+	plane = Plane(verts[0], verts[1], verts[2]);
+
+	if (ptNormal.dot(plane.normal) < 0.0f)
+	{
+		// reverse order of verts
+		ReverseWindingOrder();
+	}
+
+}
+
+void LPortal::ReverseWindingOrder()
+{
+	Vector<Vector3> &verts = m_ptsLocal;
+	Vector<Vector3> copy = verts;
+
+	for (int n=0; n<verts.size(); n++)
+	{
+		verts.set(n, copy[verts.size() - n - 1]);
+	}
+
+}
+
+
+// local from world and local transform
+void LPortal::CalculateLocalPoints()
+{
+	int nPoints = m_ptsLocal.size();
+	ERR_FAIL_COND(m_ptsLocal.size() != m_ptsWorld.size());
+
+	Transform tr = get_transform();
+
+	print_line("\tCalculateLocalPoints");
+	for (int n=0; n<nPoints; n++)
+	{
+		m_ptsLocal.set(n, tr.xform_inv(m_ptsWorld[n]));
+		Variant pt = m_ptsLocal[n];
+		print_line("\t\t" + itos(n) + "\t: " + pt);
+	}
+}
+
+// world from local and transform
+void LPortal::CalculateWorldPoints()
+{
+	int nPoints = m_ptsLocal.size();
+	ERR_FAIL_COND(m_ptsLocal.size() != m_ptsWorld.size());
+
+	Transform tr = get_global_transform();
+
+	print_line("\tCalculateWorldPoints");
+	for (int n=0; n<nPoints; n++)
+	{
+		m_ptsWorld.set(n, tr.xform(m_ptsLocal[n]));
+		Variant pt = m_ptsWorld[n];
+		print_line("\t\t" + itos(n) + "\t: " + pt);
+	}
+}
+
 void LPortal::CopyReversedGeometry(const LPortal &source)
 {
+	print_line("CopyReversedGeometry");
 	// points are the same but reverse winding order
 	int nPoints = source.m_ptsWorld.size();
+
+	m_ptsLocal.resize(nPoints);
 	m_ptsWorld.resize(nPoints);
 
 	for (int n=0; n<nPoints; n++)
 	{
 		m_ptsWorld.set(n, source.m_ptsWorld[nPoints - n - 1]);
+		Variant pt = m_ptsWorld[n];
+		print_line("\t\t" + itos(n) + "\t: " + pt);
 	}
 
+	CalculateLocalPoints();
 	PlaneFromPoints();
 }
 
@@ -167,11 +305,18 @@ void LPortal::PlaneFromPoints()
 	}
 	// create plane from points
 	m_Plane = Plane(m_ptsWorld[0], m_ptsWorld[1], m_ptsWorld[2]);
+
+	print_line("Plane normal world space : " + m_Plane);
+
+//	Plane opp = Plane(m_ptsWorld[2], m_ptsWorld[1], m_ptsWorld[0]);
+//	print_line("Plane opposite : " + opp);
 }
 
 
 bool LPortal::AddRoom(NodePath path)
 {
+	print_line("LPortal::AddRoom path is " + path);
+
 	if (has_node(path))
 	{
 		LRoom * pNode = Object::cast_to<LRoom>(get_node(path));
@@ -202,6 +347,10 @@ bool LPortal::AddRoom(NodePath path)
 			return false;
 		}
 	}
+	else
+	{
+		WARN_PRINTS("portal link room not found : " + path);
+	}
 
 	return false;
 }
@@ -211,97 +360,26 @@ LPortal::LPortal() {
 	m_room_ID = 0;
 }
 
+LRoom * LPortal::GetLinkedRoom() const
+{
+	Object *pObj = ObjectDB::get_instance(m_room_ID);
+
+	if (!pObj)
+		return 0;
+
+	LRoom * pRoom = Object::cast_to<LRoom>(pObj);
+	if (!pRoom)
+	{
+		WARN_PRINT_ONCE("LRoomManager::FrameUpdate : curr room is not an LRoom");
+	}
+
+	return pRoom;
+}
+
 
 void LPortal::_bind_methods() {
 
-//	BIND_ENUM_CONSTANT(MODE_LOCAL);
-//	BIND_ENUM_CONSTANT(MODE_GLOBAL);
-
-
-//	ClassDB::bind_method(D_METHOD("teleport"), &SMOOTHCLASS::teleport);
-
-//	ClassDB::bind_method(D_METHOD("set_enabled"), &SMOOTHCLASS::set_enabled);
-//	ClassDB::bind_method(D_METHOD("is_enabled"), &SMOOTHCLASS::is_enabled);
-//	ClassDB::bind_method(D_METHOD("set_smooth_translate"), &SMOOTHCLASS::set_interpolate_translation);
-//	ClassDB::bind_method(D_METHOD("get_smooth_translate"), &SMOOTHCLASS::get_interpolate_translation);
-//	ClassDB::bind_method(D_METHOD("set_smooth_rotate"), &SMOOTHCLASS::set_interpolate_rotation);
-//	ClassDB::bind_method(D_METHOD("get_smooth_rotate"), &SMOOTHCLASS::get_interpolate_rotation);
-//	ClassDB::bind_method(D_METHOD("set_smooth_scale"), &SMOOTHCLASS::set_interpolate_scale);
-//	ClassDB::bind_method(D_METHOD("get_smooth_scale"), &SMOOTHCLASS::get_interpolate_scale);
-
-//	ClassDB::bind_method(D_METHOD("set_input_mode", "mode"), &SMOOTHCLASS::set_input_mode);
-//	ClassDB::bind_method(D_METHOD("get_input_mode"), &SMOOTHCLASS::get_input_mode);
-//	ClassDB::bind_method(D_METHOD("set_output_mode", "mode"), &SMOOTHCLASS::set_output_mode);
-//	ClassDB::bind_method(D_METHOD("get_output_mode"), &SMOOTHCLASS::get_output_mode);
-
-//	ClassDB::bind_method(D_METHOD("set_target", "target"), &SMOOTHCLASS::set_target);
-//	ClassDB::bind_method(D_METHOD("set_target_path", "path"), &SMOOTHCLASS::set_target_path);
-//	ClassDB::bind_method(D_METHOD("get_target_path"), &SMOOTHCLASS::get_target_path);
-
-
-//	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "enabled"), "set_enabled", "is_enabled");
-
-//	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "target"), "set_target_path", "get_target_path");
-
-
-//	ADD_GROUP("Components", "");
-//	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "smooth_translate"), "set_smooth_translate", "get_smooth_translate");
-//	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "smooth_rotate"), "set_smooth_rotate", "get_smooth_rotate");
-//	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "smooth_scale"), "set_smooth_scale", "get_smooth_scale");
-//	ADD_GROUP("Coords", "");
-//	ADD_PROPERTY(PropertyInfo(Variant::INT, "input", PROPERTY_HINT_ENUM, "Local,Global"), "set_input_mode", "get_input_mode");
-//	ADD_PROPERTY(PropertyInfo(Variant::INT, "output", PROPERTY_HINT_ENUM, "Local,Global"), "set_output_mode", "get_output_mode");
-
-//	ADD_PROPERTY(PropertyInfo(Variant::BOOL, "lerp"), "set_lerp", "get_lerp");
-
-// finish the bind with custom stuff
-//BIND_ENUM_CONSTANT(METHOD_SLERP);
-//BIND_ENUM_CONSTANT(METHOD_LERP);
-//ClassDB::bind_method(D_METHOD("set_method", "method"), &Room::set_method);
-//ClassDB::bind_method(D_METHOD("get_method"), &Room::get_method);
-
-//ADD_GROUP("Misc", "");
-//ADD_PROPERTY(PropertyInfo(Variant::INT, "method", PROPERTY_HINT_ENUM, "Slerp,Lerp"), "set_method", "get_method");
 }
 
 
 
-//void Smooth::set_method(eMethod p_method)
-//{
-	//ChangeFlags(SF_LERP, p_method == METHOD_LERP);
-//}
-
-//Smooth::eMethod Smooth::get_method() const
-//{
-	//if (TestFlags(SF_LERP))
-		//return METHOD_LERP;
-
-	//return METHOD_SLERP;
-//}
-
-
-
-
-
-
-//bool Smooth::FindVisibility() const
-//{
-//	const Spatial *s = this;
-
-//	int count = 0;
-//	while (s) {
-
-//		if (!s->data.visible)
-//		{
-//			print_line(itos(count++) + " hidden");
-//			return false;
-//		}
-//		else
-//		{
-//			print_line(itos(count++) + " visible");
-//		}
-//		s = s->data.parent;
-//	}
-
-//	return true;
-//}

@@ -55,20 +55,7 @@ class LRoom : public Spatial {
 	GDCLASS(LRoom, Spatial);
 
 	friend class LPortal;
-public:
-
-// custom
 private:
-	//class STransform
-	//{
-	//public:
-		//Transform m_Transform;
-		//Quat m_qtRotate;
-		//Vector3 m_ptScale;
-	//};
-
-	//Vector3 m_ptTranslateDiff;
-
 	// a quick list of object IDs of child portals of this room
 	Vector<ObjectID> m_portal_IDs;
 
@@ -76,13 +63,6 @@ protected:
 	static void _bind_methods();
 
 public:
-	//enum eMethod
-	//{
-		//METHOD_SLERP,
-		//METHOD_LERP,
-	//};
-//	bool AddPortal(LPortal * pNode);
-
 	// initial setup, allows importing portals as meshes from modelling program,
 	// which will be auto converted to LPortals with this method
 	void DetectPortalMeshes();
@@ -91,25 +71,19 @@ public:
 	void MakePortalQuickList();
 
 	// main function
-	void DetermineVisibility_Recursive(LCamera &cam, const Vector<Plane> &planes, ObjectID portalID_from = 0);
+	void DetermineVisibility_Recursive(int depth, const LCamera &cam, const Vector<Plane> &planes, ObjectID portalID_from = 0);
 
 // specific
 public:
 	LRoom();
 
-//	void set_method(eMethod p_method);
-//	eMethod get_method() const;
 private:
 
 
 	//	void SetupPortal(LPortal * pPortal);
 	void MakeOppositePortal(LPortal * pPortalFrom, LRoom * pRoomTo);
 	void DetectedPortalMesh(MeshInstance * pMeshInstance, String szLinkRoom);
-//	void AddPortal(ObjectID id);
-//	void LerpBasis(const Basis &from, const Basis &to, Basis &res, float f) const;
 };
 
-//VARIANT_ENUM_CAST(Smooth::eMode);
-//VARIANT_ENUM_CAST(Smooth::eMethod);
 
 #endif

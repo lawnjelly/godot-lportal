@@ -31,19 +31,28 @@
 class LRoomManager : public Spatial {
 	GDCLASS(LRoomManager, Spatial);
 
+	// a quick list of object IDs of child rooms
+	Vector<ObjectID> m_room_IDs;
+
+	ObjectID m_room_curr;
+
 public:
 	LRoomManager();
 
 	// convert empties and meshes to rooms and portals
-	void Convert();
+	void convert();
 
 protected:
 	static void _bind_methods();
+	void _notification(int p_what);
 
 private:
 	void Convert_Rooms();
-	bool Convert_Room(Node * pNode);
+	bool Convert_Room(Spatial * pNode);
 	void Convert_Portals();
+	void Find_Rooms();
+
+	void FrameUpdate();
 };
 
 #endif

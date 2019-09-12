@@ -66,20 +66,15 @@ protected:
 public:
 	// normal determined by winding order
 	Vector<Vector3> m_ptsWorld;
+	Vector<Vector3> m_ptsLocal;
 	Plane m_Plane;
 
-	//enum eMethod
-	//{
-		//METHOD_SLERP,
-		//METHOD_LERP,
-	//};
 
 	ObjectID GetLinkedRoomID() const {return m_room_ID;}
+	LRoom * GetLinkedRoom() const;
 
 	LPortal();
 
-//	void set_method(eMethod p_method);
-//	eMethod get_method() const;
 private:
 	// use the name of the portal to find a room to link to
 	void Link(LRoom * pParentRoom);
@@ -88,16 +83,17 @@ private:
 	void CreateGeometry(PoolVector<Vector3> p_vertices);
 	void PlaneFromPoints();
 
+	void CalculateWorldPoints();
+	void CalculateLocalPoints();
+
+	void SortVertsClockwise();
+	void ReverseWindingOrder();
+
 // useful funcs
 public:
 	static bool NameStartsWith(Node * pNode, String szSearch);
-	static String FindNameAfter(Node * pNode, int CharsToMiss);
+	static String FindNameAfter(Node * pNode, String szStart);
 };
-
-//VARIANT_ENUM_CAST(Smooth::eMode);
-//VARIANT_ENUM_CAST(Smooth::eMethod);
-
-
 
 
 #endif
