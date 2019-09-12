@@ -7,7 +7,8 @@ Work in progress, not yet fully functional
 * Auto conversion of named room spatials and portal mesh instances to LRoom and LPortal DONE
 * Auto creation of mirror portals DONE
 * Recursive determine visibility DONE
-  * (basic function works, culls backward pointing portals, tomorrow add clipping planes formed by portal edge and camera)
+* Prevent memory allocations (use pools for plane vectors) DONE
+* Add support for objects moving between rooms - cameras, players, physics etc - Tomorrow
 * Investigate multiple passes (shadows, lights)
 
 ## Instructions
