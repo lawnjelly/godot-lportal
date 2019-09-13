@@ -29,9 +29,10 @@
 
 #include "scene/3d/spatial.h"
 #include "lvector.h"
+#include "ldob.h"
 
 
-namespace Core {class CoBitField_Dynamic;}
+namespace Lawn {class LBitField_Dynamic;}
 
 class LPortal;
 class LRoomManager;
@@ -55,13 +56,21 @@ private:
 	// a quick list of object IDs of child portals of this room
 	Vector<ObjectID> m_portal_IDs;
 
+	// godot vector for now .. can be lvector
+	Vector<LDob> m_DOBs;
+
+	// Just very rough, room centre for determining start rooms of dobs
+	Vector3 m_ptCentre;
+
 	// in the Room Manager, NOT the godot object ID
 	int m_LocalRoomID;
+
+	// frame counter when last touched .. prevents handling rooms multiple times
+	unsigned int m_uiFrameTouched;
 
 protected:
 	static void _bind_methods();
 
-public:
 	// initial setup, allows importing portals as meshes from modelling program,
 	// which will be auto converted to LPortals with this method
 	void DetectPortalMeshes();
@@ -70,8 +79,14 @@ public:
 	void MakePortalQuickList();
 
 	// main function
-	void DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, Core::CoBitField_Dynamic &BF_visible, ObjectID portalID_from = 0);
+	void DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, Lawn::LBitField_Dynamic &BF_visible, ObjectID portalID_from = 0);
 
+	// dynamic objects
+//	bool UpdateDynamicObject(Node * pDynObj);
+
+	void AddDOB(Spatial * pDOB);
+	bool RemoveDOB(Node * pDOB);
+	LRoom * UpdateDOB(Spatial * pDOB);
 // specific
 public:
 	LRoom();

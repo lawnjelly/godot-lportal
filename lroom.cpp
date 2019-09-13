@@ -22,7 +22,7 @@
 #include "core/engine.h"
 #include "scene/3d/mesh_instance.h"
 #include "lportal.h"
-#include "CoBitField_Dynamic.h"
+#include "lbitfield_dynamic.h"
 #include "lroom_manager.h"
 
 void LRoom::print(String sz)
@@ -33,9 +33,157 @@ void LRoom::print(String sz)
 
 LRoom::LRoom() {
 	m_LocalRoomID = -1;
+	m_uiFrameTouched = 0;
 }
 
-void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, Core::CoBitField_Dynamic &BF_visible, ObjectID portalID_from)
+
+
+void LRoom::AddDOB(Spatial * pDOB)
+{
+	LDob dob;
+	dob.m_ID = pDOB->get_instance_id();
+
+	m_DOBs.push_back(dob);
+}
+
+bool LRoom::RemoveDOB(Node * pDOB)
+{
+	ObjectID id = pDOB->get_instance_id();
+
+	for (int n=0; n<m_DOBs.size(); n++)
+	{
+		if (m_DOBs[n].m_ID == id)
+		{
+			m_DOBs.remove(n);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+
+// returns -1 if no change, or the objectID of the linked room
+LRoom * LRoom::UpdateDOB(Spatial * pDOB)
+{
+	const Vector3 &pt = pDOB->get_global_transform().origin;
+
+	const float slop = 0.2f;
+
+	// the camera can't have slop because we might end up front side of a door without entering the room,
+	// hence can't see into the room through the portal!
+//	if (bCamera)
+//		slop = 0.0f;
+
+	// check each portal - has the object crossed it into the neighbouring room?
+	int nPortals = m_portal_IDs.size();
+	for (int p=0; p<nPortals; p++)
+	{
+		ObjectID id = m_portal_IDs[p];
+
+		// get the portal
+		Object *pObj = ObjectDB::get_instance(id);
+
+		// assuming is a portal
+		LPortal * pPortal = Object::cast_to<LPortal>(pObj);
+
+		if (!pPortal)
+		{
+			WARN_PRINT_ONCE("LRoom::UpdateDynamicObject : Not a portal");
+			continue;
+		}
+
+		float dist = pPortal->m_Plane.distance_to(pt);
+
+		if (dist > slop)
+		{
+			print("DOB at pos " + pt + " ahead of portal " + pPortal->get_name() + " by " + String(Variant(dist)));
+
+			// move into the adjoining room
+			return pPortal->GetLinkedRoom();
+
+//			LRoom * pNewRoom = pPortal->GetLinkedRoom();
+//			if (pNewRoom)
+//			{
+//				// detach from this room and add to the new room
+//				remove_child(pDynObj);
+//				pNewRoom->add_child(pDynObj);
+//				// only allow one transition per frame
+//				return true;
+//			}
+//			else
+//			{
+//				WARN_PRINT_ONCE("LRoom::UpdateDynamicObject : portal linked room is NULL");
+//			}
+		}
+	}
+
+	return 0;
+}
+
+/*
+// assumes that the object is within, or just outside the bounds of the room...
+// if not the results will be 'interesting'.
+// Works simply by detecting crossing portals
+bool LRoom::UpdateDynamicObject(Node * pDynObj)
+{
+	Spatial * pSpatial = Object::cast_to<Spatial>(pDynObj);
+	if (!pSpatial)
+	{
+		WARN_PRINT_ONCE("LRoom::UpdateDynamicObject : object is not a spatial");
+		return false;
+	}
+
+	const Vector3 &pt = pSpatial->get_global_transform().origin;
+
+	const float slop = 0.2f;
+
+	// check each portal - has the object crossed it into the neighbouring room?
+	int nPortals = m_portal_IDs.size();
+	for (int p=0; p<nPortals; p++)
+	{
+		ObjectID id = m_portal_IDs[p];
+
+		// get the portal
+		Object *pObj = ObjectDB::get_instance(id);
+
+		// assuming is a portal
+		LPortal * pPortal = Object::cast_to<LPortal>(pObj);
+
+		if (!pPortal)
+		{
+			WARN_PRINT_ONCE("LRoom::UpdateDynamicObject : Not a portal");
+			continue;
+		}
+
+		float dist = pPortal->m_Plane.distance_to(pt);
+
+		if (dist > slop)
+		{
+			print("DOB at pos " + pt + " ahead of portal " + pPortal->get_name() + " by " + String(Variant(dist)));
+
+			// move into the adjoining room
+			LRoom * pNewRoom = pPortal->GetLinkedRoom();
+			if (pNewRoom)
+			{
+				// detach from this room and add to the new room
+				remove_child(pDynObj);
+				pNewRoom->add_child(pDynObj);
+				// only allow one transition per frame
+				return true;
+			}
+			else
+			{
+				WARN_PRINT_ONCE("LRoom::UpdateDynamicObject : portal linked room is NULL");
+			}
+		}
+	}
+
+	return false;
+}
+*/
+
+void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, Lawn::LBitField_Dynamic &BF_visible, ObjectID portalID_from)
 {
 	// prevent too much depth
 	if (depth >= 8)
@@ -45,6 +193,10 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 	}
 
 	print("DetermineVisibility_Recursive from " + get_name());
+
+	// set the frame counter
+	assert (manager.m_uiFrameCounter > m_uiFrameTouched);
+	m_uiFrameTouched = manager.m_uiFrameCounter;
 
 	// show this room and add to visible list of rooms
 	show();
@@ -126,22 +278,32 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 			continue;
 		}
 
-		const Vector3 &portal_normal = pPortal->m_Plane.normal;
-		print("\ttesting portal " + pPortal->get_name() + " normal " + portal_normal);
+		// have we already handled the room on this frame?
+		// get the room pointed to by the portal
+		LRoom * pLinkedRoom = pPortal->GetLinkedRoom();
+		if (pLinkedRoom->m_uiFrameTouched == manager.m_uiFrameCounter)
+			continue;
+
+//		const Vector3 &portal_normal = pPortal->m_Plane.normal;
+//		print("\ttesting portal " + pPortal->get_name() + " normal " + portal_normal);
 
 		// direction with the camera? (might not need to check)
-		float dot = cam.m_ptDir.dot(portal_normal);
-		if (dot <= 0.0f)
-		{
-			Variant vd = dot;
-			print("\t\tportal culled (wrong direction) dot is " + String(vd));
-			continue;
-		}
+//		float dot = cam.m_ptDir.dot(portal_normal);
+//		if (dot <= -0.0f) // 0.0
+//		{
+//			Variant vd = dot;
+//			print("\t\tportal culled (wrong direction) dot is " + String(vd));
+//			continue;
+//		}
 
 		// is it culled by the planes?
 		LPortal::eClipResult overall_res = LPortal::eClipResult::CLIP_INSIDE;
 
-		for (int l=0; l<planes.size(); l++)
+		// for portals, we want to ignore the near clipping plane, as we might be right on the edge of a doorway
+		// and still want to look through the portal.
+		// So we are starting this loop from 1, ASSUMING that plane zero is the near clipping plane.
+		// If it isn't we would need a different strategy
+		for (int l=1; l<planes.size(); l++)
 		{
 			LPortal::eClipResult res = pPortal->ClipWithPlane(planes[l]);
 
@@ -179,8 +341,6 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 			// add the planes for the portal
 			pPortal->AddPlanes(cam.m_ptPos, new_planes);
 
-			// get the room pointed to by the portal
-			LRoom * pLinkedRoom = pPortal->GetLinkedRoom();
 			if (pLinkedRoom)
 				pLinkedRoom->DetermineVisibility_Recursive(manager, depth + 1, cam, new_planes, BF_visible, id);
 

@@ -16,7 +16,7 @@ public:
 	}
 	const T& operator[](unsigned int ui) const
 	{
-		assert (ui < m_iSize);
+		assert (ui < (unsigned int) m_iSize);
 		return m_Vec[ui];
 	}
 
@@ -39,7 +39,7 @@ public:
 
 	void set(unsigned int ui, const T &t)
 	{
-		assert (ui < m_iSize);
+		assert (ui < (unsigned int) m_iSize);
 		m_Vec.set(ui, t);
 	}
 

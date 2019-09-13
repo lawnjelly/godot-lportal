@@ -36,6 +36,7 @@ class LPortal : public Spatial {
 	GDCLASS(LPortal, Spatial);
 
 	friend class LRoom;
+	friend class LRoomManager;
 private:
 
 	enum eClipResult
@@ -80,12 +81,13 @@ private:
 
 	void SortVertsClockwise();
 	void ReverseWindingOrder();
-
-// useful funcs
 public:
+// useful funcs
 	static bool NameStartsWith(Node * pNode, String szSearch);
 	static String FindNameAfter(Node * pNode, String szStart);
 	static void print(String sz);
+protected:
+	static bool m_bRunning;
 };
 
 

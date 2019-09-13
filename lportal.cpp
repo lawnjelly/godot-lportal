@@ -22,10 +22,20 @@
 #include "core/engine.h"
 #include "lroom.h"
 
+
+bool LPortal::m_bRunning = false;
+
 void LPortal::print(String sz)
 {
-//	print_line(sz);
+	if (m_bRunning)
+	{
+	}
+	else
+	{
+		print_line(sz);
+	}
 }
+
 
 bool LPortal::NameStartsWith(Node * pNode, String szSearch)
 {
@@ -99,7 +109,7 @@ LPortal::eClipResult LPortal::ClipWithPlane(const Plane &p) const
 	{
 		float d = p.distance_to(m_ptsWorld[n]);
 
-		if  (d >= 0.0)
+		if  (d >= 0.0f)
 			nOutside++;
 	}
 
@@ -224,7 +234,7 @@ void LPortal::SortVertsClockwise()
 		double SmallestAngle = -1;
 		int Smallest = -1;
 
-		for (unsigned int m=n+1; m<nPoints; m++)
+		for (int m=n+1; m<nPoints; m++)
 		{
 			if (p.distance_to(verts[m]) > 0.0f)
 //			if (p.WhichSideNDLCompatible(m_Verts[m], 0.0f) != CoPlane::NEGATIVE_SIDE)
