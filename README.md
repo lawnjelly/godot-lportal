@@ -1,7 +1,9 @@
 # godot-lportal
 Portal rendering module for Godot
-
 Work in progress, not yet fully functional
+
+## Current status
+Refactoring LRooms and LPortals outside the scene graph (they will be lists on LRoomManager). This is both for optimization purposes and to make it easier to store fast data on the nodes, instead of using Object metadata.
 
 ## Roadmap
 * Auto conversion of named room spatials and portal mesh instances to LRoom and LPortal DONE
@@ -9,6 +11,8 @@ Work in progress, not yet fully functional
 * Recursive determine visibility DONE
 * Prevent memory allocations (use pools for plane vectors) DONE
 * Add support for objects moving between rooms - cameras, players, physics etc - DONE
+* Refactor code, moving LRooms and LPortals outside scene graph
+* Handle special cases (multiple portals views into room etc)
 * Cleanup code, Optimize
 * Investigate multiple passes (shadows, lights)
 
@@ -30,9 +34,4 @@ Once this structure is set up in the scene graph:
 
 Dynamic objects (DOBs) like players, boxes etc are handled slightly differently. You currently can maintain them outside the roomlist, but instead of adding them to the rooms directly, you call:
 * `void register_dob(Node * pDOB);`
-to register with room system, so the DOB will be culled as part of the system.
-* `bool update_dob(Node * pDOB);`
-each frame you move the DOB to keep it up to date within the system. This will automatically move the DOB between rooms when it crosses portals.
-
-I may also add the option of having the system automatically update the dob, instead of having to call update manually. I only didn't do this initially because you might want dynamic objects to go to sleep when they aren't moving, so there is no need to update in the system.
-
+to register with room system, so the DOB will be culled as part of the system. This will automatically move the DOB between rooms when it crosses portals.
