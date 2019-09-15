@@ -23,12 +23,12 @@ public:
 	}
 	void ExpandToEnclose(const AABB &bb)
 	{
-		if 	(bb.position.x < m_ptMins.x) m_ptMins.x = bb.position.x;
-		if 	(bb.position.y < m_ptMins.y) m_ptMins.y = bb.position.y;
-		if 	(bb.position.z < m_ptMins.z) m_ptMins.z = bb.position.z;
-		if 	(bb.position.x + bb.size.x > m_ptMaxs.x) m_ptMaxs.x = bb.position.x + bb.size.x;
-		if 	(bb.position.y + bb.size.y > m_ptMaxs.y) m_ptMaxs.y = bb.position.y + bb.size.y;
-		if 	(bb.position.z + bb.size.z > m_ptMaxs.z) m_ptMaxs.z = bb.position.z + bb.size.z;
+		if (bb.position.x < m_ptMins.x) m_ptMins.x = bb.position.x;
+		if (bb.position.y < m_ptMins.y) m_ptMins.y = bb.position.y;
+		if (bb.position.z < m_ptMins.z) m_ptMins.z = bb.position.z;
+		if (bb.position.x + bb.size.x > m_ptMaxs.x) m_ptMaxs.x = bb.position.x + bb.size.x;
+		if (bb.position.y + bb.size.y > m_ptMaxs.y) m_ptMaxs.y = bb.position.y + bb.size.y;
+		if (bb.position.z + bb.size.z > m_ptMaxs.z) m_ptMaxs.z = bb.position.z + bb.size.z;
 	}
 	Vector3 FindCentre() const
 	{

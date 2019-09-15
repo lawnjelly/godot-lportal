@@ -120,9 +120,18 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 
 	print("DetermineVisibility_Recursive from " + get_name());
 
-	// set the frame counter
+	// only handle one touch per frame so far (one portal into room)
 	assert (manager.m_uiFrameCounter > m_uiFrameTouched);
-	m_uiFrameTouched = manager.m_uiFrameCounter;
+
+	// first touch
+	if (m_uiFrameTouched < manager.m_uiFrameCounter)
+	{
+		// set the frame counter
+		m_uiFrameTouched = manager.m_uiFrameCounter;
+
+		// keep track of which rooms are shown this frame
+		manager.m_pCurr_VisibleRoomList->push_back(m_RoomID);
+	}
 
 	// show this room and add to visible list of rooms
 	GetGodotRoom()->show();

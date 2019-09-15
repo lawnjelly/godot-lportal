@@ -23,6 +23,7 @@ unsigned int LPlanesPool::Request()
 	if (m_uiCount >= POOL_MAX)
 		return -1;
 
+	// could be done more efficiently .. NYI
 	for (unsigned int n=0; n<POOL_MAX; n++)
 	{
 		if (m_ucTaken[n] == 0)

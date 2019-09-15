@@ -3,6 +3,11 @@
 #include "lvector.h"
 #include "core/math/plane.h"
 
+// The recursive visibility function needs to allocate lists of planes each time a room is traversed.
+// Instead of doing this allocation on the fly we will use a pool which should be much faster and nearer
+// constant time.
+
+// Note this simple pool isn't super optimal but should be fine for now.
 class LPlanesPool
 {
 public:

@@ -48,8 +48,10 @@ class LRoomManager : public Spatial {
 
 	// keep track of which rooms are visible, so we can hide ones that aren't hit that were previously on
 	Lawn::LBitField_Dynamic m_BF_visible_rooms;
-//	Vector<int> m_VisibleRoomList[2];
-//	int m_CurrentVisibleRoomList;
+	LVector<int> m_VisibleRoomList[2];
+
+	LVector<int> * m_pCurr_VisibleRoomList;
+	LVector<int> * m_pPrev_VisibleRoomList;
 
 	// keep a frame counter, to mark when objects have been hit by the visiblity algorithm
 	// already to prevent multiple hits on rooms and objects

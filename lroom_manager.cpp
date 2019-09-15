@@ -28,6 +28,10 @@ LRoomManager::LRoomManager()
 {
 	m_cameraID = 0;
 	m_uiFrameCounter = 0;
+
+	// to know which rooms to hide we keep track of which were shown this, and the previous frame
+	m_pCurr_VisibleRoomList = &m_VisibleRoomList[0];
+	m_pPrev_VisibleRoomList = &m_VisibleRoomList[1];
 }
 
 int LRoomManager::FindClosestRoom(const Vector3 &pt) const
@@ -226,6 +230,9 @@ void LRoomManager::FrameUpdate()
 	// we keep a frame counter to prevent visiting things multiple times on the same frame in recursive functions
 	m_uiFrameCounter++;
 
+	// clear the visible room list to write to each frame
+	m_pCurr_VisibleRoomList->clear();
+
 	// get the camera desired and make into lcamera
 	Camera * pCamera = 0;
 	if (m_cameraID)
@@ -285,13 +292,34 @@ void LRoomManager::FrameUpdate()
 	pRoom->DetermineVisibility_Recursive(*this, 0, cam, planes);
 
 	// finally hide all the rooms that are currently visible but not in the visible bitfield as having been hit
-	// NOTE this will be done more efficiently, but is okay to start with
-	for (int n=0; n<m_Rooms.size(); n++)
+
+	// to get started
+	if (!m_pPrev_VisibleRoomList->size())
 	{
-		if (!m_BF_visible_rooms.GetBit(n))
+		// NOTE this will be done more efficiently, but is okay to start with
+		for (int n=0; n<m_Rooms.size(); n++)
 		{
-			m_Rooms[n].GetGodotRoom()->hide();
+			if (!m_BF_visible_rooms.GetBit(n))
+			{
+				m_Rooms[n].GetGodotRoom()->hide();
+			}
 		}
+	}
+	else
+	{
+		// hide all rooms that were visible last frame but aren't visible this frame
+		for (int n=0; n<m_pPrev_VisibleRoomList->size(); n++)
+		{
+			int r = (*m_pPrev_VisibleRoomList)[n];
+
+			if (!m_BF_visible_rooms.GetBit(r))
+				m_Rooms[r].GetGodotRoom()->hide();
+		}
+
+		// swap the current and previous visible room list
+		LVector<int> * pTemp = m_pCurr_VisibleRoomList;
+		m_pCurr_VisibleRoomList = m_pPrev_VisibleRoomList;
+		m_pPrev_VisibleRoomList = pTemp;
 	}
 
 	// when running, emit less debugging output so as not to choke the IDE
