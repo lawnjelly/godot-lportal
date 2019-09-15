@@ -139,6 +139,7 @@ void LPortal::CreateGeometry(PoolVector<Vector3> p_vertices, const Transform &tr
 	{
 		Vector3 ptWorld = trans.xform(p_vertices[n]);
 		m_ptsWorld.set(n, ptWorld);
+		m_ptCentre += ptWorld;
 
 		print("\t\t" + itos(n) + "\tLocal : " + Variant(p_vertices[n]) + "\tWorld : " + ptWorld);
 	}
@@ -166,6 +167,7 @@ void LPortal::SortVertsClockwise()
 		ptCentre += verts[n];
 	}
 	ptCentre /= nPoints;
+	m_ptCentre = ptCentre;
 
 
 	// now algorithm
@@ -238,6 +240,7 @@ void LPortal::CopyReversedGeometry(const LPortal &source)
 	print("CopyReversedGeometry");
 	// points are the same but reverse winding order
 	int nPoints = source.m_ptsWorld.size();
+	m_ptCentre = source.m_ptCentre;
 
 	m_ptsWorld.resize(nPoints);
 
@@ -268,6 +271,7 @@ void LPortal::PlaneFromPoints()
 LPortal::LPortal() {
 	// unset
 	m_iRoomNum = -1;
+//	m_uiFrameTouched_Blocked = 0;
 }
 
 

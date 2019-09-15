@@ -54,7 +54,11 @@ public:
 
 	// normal determined by winding order
 	Vector<Vector3> m_ptsWorld;
+	Vector3 m_ptCentre; // world
 	Plane m_Plane;
+
+	// frame counter when last touched .. prevents going backward through portals
+	//unsigned int m_uiFrameTouched_Blocked;
 
 	LPortal();
 

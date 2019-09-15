@@ -119,7 +119,7 @@ LRoom * LRoomManager::GetRoomFromDOB(Node * pNode)
 }
 
 
-void LRoomManager::register_dob(Node * pDOB)
+void LRoomManager::dob_register(Node * pDOB)
 {
 	print_line("register_dob " + pDOB->get_name());
 
@@ -139,14 +139,14 @@ void LRoomManager::register_dob(Node * pDOB)
 	if (!pRoom)
 		return;
 
-	pRoom->AddDOB(pSpat);
+	pRoom->DOB_Add(pSpat);
 
 	// save the room ID on the dob metadata
 	Obj_SetRoomNum(pSpat, iRoomNum);
 }
 
 
-bool LRoomManager::update_dob(Node * pDOB)
+bool LRoomManager::dob_update(Node * pDOB)
 {
 	// find the room the object is attached to
 	LRoom * pRoom = GetRoomFromDOB(pDOB);
@@ -157,41 +157,56 @@ bool LRoomManager::update_dob(Node * pDOB)
 	if (!pSpat)
 		return false;
 
-	// is it the camera?
-	//bool bCamera = pDOB->get_instance_id() == m_cameraID;
-
-	LRoom * pNewRoom = pRoom->UpdateDOB(*this, pSpat);
+	LRoom * pNewRoom = pRoom->DOB_Update(*this, pSpat);
 
 	if (pNewRoom)
 	{
 		// remove from the list in old room and add to list in new room, and change the metadata
 		int iRoomNum = pNewRoom->m_RoomID;
 
-		pRoom->RemoveDOB(pDOB);
-		pNewRoom->AddDOB(pSpat);
+		pRoom->DOB_Remove(pDOB);
+		pNewRoom->DOB_Add(pSpat);
 
 		// save the room ID on the dob metadata
 		Obj_SetRoomNum(pSpat, iRoomNum);
+
+		return true;
 	}
 
 	return false;
 }
 
-bool LRoomManager::teleport_dob(Node * pDOB)
+bool LRoomManager::dob_teleport(Node * pDOB)
 {
 	return true;
 }
 
 
 
-void LRoomManager::unregister_dob(Node * pDOB)
+void LRoomManager::dob_unregister(Node * pDOB)
 {
 	LRoom * pRoom = GetRoomFromDOB(pDOB);
-	pRoom->RemoveDOB(pDOB);
+	pRoom->DOB_Remove(pDOB);
+}
+
+int LRoomManager::dob_get_room_id(Node * pDOB)
+{
+	return Obj_GetRoomNum(pDOB);
+}
+
+Node * LRoomManager::rooms_get_room(int room_id)
+{
+	const LRoom * pRoom = GetRoom(room_id);
+
+	if (!pRoom)
+		return NULL;
+
+	return pRoom->GetGodotRoom();
 }
 
 
-void LRoomManager::set_camera(Node * pCam)
+
+void LRoomManager::rooms_set_camera(Node * pCam)
 {
 	m_cameraID = 0;
 
@@ -212,7 +227,7 @@ void LRoomManager::set_camera(Node * pCam)
 }
 
 // convert empties and meshes to rooms and portals
-void LRoomManager::convert()
+void LRoomManager::rooms_convert()
 {
 	LRoomConverter conv;
 	conv.Convert(*this);
@@ -347,14 +362,17 @@ void LRoomManager::_notification(int p_what) {
 void LRoomManager::_bind_methods()
 {
 	// main functions
-	ClassDB::bind_method(D_METHOD("rooms_convert"), &LRoomManager::convert);
-	ClassDB::bind_method(D_METHOD("rooms_set_camera"), &LRoomManager::set_camera);
+	ClassDB::bind_method(D_METHOD("rooms_convert"), &LRoomManager::rooms_convert);
+	ClassDB::bind_method(D_METHOD("rooms_set_camera"), &LRoomManager::rooms_set_camera);
+	ClassDB::bind_method(D_METHOD("rooms_get_room"), &LRoomManager::rooms_get_room);
 
 	// functions to add dynamic objects to the culling system
 	// Note that these should not be placed directly in rooms, the system will 'soft link' to them
 	// so they can be held, e.g. in pools elsewhere in the scene graph
-	ClassDB::bind_method(D_METHOD("dob_register"), &LRoomManager::register_dob);
-	ClassDB::bind_method(D_METHOD("dob_unregister"), &LRoomManager::unregister_dob);
-	ClassDB::bind_method(D_METHOD("dob_update"), &LRoomManager::update_dob);
-	ClassDB::bind_method(D_METHOD("dob_teleport"), &LRoomManager::teleport_dob);
+	ClassDB::bind_method(D_METHOD("dob_register"), &LRoomManager::dob_register);
+	ClassDB::bind_method(D_METHOD("dob_unregister"), &LRoomManager::dob_unregister);
+	ClassDB::bind_method(D_METHOD("dob_update"), &LRoomManager::dob_update);
+	ClassDB::bind_method(D_METHOD("dob_teleport"), &LRoomManager::dob_teleport);
+
+	ClassDB::bind_method(D_METHOD("dob_get_room_id"), &LRoomManager::dob_get_room_id);
 }

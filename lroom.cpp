@@ -52,7 +52,7 @@ Spatial * LRoom::GetGodotRoom() const
 
 
 
-void LRoom::AddDOB(Spatial * pDOB)
+void LRoom::DOB_Add(Spatial * pDOB)
 {
 	LDob dob;
 	dob.m_ID = pDOB->get_instance_id();
@@ -60,7 +60,7 @@ void LRoom::AddDOB(Spatial * pDOB)
 	m_DOBs.push_back(dob);
 }
 
-bool LRoom::RemoveDOB(Node * pDOB)
+bool LRoom::DOB_Remove(Node * pDOB)
 {
 	ObjectID id = pDOB->get_instance_id();
 
@@ -78,11 +78,15 @@ bool LRoom::RemoveDOB(Node * pDOB)
 
 
 // returns -1 if no change, or the linked room we are moving into
-LRoom * LRoom::UpdateDOB(LRoomManager &manager, Spatial * pDOB)
+LRoom * LRoom::DOB_Update(LRoomManager &manager, Spatial * pDOB)
 {
 	const Vector3 &pt = pDOB->get_global_transform().origin;
 
-	const float slop = 0.2f;
+	// is it the camera?
+	bool bCamera = pDOB->get_instance_id() == manager.m_cameraID;
+	float slop = 0.2f;
+	if (bCamera)
+		slop = 0.0f;
 
 	// the camera can't have slop because we might end up front side of a door without entering the room,
 	// hence can't see into the room through the portal!
@@ -109,6 +113,27 @@ LRoom * LRoom::UpdateDOB(LRoomManager &manager, Spatial * pDOB)
 }
 
 
+void LRoom::FirstTouch(LRoomManager &manager)
+{
+	// set the frame counter
+	m_uiFrameTouched = manager.m_uiFrameCounter;
+
+	// keep track of which rooms are shown this frame
+	manager.m_pCurr_VisibleRoomList->push_back(m_RoomID);
+
+	// hide all objects
+	for (int n=0; n<m_SOBs.size(); n++)
+	{
+		const LSob sob = m_SOBs[n];
+		Object * pNode = ObjectDB::get_instance(sob.m_ID);
+		VisualInstance * pObj = Object::cast_to<VisualInstance>(pNode);
+
+		if (pObj)
+			pObj->hide();
+	}
+}
+
+
 void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, int portalID_from)
 {
 	// prevent too much depth
@@ -125,13 +150,7 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 
 	// first touch
 	if (m_uiFrameTouched < manager.m_uiFrameCounter)
-	{
-		// set the frame counter
-		m_uiFrameTouched = manager.m_uiFrameCounter;
-
-		// keep track of which rooms are shown this frame
-		manager.m_pCurr_VisibleRoomList->push_back(m_RoomID);
-	}
+		FirstTouch(manager);
 
 	// show this room and add to visible list of rooms
 	GetGodotRoom()->show();
@@ -178,8 +197,8 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 
 			if (bShow)
 				pObj->show();
-			else
-				pObj->hide();
+//			else
+//				pObj->hide();
 
 		}
 	}
@@ -202,17 +221,25 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 		if (pLinkedRoom->m_uiFrameTouched == manager.m_uiFrameCounter)
 			continue;
 
-//		const Vector3 &portal_normal = pPortal->m_Plane.normal;
-//		print("\ttesting portal " + pPortal->get_name() + " normal " + portal_normal);
+		// cull by portal angle to camera.
+		// Note we need to deal with 'side on' portals, and the camera has a spreading view, so we cannot simply dot
+		// the portal normal with camera direction, we need to take into account angle to the portal itself.
+		const Vector3 &portal_normal = port.m_Plane.normal;
+		print("\ttesting portal " + port.get_name() + " normal " + portal_normal);
 
-		// direction with the camera? (might not need to check)
+		// we will dot the portal angle with a ray from the camera to the portal centre
+		// (there might be an even better ray direction but this will do for now)
+		Vector3 dir_portal = port.m_ptCentre - cam.m_ptPos;
+
+		// doesn't actually need to be normalized?
+		float dot = dir_portal.dot(portal_normal);
+
 //		float dot = cam.m_ptDir.dot(portal_normal);
-//		if (dot <= -0.0f) // 0.0
-//		{
-//			Variant vd = dot;
-//			print("\t\tportal culled (wrong direction) dot is " + String(vd));
-//			continue;
-//		}
+		if (dot <= -0.0f) // 0.0
+		{
+			print("\t\tportal culled (wrong direction) dot is " + String(Variant(dot)) + ", dir_portal is " + dir_portal);
+			continue;
+		}
 
 		// is it culled by the planes?
 		LPortal::eClipResult overall_res = LPortal::eClipResult::CLIP_INSIDE;
@@ -258,6 +285,7 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 
 			// add the planes for the portal
 			port.AddPlanes(cam.m_ptPos, new_planes);
+
 
 			if (pLinkedRoom)
 				pLinkedRoom->DetermineVisibility_Recursive(manager, depth + 1, cam, new_planes, port_id);

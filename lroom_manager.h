@@ -61,20 +61,24 @@ public:
 	LRoomManager();
 
 	// convert empties and meshes to rooms and portals
-	void convert();
+	void rooms_convert();
 
 	// choose which camera you want to use to determine visibility.
 	// normally this will be your main camera, but you can choose another for debugging
-	void set_camera(Node * pCam);
+	void rooms_set_camera(Node * pCam);
 
 	// Dynamic objects .. cameras, players, boxes etc
 	// These are defined by their ability to move from room to room.
 	// You can still move static objects within the same room (e.g. elevators, moving platforms)
 	// as these don't require checks for changing rooms.
-	void register_dob(Node * pDOB);
-	void unregister_dob(Node * pDOB);
-	bool update_dob(Node * pDOB);
-	bool teleport_dob(Node * pDOB);
+	void dob_register(Node * pDOB);
+	void dob_unregister(Node * pDOB);
+	bool dob_update(Node * pDOB);
+	bool dob_teleport(Node * pDOB);
+
+	// supplementary functions available from script
+	int dob_get_room_id(Node * pDOB);
+	Node * rooms_get_room(int room_id);
 
 
 protected:

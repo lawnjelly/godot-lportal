@@ -85,11 +85,12 @@ public:
 protected:
 	// main function
 	void DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, int portalID_from = -1);
+	void FirstTouch(LRoomManager &manager);
 
 
-	void AddDOB(Spatial * pDOB);
-	bool RemoveDOB(Node * pDOB);
-	LRoom * UpdateDOB(LRoomManager &manager, Spatial * pDOB);
+	void DOB_Add(Spatial * pDOB);
+	bool DOB_Remove(Node * pDOB);
+	LRoom * DOB_Update(LRoomManager &manager, Spatial * pDOB);
 
 public:
 	LRoom();
