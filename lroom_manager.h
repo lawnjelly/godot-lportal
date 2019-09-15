@@ -30,58 +30,26 @@
 #include "lbitfield_dynamic.h"
 #include "lplanes_pool.h"
 
+#include "lroom.h"
+#include "lportal.h"
 
-class LRoom;
 
-// simple min max aabb
-class LAABB
-{
-public:
-	Vector3 m_ptMins;
-	Vector3 m_ptMaxs;
-	void SetToMaxOpposite()
-	{
-		float ma = FLT_MAX;
-		float mi = FLT_MIN;
-		m_ptMins = Vector3(ma, ma, ma);
-		m_ptMaxs = Vector3(mi, mi, mi);
-	}
-	void ExpandToEnclose(const AABB &bb)
-	{
-		if 	(bb.position.x < m_ptMins.x) m_ptMins.x = bb.position.x;
-		if 	(bb.position.y < m_ptMins.y) m_ptMins.y = bb.position.y;
-		if 	(bb.position.z < m_ptMins.z) m_ptMins.z = bb.position.z;
-		if 	(bb.position.x + bb.size.x > m_ptMaxs.x) m_ptMaxs.x = bb.position.x + bb.size.x;
-		if 	(bb.position.y + bb.size.y > m_ptMaxs.y) m_ptMaxs.y = bb.position.y + bb.size.y;
-		if 	(bb.position.z + bb.size.z > m_ptMaxs.z) m_ptMaxs.z = bb.position.z + bb.size.z;
-	}
-	Vector3 FindCentre() const
-	{
-		Vector3 pt;
-		pt.x = (m_ptMaxs.x - m_ptMins.x) * 0.5f;
-		pt.y = (m_ptMaxs.y - m_ptMins.y) * 0.5f;
-		pt.z = (m_ptMaxs.z - m_ptMins.z) * 0.5f;
-		pt += m_ptMins;
-		return pt;
-	}
-};
 
 
 class LRoomManager : public Spatial {
 	GDCLASS(LRoomManager, Spatial);
 
 	friend class LRoom;
+	friend class LRoomConverter;
 
-	// a quick list of object IDs of child rooms
-	Vector<ObjectID> m_room_IDs;
 
-//	ObjectID m_room_curr;
+	// godot ID of the camera (which should be registered as a DOB to allow moving between rooms)
 	ObjectID m_cameraID;
 
 	// keep track of which rooms are visible, so we can hide ones that aren't hit that were previously on
 	Lawn::LBitField_Dynamic m_BF_visible_rooms;
-	Vector<int> m_VisibleRoomList[2];
-	int m_CurrentVisibleRoomList;
+//	Vector<int> m_VisibleRoomList[2];
+//	int m_CurrentVisibleRoomList;
 
 	// keep a frame counter, to mark when objects have been hit by the visiblity algorithm
 	// already to prevent multiple hits on rooms and objects
@@ -97,7 +65,10 @@ public:
 	// normally this will be your main camera, but you can choose another for debugging
 	void set_camera(Node * pCam);
 
-	// updating dynamic objects in case they move out of their current room
+	// Dynamic objects .. cameras, players, boxes etc
+	// These are defined by their ability to move from room to room.
+	// You can still move static objects within the same room (e.g. elevators, moving platforms)
+	// as these don't require checks for changing rooms.
 	void register_dob(Node * pDOB);
 	void unregister_dob(Node * pDOB);
 	bool update_dob(Node * pDOB);
@@ -108,25 +79,32 @@ protected:
 	static void _bind_methods();
 	void _notification(int p_what);
 
+	// The recursive visibility function needs to allocate loads of planes.
+	// We use a pool for this instead of allocating on the fly.
 	LPlanesPool m_Pool;
 private:
-	// one time conversion and setup
-	void Convert_Rooms();
-	bool Convert_Room(Spatial * pNode);
-	void Convert_Portals();
-	void Find_Rooms();
 
 	// helper funcs
-	LRoom * GetRoomNum(int i) const;
-	LRoom * GetRoomFromDOB(Node * pNode) const;
-	int GetRoomNumFromLRoom(LRoom * pRoom) const;
+	const LRoom * GetRoom(int i) const;
+	LRoom * GetRoom(int i);
+
+	LRoom * GetRoomFromDOB(Node * pNode);
 	int FindClosestRoom(const Vector3 &pt) const;
 
+	// for DOBs, we need some way of storing the room ID on them, so we use metadata (currently)
+	// this is pretty gross but hey ho
 	int Obj_GetRoomNum(Node * pNode) const;
 	void Obj_SetRoomNum(Node * pNode, int num);
 
-
+	// this is where we do all the culling
 	void FrameUpdate();
+
+	// find which room is linked by a portal
+	LRoom &Portal_GetLinkedRoom(const LPortal &port);
+
+	// lists of rooms and portals, contiguous list so cache friendly
+	LVector<LRoom> m_Rooms;
+	LVector<LPortal> m_Portals;
 };
 
 #endif

@@ -1,8 +1,30 @@
 #pragma once
 
-// just a light wrapper around the Godot vector until we get the allocation issues sorted
+//	Copyright (c) 2019 Lawnjelly
+
+//	Permission is hereby granted, free of charge, to any person obtaining a copy
+//	of this software and associated documentation files (the "Software"), to deal
+//	in the Software without restriction, including without limitation the rights
+//	to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+//	copies of the Software, and to permit persons to whom the Software is
+//	furnished to do so, subject to the following conditions:
+
+//	The above copyright notice and this permission notice shall be included in all
+//	copies or substantial portions of the Software.
+
+//	THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+//	IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+//	FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+//	AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+//	LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+//	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
+//	SOFTWARE.
+
+
+// just a light wrapper around the a vector until we get the Godot vector allocation issues sorted
 #include "core/vector.h"
 #include <assert.h>
+#include <vector>
 
 template <class T> class LVector
 {
@@ -14,6 +36,7 @@ public:
 		assert (ui < m_iSize);
 		return m_Vec[ui];
 	}
+
 	const T& operator[](unsigned int ui) const
 	{
 		assert (ui < (unsigned int) m_iSize);
@@ -37,10 +60,44 @@ public:
 		m_Vec.resize(s);
 	}
 
+	void resize(int s, bool bCompact = false)
+	{
+		// new size
+		m_iSize = s;
+
+		// if compacting is not desired, no need to shrink vector
+		if (m_iSize < m_Vec.size())
+		{
+			if (!bCompact)
+			{
+				return;
+			}
+		}
+
+		m_Vec.resize(s);
+	}
+
 	void set(unsigned int ui, const T &t)
 	{
 		assert (ui < (unsigned int) m_iSize);
-		m_Vec.set(ui, t);
+		m_Vec[ui] = t;
+	}
+
+	T * request()
+	{
+		m_iSize++;
+		if (m_iSize >= m_Vec.size())
+			grow();
+
+		return &m_Vec[m_iSize-1];
+	}
+
+	void grow()
+	{
+		int new_size = m_Vec.size() * 2;
+		if (!new_size) new_size = 1;
+
+		reserve(new_size);
 	}
 
 	void push_back(const T &t)
@@ -51,12 +108,12 @@ public:
 		{
 			int size = m_iSize;
 			m_iSize = size_p1;
-			m_Vec.set(size, t);
+			set(size,  t);
 		}
 		else
 		{
 			// need more space
-			reserve(m_Vec.size() * 2);
+			grow();
 
 			// call recursive
 			push_back(t);
@@ -102,10 +159,11 @@ public:
 		m_iSize = 0;
 	}
 
+
 	int size() const {return m_iSize;}
 
 private:
-	Vector<T> m_Vec;
+	std::vector<T> m_Vec;
 
 	// working size
 	int m_iSize;

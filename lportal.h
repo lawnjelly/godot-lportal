@@ -32,12 +32,8 @@
 
 class LRoom;
 
-class LPortal : public Spatial {
-	GDCLASS(LPortal, Spatial);
-
-	friend class LRoom;
-	friend class LRoomManager;
-private:
+class LPortal {
+public:
 
 	enum eClipResult
 	{
@@ -47,46 +43,31 @@ private:
 	};
 
 
-	ObjectID m_room_ID;
-	NodePath m_room_path;
+	const String &get_name() const {return m_szName;}
 
-protected:
-	static void _bind_methods();
+	// linked room, this is the number not godot ID
+	int m_iRoomNum;
+	String m_szName;
 
 	LPortal::eClipResult ClipWithPlane(const Plane &p) const;
 	void AddPlanes(const Vector3 &ptCam, LVector<Plane> &planes) const;
 
-public:
 	// normal determined by winding order
 	Vector<Vector3> m_ptsWorld;
-	Vector<Vector3> m_ptsLocal;
 	Plane m_Plane;
-
-
-	ObjectID GetLinkedRoomID() const {return m_room_ID;}
-	LRoom * GetLinkedRoom() const;
 
 	LPortal();
 
-private:
-	// use the name of the portal to find a room to link to
-	void Link(LRoom * pParentRoom);
-	bool AddRoom(NodePath path);
 	void CopyReversedGeometry(const LPortal &source);
-	void CreateGeometry(PoolVector<Vector3> p_vertices);
+	void CreateGeometry(PoolVector<Vector3> p_vertices, const Transform &trans);
 	void PlaneFromPoints();
-
-	void CalculateWorldPoints();
-	void CalculateLocalPoints();
-
 	void SortVertsClockwise();
 	void ReverseWindingOrder();
-public:
-// useful funcs
+
+	// useful funcs
 	static bool NameStartsWith(Node * pNode, String szSearch);
 	static String FindNameAfter(Node * pNode, String szStart);
 	static void print(String sz);
-protected:
 	static bool m_bRunning;
 };
 

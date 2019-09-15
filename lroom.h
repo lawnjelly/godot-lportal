@@ -47,56 +47,55 @@ public:
 };
 
 
-class LRoom : public Spatial {
-	GDCLASS(LRoom, Spatial);
 
+class LRoom
+{
 	friend class LPortal;
 	friend class LRoomManager;
+	friend class LRoomConverter;
 private:
-	// a quick list of object IDs of child portals of this room
-	Vector<ObjectID> m_portal_IDs;
 
-	// godot vector for now .. can be lvector
+	// static objects
+	LVector<LSob> m_SOBs;
+
+	// dynamic objects
 	Vector<LDob> m_DOBs;
+
+	// portals are stored in the manager in a contiguous list
+	int m_iFirstPortal;
+	int m_iNumPortals;
 
 	// Just very rough, room centre for determining start rooms of dobs
 	Vector3 m_ptCentre;
+	AABB m_AABB; // world bound
 
-	// in the Room Manager, NOT the godot object ID
-	int m_LocalRoomID;
+	// ID in the Room Manager, NOT the godot object ID
+	int m_RoomID;
+
+	ObjectID m_GodotID;
 
 	// frame counter when last touched .. prevents handling rooms multiple times
 	unsigned int m_uiFrameTouched;
 
+	String m_szName;
+
+public:
+	const String &get_name() const {return m_szName;}
+
 protected:
-	static void _bind_methods();
-
-	// initial setup, allows importing portals as meshes from modelling program,
-	// which will be auto converted to LPortals with this method
-	void DetectPortalMeshes();
-	// assuming that portals are a child of the room, detect these and make them 2 way
-	void MakePortalsTwoWay();
-	void MakePortalQuickList();
-
 	// main function
-	void DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, Lawn::LBitField_Dynamic &BF_visible, ObjectID portalID_from = 0);
+	void DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, int portalID_from = -1);
 
-	// dynamic objects
-//	bool UpdateDynamicObject(Node * pDynObj);
 
 	void AddDOB(Spatial * pDOB);
 	bool RemoveDOB(Node * pDOB);
-	LRoom * UpdateDOB(Spatial * pDOB);
-// specific
+	LRoom * UpdateDOB(LRoomManager &manager, Spatial * pDOB);
+
 public:
 	LRoom();
+	Spatial * GetGodotRoom() const;
 
 private:
-
-
-	//	void SetupPortal(LPortal * pPortal);
-	void MakeOppositePortal(LPortal * pPortalFrom, LRoom * pRoomTo);
-	void DetectedPortalMesh(MeshInstance * pMeshInstance, String szLinkRoom);
 	static void print(String sz);
 };
 

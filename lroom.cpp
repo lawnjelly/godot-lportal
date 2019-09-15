@@ -27,13 +27,27 @@
 
 void LRoom::print(String sz)
 {
-//	print_line(sz);
 	LPortal::print(sz);
 }
 
 LRoom::LRoom() {
-	m_LocalRoomID = -1;
+	m_RoomID = -1;
 	m_uiFrameTouched = 0;
+	m_iFirstPortal = 0;
+	m_iNumPortals = 0;
+}
+
+
+
+
+Spatial * LRoom::GetGodotRoom() const
+{
+	Object *pObj = ObjectDB::get_instance(m_GodotID);
+
+	// assuming is a portal
+	Spatial * pSpat = Object::cast_to<Spatial>(pObj);
+
+	return pSpat;
 }
 
 
@@ -63,8 +77,8 @@ bool LRoom::RemoveDOB(Node * pDOB)
 }
 
 
-// returns -1 if no change, or the objectID of the linked room
-LRoom * LRoom::UpdateDOB(Spatial * pDOB)
+// returns -1 if no change, or the linked room we are moving into
+LRoom * LRoom::UpdateDOB(LRoomManager &manager, Spatial * pDOB)
 {
 	const Vector3 &pt = pDOB->get_global_transform().origin;
 
@@ -76,114 +90,26 @@ LRoom * LRoom::UpdateDOB(Spatial * pDOB)
 //		slop = 0.0f;
 
 	// check each portal - has the object crossed it into the neighbouring room?
-	int nPortals = m_portal_IDs.size();
-	for (int p=0; p<nPortals; p++)
+	for (int p=0; p<m_iNumPortals; p++)
 	{
-		ObjectID id = m_portal_IDs[p];
+		const LPortal &port = manager.m_Portals[m_iFirstPortal + p];
 
-		// get the portal
-		Object *pObj = ObjectDB::get_instance(id);
-
-		// assuming is a portal
-		LPortal * pPortal = Object::cast_to<LPortal>(pObj);
-
-		if (!pPortal)
-		{
-			WARN_PRINT_ONCE("LRoom::UpdateDynamicObject : Not a portal");
-			continue;
-		}
-
-		float dist = pPortal->m_Plane.distance_to(pt);
+		float dist = port.m_Plane.distance_to(pt);
 
 		if (dist > slop)
 		{
-			print("DOB at pos " + pt + " ahead of portal " + pPortal->get_name() + " by " + String(Variant(dist)));
+			print("DOB at pos " + pt + " ahead of portal " + port.get_name() + " by " + String(Variant(dist)));
 
-			// move into the adjoining room
-			return pPortal->GetLinkedRoom();
-
-//			LRoom * pNewRoom = pPortal->GetLinkedRoom();
-//			if (pNewRoom)
-//			{
-//				// detach from this room and add to the new room
-//				remove_child(pDynObj);
-//				pNewRoom->add_child(pDynObj);
-//				// only allow one transition per frame
-//				return true;
-//			}
-//			else
-//			{
-//				WARN_PRINT_ONCE("LRoom::UpdateDynamicObject : portal linked room is NULL");
-//			}
+			// we want to move into the adjoining room
+			return &manager.Portal_GetLinkedRoom(port);
 		}
 	}
 
 	return 0;
 }
 
-/*
-// assumes that the object is within, or just outside the bounds of the room...
-// if not the results will be 'interesting'.
-// Works simply by detecting crossing portals
-bool LRoom::UpdateDynamicObject(Node * pDynObj)
-{
-	Spatial * pSpatial = Object::cast_to<Spatial>(pDynObj);
-	if (!pSpatial)
-	{
-		WARN_PRINT_ONCE("LRoom::UpdateDynamicObject : object is not a spatial");
-		return false;
-	}
 
-	const Vector3 &pt = pSpatial->get_global_transform().origin;
-
-	const float slop = 0.2f;
-
-	// check each portal - has the object crossed it into the neighbouring room?
-	int nPortals = m_portal_IDs.size();
-	for (int p=0; p<nPortals; p++)
-	{
-		ObjectID id = m_portal_IDs[p];
-
-		// get the portal
-		Object *pObj = ObjectDB::get_instance(id);
-
-		// assuming is a portal
-		LPortal * pPortal = Object::cast_to<LPortal>(pObj);
-
-		if (!pPortal)
-		{
-			WARN_PRINT_ONCE("LRoom::UpdateDynamicObject : Not a portal");
-			continue;
-		}
-
-		float dist = pPortal->m_Plane.distance_to(pt);
-
-		if (dist > slop)
-		{
-			print("DOB at pos " + pt + " ahead of portal " + pPortal->get_name() + " by " + String(Variant(dist)));
-
-			// move into the adjoining room
-			LRoom * pNewRoom = pPortal->GetLinkedRoom();
-			if (pNewRoom)
-			{
-				// detach from this room and add to the new room
-				remove_child(pDynObj);
-				pNewRoom->add_child(pDynObj);
-				// only allow one transition per frame
-				return true;
-			}
-			else
-			{
-				WARN_PRINT_ONCE("LRoom::UpdateDynamicObject : portal linked room is NULL");
-			}
-		}
-	}
-
-	return false;
-}
-*/
-
-void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, Lawn::LBitField_Dynamic &BF_visible, ObjectID portalID_from)
+void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, int portalID_from)
 {
 	// prevent too much depth
 	if (depth >= 8)
@@ -199,19 +125,18 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 	m_uiFrameTouched = manager.m_uiFrameCounter;
 
 	// show this room and add to visible list of rooms
-	show();
-	BF_visible.SetBit(m_LocalRoomID, true);
+	GetGodotRoom()->show();
+	manager.m_BF_visible_rooms.SetBit(m_RoomID, true);
 
 	// clip all objects in this room to the clipping planes
-	for (int n=0; n<get_child_count(); n++)
+	for (int n=0; n<m_SOBs.size(); n++)
 	{
-		// ignore portals
-		Node * pNode = get_child(n);
-		LPortal * pPortal = Object::cast_to<LPortal>(pNode);
-		if (pPortal)
-			continue;
+		const LSob sob = m_SOBs[n];
+		Object * pNode = ObjectDB::get_instance(sob.m_ID);
 
 		VisualInstance * pObj = Object::cast_to<VisualInstance>(pNode);
+
+		// should always be a visual instance, only these are added as SOBs
 		if (pObj)
 		{
 			//Vector3 pt = pObj->get_global_transform().origin;
@@ -251,36 +176,20 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 	}
 
 
-
-
-	// go through each portal out of here
-	int nPortals = m_portal_IDs.size();
-
-//	ObjectID this_room_id = get_instance_id();
-
-	for (int p=0; p<nPortals; p++)
+	for (int p=0; p<m_iNumPortals; p++)
 	{
-		ObjectID id = m_portal_IDs[p];
+		int port_id = m_iFirstPortal + p;
 
 		// ignore if the portal we are looking in from
-		if (id == portalID_from)
+		if (port_id == portalID_from)
 			continue;
 
-		// get the portal
-		Object *pObj = ObjectDB::get_instance(id);
-
-		// assuming is a portal
-		LPortal * pPortal = Object::cast_to<LPortal>(pObj);
-
-		if (!pPortal)
-		{
-			WARN_PRINT_ONCE("LRoom::DetermineVisibility_Recursive : Not a portal");
-			continue;
-		}
+		const LPortal &port = manager.m_Portals[port_id];
 
 		// have we already handled the room on this frame?
 		// get the room pointed to by the portal
-		LRoom * pLinkedRoom = pPortal->GetLinkedRoom();
+		LRoom * pLinkedRoom = &manager.Portal_GetLinkedRoom(port);
+
 		if (pLinkedRoom->m_uiFrameTouched == manager.m_uiFrameCounter)
 			continue;
 
@@ -305,7 +214,7 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 		// If it isn't we would need a different strategy
 		for (int l=1; l<planes.size(); l++)
 		{
-			LPortal::eClipResult res = pPortal->ClipWithPlane(planes[l]);
+			LPortal::eClipResult res = port.ClipWithPlane(planes[l]);
 
 			switch (res)
 			{
@@ -339,152 +248,24 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 			new_planes.copy_from(planes);
 
 			// add the planes for the portal
-			pPortal->AddPlanes(cam.m_ptPos, new_planes);
+			port.AddPlanes(cam.m_ptPos, new_planes);
 
 			if (pLinkedRoom)
-				pLinkedRoom->DetermineVisibility_Recursive(manager, depth + 1, cam, new_planes, BF_visible, id);
+				pLinkedRoom->DetermineVisibility_Recursive(manager, depth + 1, cam, new_planes, port_id);
 
+			// we no longer need these planes
 			manager.m_Pool.Free(uiPoolMem);
 		}
 		else
 		{
 			// planes pool is empty!
+			// This will happen if the view goes through shedloads of portals
+			// The solution is either to increase the plane pool size, or build levels
+			// with views through multiple portals. Looking through multiple portals is likely to be
+			// slow anyway because of the number of planes to test.
 			WARN_PRINT_ONCE("Planes pool is empty");
 		}
 	}
-}
-
-
-
-// initial setup, allows importing portals as meshes from modelling program,
-// which will be auto converted to LPortals with this method
-void LRoom::DetectPortalMeshes()
-{
-	print("DetectPortalMeshes");
-
-	bool bFoundOne = true;
-
-	while (bFoundOne)
-	{
-		bFoundOne = false;
-
-		for (int n=0; n<get_child_count(); n++)
-		{
-			Node * pChild = get_child(n);
-
-			MeshInstance * pMesh = Object::cast_to<MeshInstance>(pChild);
-			if (pMesh)
-			{
-				// name must start with portal_
-				if (LPortal::NameStartsWith(pMesh, "portal_"))
-				{
-					String szLinkRoom = LPortal::FindNameAfter(pMesh, "portal_");
-					DetectedPortalMesh(pMesh, szLinkRoom);
-					bFoundOne = true;
-				}
-			}
-
-			if (bFoundOne)
-				break;
-		}
-	}
-
-}
-
-void LRoom::DetectedPortalMesh(MeshInstance * pMeshInstance, String szLinkRoom)
-{
-	print("\tDetected PortalMesh");
-
-	Ref<Mesh> rmesh = pMeshInstance->get_mesh();
-
-	Array arrays = rmesh->surface_get_arrays(0);
-	PoolVector<Vector3> p_vertices = arrays[VS::ARRAY_VERTEX];
-
-	LPortal * pNew = memnew(LPortal);
-	pNew->set_name("lportal_");
-	add_child(pNew);
-
-	pNew->set_transform(pMeshInstance->get_transform());
-
-	NodePath temppath = "../../" + szLinkRoom;
-	pNew->AddRoom(temppath);
-
-	// create the portal geometry
-	pNew->CreateGeometry(p_vertices);
-
-	// delete the original child
-	pMeshInstance->get_parent()->remove_child(pMeshInstance);
-
-	pMeshInstance->queue_delete();
-}
-
-void LRoom::MakePortalsTwoWay()
-{
-	for (int n=0; n<get_child_count(); n++)
-	{
-		Node * pChild = get_child(n);
-
-		LPortal * pPortal = Object::cast_to<LPortal>(pChild);
-		if (pPortal)
-		{
-			pPortal->Link(this);
-		}
-	}
-
-}
-
-// assuming that portals are a child of the room, detect these and make them 2 way
-void LRoom::MakePortalQuickList()
-{
-	// this function could be called more than one time...
-	m_portal_IDs.clear();
-
-	for (int n=0; n<get_child_count(); n++)
-	{
-		Node * pChild = get_child(n);
-
-		LPortal * pPortal = Object::cast_to<LPortal>(pChild);
-		if (pPortal)
-		{
-			ObjectID id = pPortal->get_instance_id();
-			m_portal_IDs.push_back(id);
-		}
-	}
-}
-
-// make sure there is a back (opposite) portal leading from the portal from to the roomto, from this room
-void LRoom::MakeOppositePortal(LPortal * pPortalFrom, LRoom * pRoomTo)
-{
-	ObjectID room_to_id = pRoomTo->get_instance_id();
-
-	// does an opposite portal exist already?
-	for (int n=0; n<get_child_count(); n++)
-	{
-		Node * pChild = get_child(n);
-
-		LPortal * pPortal = Object::cast_to<LPortal>(pChild);
-		if (pPortal)
-		{
-			if (pPortal->GetLinkedRoomID() == room_to_id)
-				// already linked
-				return;
-		}
-	}
-
-	// if we got to here it isn't linked...
-	// add a new portal
-	// NYI
-	LPortal * pNew = memnew(LPortal);
-	pNew->set_name("lportal");
-	add_child(pNew);
-
-	pNew->AddRoom(pRoomTo->get_path());
-	pNew->CopyReversedGeometry(*pPortalFrom);
-}
-
-
-void LRoom::_bind_methods() {
-
 }
 
 

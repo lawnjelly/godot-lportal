@@ -126,86 +126,31 @@ LPortal::eClipResult LPortal::ClipWithPlane(const Plane &p) const
 }
 
 
-
-
-// use the name of the portal to find a room to link to
-void LPortal::Link(LRoom * pParentRoom)
-{
-	// should start with 'portal_'
-	if (!NameStartsWith(this, "lportal_"))
-	{
-		WARN_PRINT("Portal name should begin with lportal_");
-		return;
-	}
-
-	String szRoom = FindNameAfter(this, "lportal_");
-
-	print("LPortal::Link to room " + szRoom);
-
-	// find the room group
-	Spatial * pGroup = Object::cast_to<Spatial>(pParentRoom->get_parent());
-	if (!pGroup)
-	{
-		WARN_PRINT("Room parent is not a spatial");
-		return;
-	}
-
-	// attempt to find a child of the group that has the name specified
-	int nChildren = pGroup->get_child_count();
-
-	for (int n=0; n<nChildren; n++)
-	{
-		Node * pChild = pGroup->get_child(n);
-
-		String szChildName = pChild->get_name();
-
-		// is the name correct for the desired room?
-		if (szRoom != szChildName)
-			continue;
-
-		LRoom * pTargetRoom = Object::cast_to<LRoom>(pChild);
-
-		if (!pTargetRoom)
-		{
-			WARN_PRINT("Portal target is not a room");
-			return;
-		}
-
-		// found! link
-		pTargetRoom->MakeOppositePortal(this, pParentRoom);
-		return;
-	}
-}
-
-
-void LPortal::CreateGeometry(PoolVector<Vector3> p_vertices)
+void LPortal::CreateGeometry(PoolVector<Vector3> p_vertices, const Transform &trans)
 {
 	int nPoints = p_vertices.size();
 	ERR_FAIL_COND(nPoints < 3);
 
-	m_ptsLocal.resize(nPoints);
 	m_ptsWorld.resize(nPoints);
 
 	print("\tLPortal::CreateGeometry nPoints : " + itos(nPoints));
 
 	for (int n=0; n<nPoints; n++)
 	{
-		m_ptsLocal.set(n, p_vertices[n]);
-		Variant pt = p_vertices[n];
-		print("\t\t" + itos(n) + "\t: " + pt);
+		Vector3 ptWorld = trans.xform(p_vertices[n]);
+		m_ptsWorld.set(n, ptWorld);
+
+		print("\t\t" + itos(n) + "\tLocal : " + Variant(p_vertices[n]) + "\tWorld : " + ptWorld);
 	}
 
 	SortVertsClockwise();
-
-	CalculateWorldPoints();
-
 	PlaneFromPoints();
 }
 
 // assume first 3 determine the desired normal
 void LPortal::SortVertsClockwise()
 {
-	Vector<Vector3> &verts = m_ptsLocal;
+	Vector<Vector3> &verts = m_ptsWorld;
 
 	// find normal
 	Plane plane = Plane(verts[0], verts[1], verts[2]);
@@ -237,9 +182,8 @@ void LPortal::SortVertsClockwise()
 		for (int m=n+1; m<nPoints; m++)
 		{
 			if (p.distance_to(verts[m]) > 0.0f)
-//			if (p.WhichSideNDLCompatible(m_Verts[m], 0.0f) != CoPlane::NEGATIVE_SIDE)
 			{
-				Vector3 b = m_ptsLocal[m] - ptCentre;
+				Vector3 b = verts[m] - ptCentre;
 				b.normalize();
 
 				double Angle = a.dot(b);
@@ -278,7 +222,7 @@ void LPortal::SortVertsClockwise()
 
 void LPortal::ReverseWindingOrder()
 {
-	Vector<Vector3> &verts = m_ptsLocal;
+	Vector<Vector3> &verts = m_ptsWorld;
 	Vector<Vector3> copy = verts;
 
 	for (int n=0; n<verts.size(); n++)
@@ -289,57 +233,20 @@ void LPortal::ReverseWindingOrder()
 }
 
 
-// local from world and local transform
-void LPortal::CalculateLocalPoints()
-{
-	int nPoints = m_ptsLocal.size();
-	ERR_FAIL_COND(m_ptsLocal.size() != m_ptsWorld.size());
-
-	Transform tr = get_transform();
-
-	print("\tCalculateLocalPoints");
-	for (int n=0; n<nPoints; n++)
-	{
-		m_ptsLocal.set(n, tr.xform_inv(m_ptsWorld[n]));
-		Variant pt = m_ptsLocal[n];
-		print("\t\t" + itos(n) + "\t: " + pt);
-	}
-}
-
-// world from local and transform
-void LPortal::CalculateWorldPoints()
-{
-	int nPoints = m_ptsLocal.size();
-	ERR_FAIL_COND(m_ptsLocal.size() != m_ptsWorld.size());
-
-	Transform tr = get_global_transform();
-
-	print("\tCalculateWorldPoints");
-	for (int n=0; n<nPoints; n++)
-	{
-		m_ptsWorld.set(n, tr.xform(m_ptsLocal[n]));
-		Variant pt = m_ptsWorld[n];
-		print("\t\t" + itos(n) + "\t: " + pt);
-	}
-}
-
 void LPortal::CopyReversedGeometry(const LPortal &source)
 {
 	print("CopyReversedGeometry");
 	// points are the same but reverse winding order
 	int nPoints = source.m_ptsWorld.size();
 
-	m_ptsLocal.resize(nPoints);
 	m_ptsWorld.resize(nPoints);
 
 	for (int n=0; n<nPoints; n++)
 	{
 		m_ptsWorld.set(n, source.m_ptsWorld[nPoints - n - 1]);
-		Variant pt = m_ptsWorld[n];
-		print("\t\t" + itos(n) + "\t: " + pt);
+		print("\t\t" + itos(n) + "\t: " + Variant(m_ptsWorld[n]));
 	}
 
-	CalculateLocalPoints();
 	PlaneFromPoints();
 }
 
@@ -355,77 +262,12 @@ void LPortal::PlaneFromPoints()
 
 	print("Plane normal world space : " + m_Plane);
 
-//	Plane opp = Plane(m_ptsWorld[2], m_ptsWorld[1], m_ptsWorld[0]);
-//	print_line("Plane opposite : " + opp);
 }
 
-
-bool LPortal::AddRoom(NodePath path)
-{
-	print("LPortal::AddRoom path is " + path);
-
-	if (has_node(path))
-	{
-		LRoom * pNode = Object::cast_to<LRoom>(get_node(path));
-		if (pNode)
-		{
-			ObjectID id = pNode->get_instance_id();
-
-			m_room_path = path;
-			m_room_ID = id;
-
-			// make the portal name correct and feature the room name
-			int num_names = path.get_name_count();
-			if (num_names < 1)
-			{
-				WARN_PRINT("LPortal::AddRoom : Path too short");
-				return false;
-			}
-			String szRoom = path.get_name(num_names-1);
-
-			String szPortal = "lportal_" + szRoom;
-			set_name(szPortal);
-
-			return true;
-		}
-		else
-		{
-			WARN_PRINT("not a room");
-			return false;
-		}
-	}
-	else
-	{
-		WARN_PRINTS("portal link room not found : " + path);
-	}
-
-	return false;
-}
 
 LPortal::LPortal() {
 	// unset
-	m_room_ID = 0;
-}
-
-LRoom * LPortal::GetLinkedRoom() const
-{
-	Object *pObj = ObjectDB::get_instance(m_room_ID);
-
-	if (!pObj)
-		return 0;
-
-	LRoom * pRoom = Object::cast_to<LRoom>(pObj);
-	if (!pRoom)
-	{
-		WARN_PRINT_ONCE("LRoomManager::FrameUpdate : curr room is not an LRoom");
-	}
-
-	return pRoom;
-}
-
-
-void LPortal::_bind_methods() {
-
+	m_iRoomNum = -1;
 }
 
 

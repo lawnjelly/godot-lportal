@@ -5,6 +5,7 @@ sources = [
     "register_types.cpp",
     "lroom.cpp",
     "lroom_manager.cpp",
+    "lroom_converter.cpp",
     "lportal.cpp",
     "lplanes_pool.cpp",
     "ldob.cpp",
@@ -12,7 +13,7 @@ sources = [
 ]
 
 module_env = env.Clone()
-module_env.Append(CXXFLAGS=['-O2', '-std=c++11'])
+module_env.Append(CXXFLAGS=['-O2', '-std=c++11', '-Wno-sign-compare', '-Wno-strict-aliasing'])
 
 if ARGUMENTS.get('lportal_shared', 'no') == 'yes':
     # Shared lib compilation
