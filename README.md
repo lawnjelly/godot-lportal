@@ -31,7 +31,7 @@ This is all subject to change, but to give a rough idea of the current process:
 
 Once this structure is set up in the scene graph:
 * Convert the parent of the rooms to an LRoomManager node
-* At game / level start, call 'rooms_convert' method on the LRoomManager. This will convert room and portal spatials to LRooms and LPortals, and make portals 2 way.
+* At game / level start, call 'rooms_convert' method on the LRoomManager. This will setup internal room and portal lists within the room manager prepared for fast rendering, and make portals 2 way (LRooms and LPortals are now handled internally within LRoomManager, and as such are separate from the scene graph after initial conversion.)
 * Call 'rooms_set_camera()' on LRoomManager to set which camera is used for visibility determination (this is useful for debugging)
 
 Dynamic objects that may move in between rooms (DOBs), like cameras, players, boxes etc are handled slightly differently. You should currently maintain them outside the roomlist, and instead of adding them to the rooms directly, you call:
