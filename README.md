@@ -13,7 +13,8 @@ Refactoring LRooms and LPortals outside the scene graph (they will be lists on L
 * Add support for objects moving between rooms - cameras, players, physics etc - DONE
 * Refactor code, moving LRooms and LPortals outside scene graph DONE
 * Cleanup code, Optimize DONE
-* Handle special cases (multiple portals views into room etc)
+* Handle special cases (multiple portals views into room etc) DONE
+* Bug fixing / testing
 * Optimize non-moving statics
 * PVS (primary and secondary)
 * Investigate multiple passes (shadows, lights)
