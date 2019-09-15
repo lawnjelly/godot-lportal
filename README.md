@@ -2,8 +2,10 @@
 Portal rendering module for Godot
 Work in progress, not yet fully functional
 
+Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use.
+
 ## Current status
-Refactoring LRooms and LPortals outside the scene graph (they will be lists on LRoomManager). This is both for optimization purposes and to make it easier to store fast data on the nodes, instead of using Object metadata.
+Mostly working now. Will do exhaustive testing of multiple portal views tomorrow.
 
 ## Roadmap
 * Auto conversion of named room spatials and portal mesh instances to LRoom and LPortal DONE
