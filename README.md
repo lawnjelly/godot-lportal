@@ -11,9 +11,11 @@ Refactoring LRooms and LPortals outside the scene graph (they will be lists on L
 * Recursive determine visibility DONE
 * Prevent memory allocations (use pools for plane vectors) DONE
 * Add support for objects moving between rooms - cameras, players, physics etc - DONE
-* Refactor code, moving LRooms and LPortals outside scene graph
+* Refactor code, moving LRooms and LPortals outside scene graph DONE
+* Cleanup code, Optimize DONE
 * Handle special cases (multiple portals views into room etc)
-* Cleanup code, Optimize
+* Optimize non-moving statics
+* PVS (primary and secondary)
 * Investigate multiple passes (shadows, lights)
 
 ## Instructions
@@ -32,6 +34,12 @@ Once this structure is set up in the scene graph:
 * At game / level start, call 'rooms_convert' method on the LRoomManager. This will convert room and portal spatials to LRooms and LPortals, and make portals 2 way.
 * Call 'rooms_set_camera()' on LRoomManager to set which camera is used for visibility determination (this is useful for debugging)
 
-Dynamic objects (DOBs) like players, boxes etc are handled slightly differently. You currently can maintain them outside the roomlist, but instead of adding them to the rooms directly, you call:
+Dynamic objects that may move in between rooms (DOBs), like cameras, players, boxes etc are handled slightly differently. You should currently maintain them outside the roomlist, and instead of adding them to the rooms directly, you call:
 * `void register_dob(Node * pDOB);`
-to register with room system, so the DOB will be culled as part of the system. This will automatically move the DOB between rooms when it crosses portals.
+to register with room system, which creates a soft reference, so that the DOB will be culled as part of the system.
+
+I'm still in two minds whether to have the user manually call
+`void update_dob(Node * pDOB);`
+or have the system automatically manage DOBs. DOB updates check to see whether the DOB has crossed any of the portals out of the current room, as such could get expensive for large numbers of DOBs (hundreds maybe). As such, for efficiency, you usually will want the DOB updates to only take place if the DOB is within the primary or secondary PVS (potentially visible set) of rooms. Likewise you will probably only want to move around / update the AI of these localized DOBs.
+
+For now this function is left to be called by the user but I might be able to make an auto mode for convenience when I implement PVS.
