@@ -2,7 +2,10 @@
 Portal rendering module for Godot
 Work in progress, not yet fully functional
 
-Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use.
+Video of initial testing:
+https://www.youtube.com/watch?v=xF_3Fe2HRdk
+
+_Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._
 
 ## Current status
 Mostly working now. Will do exhaustive testing of multiple portal views tomorrow.
@@ -42,7 +45,9 @@ Dynamic objects that may move in between rooms (DOBs), like cameras, players, bo
 to register with room system, which creates a soft reference, so that the DOB will be culled as part of the system.
 
 I'm still in two minds whether to have the user manually call
+
 `void update_dob(Node * pDOB);`
+
 or have the system automatically manage DOBs. DOB updates check to see whether the DOB has crossed any of the portals out of the current room, as such could get expensive for large numbers of DOBs (hundreds maybe). As such, for efficiency, you usually will want the DOB updates to only take place if the DOB is within the primary or secondary PVS (potentially visible set) of rooms. Likewise you will probably only want to move around / update the AI of these localized DOBs.
 
 For now this function is left to be called by the user but I might be able to make an auto mode for convenience when I implement PVS.
