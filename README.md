@@ -1,9 +1,10 @@
 # godot-lportal
-Portal rendering module for Godot
-Work in progress, not yet fully functional
+Portal rendering module for Godot 3.2\
+Work in progress, not yet released
 
 Video of initial testing:
 https://www.youtube.com/watch?v=xF_3Fe2HRdk
+https://www.youtube.com/watch?v=NmlWkkhGoJA
 
 _Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._
 
