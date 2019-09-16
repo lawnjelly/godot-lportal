@@ -52,3 +52,15 @@ I'm still in two minds whether to have the user manually call
 or have the system automatically manage DOBs. DOB updates check to see whether the DOB has crossed any of the portals out of the current room, as such could get expensive for large numbers of DOBs (hundreds maybe). As such, for efficiency, you usually will want the DOB updates to only take place if the DOB is within the primary or secondary PVS (potentially visible set) of rooms. Likewise you will probably only want to move around / update the AI of these localized DOBs.
 
 For now this function is left to be called by the user but I might be able to make an auto mode for convenience when I implement PVS.
+
+## Installation
+You will need to compile Godot from source (for now). See:
+http://docs.godotengine.org/en/3.0/development/compiling/index.html
+
+Once the engine is compiling okay on your system, to add the module:
+* Create a folder inside godot/modules called 'lportal'
+* Clone / download this repository as a zip file and place the files in the lportal folder
+* Compile the engine as normal, it should automatically pick up the lportal module
+* Note that to export to other platforms you will also have to compile export templates for those platforms
+
+You will know the installation was successful when you see a new Node type 'LRoomManager' in the Godot IDE.
