@@ -208,10 +208,11 @@ int LRoomConverter::CountRooms()
 // go through the nodes hanging off the room looking for those that are meshes to mark portal locations
 void LRoomConverter::LRoom_DetectPortalMeshes(LRoom &lroom, LTempRoom &troom)
 {
-	print("DetectPortalMeshes");
+	print("DetectPortalMeshes from room " + lroom.get_name());
 
 	Spatial * pGRoom = lroom.GetGodotRoom();
 	assert (pGRoom);
+
 
 	for (int n=0; n<pGRoom->get_child_count(); n++)
 	{
@@ -228,8 +229,40 @@ void LRoomConverter::LRoom_DetectPortalMeshes(LRoom &lroom, LTempRoom &troom)
 				LRoom_DetectedPortalMesh(lroom, troom, pMesh, szLinkRoom);
 			}
 		}
-
 	}
+
+	// we need an enclosing while loop because we might be deleting children and mucking up the iterator
+	bool bDetectedOne = true;
+
+	while (bDetectedOne)
+	{
+		bDetectedOne = false;
+
+		for (int n=0; n<pGRoom->get_child_count(); n++)
+		{
+			Node * pChild = pGRoom->get_child(n);
+
+			MeshInstance * pMesh = Object::cast_to<MeshInstance>(pChild);
+			if (pMesh)
+			{
+				// name must start with 'portal_'
+				// and ends with the name of the room we want to link to (without the 'room_')
+				if (LPortal::NameStartsWith(pMesh, "portal_"))
+				{
+					// delete the original child, as it is no longer needed at runtime (except maybe for debugging .. NYI?)
+					//	pMeshInstance->hide();
+					pMesh->get_parent()->remove_child(pMesh);
+					pMesh->queue_delete();
+
+					bDetectedOne = true;
+				}
+			}
+
+			if (bDetectedOne)
+				break;
+		} // for loop
+
+	} // while
 
 }
 
@@ -258,13 +291,14 @@ void LRoomConverter::LRoom_MakePortalFinalList(LRoom &lroom, LTempRoom &troom)
 // found a portal mesh! create a matching LPortal
 void LRoomConverter::LRoom_DetectedPortalMesh(LRoom &lroom, LTempRoom &troom, MeshInstance * pMeshInstance, String szLinkRoom)
 {
-	print("\tDetected PortalMesh");
+	print("\tDetected PortalMesh to " + szLinkRoom);
 
 	// which room does this portal want to link to?
 	int iLinkRoom = FindRoom_ByName(szLinkRoom);
 	if (iLinkRoom == -1)
 	{
-		WARN_PRINTS("portal to room " + szLinkRoom + ", room not found");
+		print("\t\tWARNING : portal to room " + szLinkRoom + ", room not found");
+		//WARN_PRINTS("portal to room " + szLinkRoom + ", room not found");
 		return;
 	}
 
@@ -281,10 +315,8 @@ void LRoomConverter::LRoom_DetectedPortalMesh(LRoom &lroom, LTempRoom &troom, Me
 	// create the portal geometry
 	lport.CreateGeometry(p_vertices, pMeshInstance->get_global_transform());
 
-	// delete the original child, as it is no longer needed at runtime (except maybe for debugging .. NYI?)
-//	pMeshInstance->hide();
-	pMeshInstance->get_parent()->remove_child(pMeshInstance);
-	pMeshInstance->queue_delete();
+
+	print("\t\t\tnum portals now " + itos(troom.m_Portals.size()));
 }
 
 
@@ -292,28 +324,39 @@ void LRoomConverter::LRoom_DetectedPortalMesh(LRoom &lroom, LTempRoom &troom, Me
 // will automatically create a mirror portal the other way.
 void LRoomConverter::LRoom_MakePortalsTwoWay(LRoom &lroom, LTempRoom &troom, int iRoomNum)
 {
+	print("LRoomConverter::LRoom_MakePortalsTwoWay from room " + lroom.get_name() + ", contains " + itos (troom.m_Portals.size()) + " portals");
 	for (int n=0; n<troom.m_Portals.size(); n++)
 	{
 		const LPortal &portal_orig = troom.m_Portals[n];
+		print("\tconsidering portal " + portal_orig.get_name());
+
+		// only make original portals into mirror portals, to prevent infinite recursion
+		if (portal_orig.m_bMirror)
+		{
+			print ("\t\tis MIRROR, ignoring");
+			continue;
+		}
+
+		print("\t\tcreating opposite portal");
 
 		// get the temproom this portal is linking to
 		LTempRoom &nroom = m_TempRooms[portal_orig.m_iRoomNum];
 
 		// does a portal already exist back to the orig room?
 		// NOTE this doesn't cope with multiple portals between pairs of rooms yet.
-		bool bAlreadyLinked =false;
+//		bool bAlreadyLinked =false;
 
-		for (int p=0; p<nroom.m_Portals.size(); p++)
-		{
-			if (nroom.m_Portals[p].m_iRoomNum == n)
-			{
-				bAlreadyLinked = true;
-				break;
-			}
-		}
+//		for (int p=0; p<nroom.m_Portals.size(); p++)
+//		{
+//			if (nroom.m_Portals[p].m_iRoomNum == n)
+//			{
+//				bAlreadyLinked = true;
+//				break;
+//			}
+//		}
 
-		if (bAlreadyLinked)
-			continue;
+//		if (bAlreadyLinked)
+//			continue;
 
 		// needs a new reverse link if got to here
 		TRoom_MakeOppositePortal(portal_orig, iRoomNum);
@@ -330,6 +373,7 @@ void LRoomConverter::TRoom_MakeOppositePortal(const LPortal &port, int iRoomOrig
 	LPortal &new_port = *nroom.m_Portals.request();
 	new_port.m_szName = orig_lroom.m_szName;
 	new_port.m_iRoomNum = iRoomOrig;
+	new_port.m_bMirror = true;
 
 	// the portal vertices should be the same but reversed (to flip the normal)
 	new_port.CopyReversedGeometry(port);

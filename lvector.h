@@ -21,7 +21,7 @@
 //	SOFTWARE.
 
 
-// just a light wrapper around the a vector until we get the Godot vector allocation issues sorted
+// just a light wrapper around a vector until we get the Godot vector allocation issues sorted
 #include "core/vector.h"
 #include <assert.h>
 #include <vector>
@@ -31,6 +31,7 @@ template <class T> class LVector
 public:
 
 	// array subscript access
+	// note this is not available in Godot Vector
 	T& operator[](unsigned int ui)
 	{
 		assert (ui < m_iSize);
@@ -81,6 +82,14 @@ public:
 	{
 		assert (ui < (unsigned int) m_iSize);
 		m_Vec[ui] = t;
+	}
+
+	// efficient unsorted
+	void remove_unsorted(unsigned int ui)
+	{
+		// just swap the end element and decrement count
+		m_Vec[ui] = m_Vec[m_iSize-1];
+		m_iSize--;
 	}
 
 	T * request()

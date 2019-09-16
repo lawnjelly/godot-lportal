@@ -25,9 +25,13 @@
 #include "lbitfield_dynamic.h"
 #include "lroom_manager.h"
 
+//#define LROOM_VERBOSE
+
 void LRoom::print(String sz)
 {
+#ifdef LROOM_VERBOSE
 	LPortal::print(sz);
+#endif
 }
 
 LRoom::LRoom() {
@@ -52,15 +56,15 @@ Spatial * LRoom::GetGodotRoom() const
 
 
 
-void LRoom::DOB_Add(Spatial * pDOB)
+void LRoom::DOB_Add(const LDob &dob)
 {
-	LDob dob;
-	dob.m_ID = pDOB->get_instance_id();
+//	LDob dob;
+//	dob.m_ID = pDOB->get_instance_id();
 
 	m_DOBs.push_back(dob);
 }
 
-bool LRoom::DOB_Remove(Node * pDOB)
+unsigned int LRoom::DOB_Find(Node * pDOB) const
 {
 	ObjectID id = pDOB->get_instance_id();
 
@@ -68,9 +72,19 @@ bool LRoom::DOB_Remove(Node * pDOB)
 	{
 		if (m_DOBs[n].m_ID == id)
 		{
-			m_DOBs.remove(n);
-			return true;
+			return n;
 		}
+	}
+
+	return -1;
+}
+
+bool LRoom::DOB_Remove(unsigned int ui)
+{
+	if (ui < m_DOBs.size())
+	{
+		m_DOBs.remove_unsorted(ui);
+		return true;
 	}
 
 	return false;
@@ -102,7 +116,9 @@ LRoom * LRoom::DOB_Update(LRoomManager &manager, Spatial * pDOB)
 
 		if (dist > slop)
 		{
+#ifdef LROOM_VERBOSE
 			print("DOB at pos " + pt + " ahead of portal " + port.get_name() + " by " + String(Variant(dist)));
+#endif
 
 			// we want to move into the adjoining room
 			return &manager.Portal_GetLinkedRoom(port);
@@ -112,6 +128,61 @@ LRoom * LRoom::DOB_Update(LRoomManager &manager, Spatial * pDOB)
 	return 0;
 }
 
+// hide all the objects not hit on this frame .. instead of calling godot hide without need
+// (it might be expensive)
+void LRoom::FinalizeVisibility(LRoomManager &manager)
+{
+	//print_line("FinalizeVisibility room " + get_name() + " NumSOBs " + itos(m_SOBs.size()) + ", NumDOBs " + itos(m_DOBs.size()));
+
+	for (int n=0; n<m_SOBs.size(); n++)
+	{
+		const LSob &sob = m_SOBs[n];
+		Spatial * pS = sob.GetSpatial();
+
+		if (pS)
+		{
+			if (sob.m_bVisible)
+				pS->show();
+			else
+				pS->hide();
+		}
+	}
+
+	for (int n=0; n<m_DOBs.size(); n++)
+	{
+		const LDob &dob = m_DOBs[n];
+
+		// don't cull the main camera
+		if (dob.m_ID == manager.m_cameraID)
+			continue;
+
+		Spatial * pS = dob.GetSpatial();
+		if (pS)
+		{
+			if (dob.m_bVisible)
+			{
+				//print("LRoom::FinalizeVisibility making visible dob " + pS->get_name());
+				pS->show();
+			}
+			else
+				pS->hide();
+		}
+	}
+}
+
+// hide godot room and all linked dobs
+void LRoom::Hide_All()
+{
+	GetGodotRoom()->hide();
+
+	for (int n=0; n<m_DOBs.size(); n++)
+	{
+		LDob &dob = m_DOBs[n];
+		Spatial * pS = dob.GetSpatial();
+		if (pS)
+			pS->hide();
+	}
+}
 
 void LRoom::FirstTouch(LRoomManager &manager)
 {
@@ -123,14 +194,11 @@ void LRoom::FirstTouch(LRoomManager &manager)
 
 	// hide all objects
 	for (int n=0; n<m_SOBs.size(); n++)
-	{
-		const LSob sob = m_SOBs[n];
-		Object * pNode = ObjectDB::get_instance(sob.m_ID);
-		VisualInstance * pObj = Object::cast_to<VisualInstance>(pNode);
+		m_SOBs[n].m_bVisible = false;
 
-		if (pObj)
-			pObj->hide();
-	}
+	// hide all dobs
+	for (int n=0; n<m_DOBs.size(); n++)
+		m_DOBs[n].m_bVisible = false;
 }
 
 
@@ -139,14 +207,18 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 	// prevent too much depth
 	if (depth >= 8)
 	{
+#ifdef LROOM_VERBOSE
 		print("\t\t\tDEPTH LIMIT REACHED");
+#endif
 		return;
 	}
 
+#ifdef LROOM_VERBOSE
 	print("DetermineVisibility_Recursive from " + get_name());
+#endif
 
 	// only handle one touch per frame so far (one portal into room)
-	assert (manager.m_uiFrameCounter > m_uiFrameTouched);
+	//assert (manager.m_uiFrameCounter > m_uiFrameTouched);
 
 	// first touch
 	if (m_uiFrameTouched < manager.m_uiFrameCounter)
@@ -156,6 +228,51 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 	GetGodotRoom()->show();
 	manager.m_BF_visible_rooms.SetBit(m_RoomID, true);
 
+#define LPORTAL_CULL_STATIC
+#ifdef LPORTAL_CULL_STATIC
+
+	// clip all objects in this room to the clipping planes
+	for (int n=0; n<m_SOBs.size(); n++)
+	{
+		LSob &sob = m_SOBs[n];
+
+		// already determined to be visible through another portal
+		if (sob.m_bVisible)
+			continue;
+
+		bool bShow = true;
+
+
+		// estimate the radius .. for now
+		const AABB &bb = sob.m_aabb;
+
+//		print("\t\t\tculling object " + pObj->get_name());
+
+		for (int p=0; p<planes.size(); p++)
+		{
+//				float dist = planes[p].distance_to(pt);
+//				print("\t\t\t\t" + itos(p) + " : dist " + String(Variant(dist)));
+
+			float r_min, r_max;
+			bb.project_range_in_plane(planes[p], r_min, r_max);
+
+	//		print("\t\t\t\t" + itos(p) + " : r_min " + String(Variant(r_min)) + ", r_max " + String(Variant(r_max)));
+
+
+			if (r_min > 0.0f)
+			{
+				bShow = false;
+				break;
+			}
+		}
+
+		if (bShow)
+			sob.m_bVisible = true;
+
+	}
+
+
+#else
 	// clip all objects in this room to the clipping planes
 	for (int n=0; n<m_SOBs.size(); n++)
 	{
@@ -196,19 +313,56 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 			}
 
 			if (bShow)
-				pObj->show();
+				sob.m_bVisible = true;
+//				pObj->show();
 //			else
 //				pObj->hide();
 
 		}
 	}
+#endif
+
+	// cull DOBs
+	for (int n=0; n<m_DOBs.size(); n++)
+	{
+		LDob &dob = m_DOBs[n];
+
+		Spatial * pObj = dob.GetSpatial();
+
+		if (pObj)
+		{
+			bool bShow = true;
+			const Vector3 &pt = pObj->get_global_transform().origin;
+
+			//print_line("\t\t\tculling dob " + pObj->get_name());
+			float radius = dob.m_fRadius;
+
+			for (int p=0; p<planes.size(); p++)
+			{
+				float dist = planes[p].distance_to(pt);
+				//print("\t\t\t\t" + itos(p) + " : dist " + String(Variant(dist)));
+
+				if (dist > radius)
+				{
+					bShow = false;
+					break;
+				}
+			}
+
+			if (bShow)
+				dob.m_bVisible = true;
+		}
+	}
 
 
+
+	// look through portals
 	for (int p=0; p<m_iNumPortals; p++)
 	{
 		int port_id = m_iFirstPortal + p;
 
 		// ignore if the portal we are looking in from
+		// is this needed? surely the portal we are looking in from is in another room?
 		if (port_id == portalID_from)
 			continue;
 
@@ -218,14 +372,16 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 		// get the room pointed to by the portal
 		LRoom * pLinkedRoom = &manager.Portal_GetLinkedRoom(port);
 
-		if (pLinkedRoom->m_uiFrameTouched == manager.m_uiFrameCounter)
-			continue;
+//		if (pLinkedRoom->m_uiFrameTouched == manager.m_uiFrameCounter)
+//			continue;
 
 		// cull by portal angle to camera.
 		// Note we need to deal with 'side on' portals, and the camera has a spreading view, so we cannot simply dot
 		// the portal normal with camera direction, we need to take into account angle to the portal itself.
 		const Vector3 &portal_normal = port.m_Plane.normal;
+#ifdef LROOM_VERBOSE
 		print("\ttesting portal " + port.get_name() + " normal " + portal_normal);
+#endif
 
 		// we will dot the portal angle with a ray from the camera to the portal centre
 		// (there might be an even better ray direction but this will do for now)
@@ -237,7 +393,9 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 //		float dot = cam.m_ptDir.dot(portal_normal);
 		if (dot <= -0.0f) // 0.0
 		{
+#ifdef LROOM_VERBOSE
 			print("\t\tportal culled (wrong direction) dot is " + String(Variant(dot)) + ", dir_portal is " + dir_portal);
+#endif
 			continue;
 		}
 
@@ -269,7 +427,9 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 		// this portal is culled
 		if (overall_res == LPortal::eClipResult::CLIP_OUTSIDE)
 		{
+#ifdef LROOM_VERBOSE
 			print("\t\tportal culled (outside planes)");
+#endif
 			continue;
 		}
 

@@ -23,10 +23,13 @@
 #include "lroom.h"
 
 
+//#define LPORTAL_VERBOSE
+
 bool LPortal::m_bRunning = false;
 
 void LPortal::print(String sz)
 {
+#ifdef LPORTAL_VERBOSE
 	if (m_bRunning)
 	{
 	}
@@ -34,6 +37,7 @@ void LPortal::print(String sz)
 	{
 		print_line(sz);
 	}
+#endif
 }
 
 
@@ -64,7 +68,20 @@ String LPortal::FindNameAfter(Node * pNode, String szStart)
 	String name = pNode->get_name();
 	szRes = name.substr(szStart.length());
 
-	print("\t\tNameAfter is " + szRes);
+	// because godot doesn't support multiple nodes with the same name, we will strip e.g. a number
+	// after an @ on the end of the name...
+	// e.g. portal_kitchen@2
+	for (int c=0; c<szRes.length(); c++)
+	{
+		if (szRes[c] == '*')
+		{
+			// remove everything after and including this character
+			szRes = szRes.substr(0, c);
+			break;
+		}
+	}
+
+	//print("\t\tNameAfter is " + szRes);
 	return szRes;
 }
 
@@ -115,7 +132,9 @@ LPortal::eClipResult LPortal::ClipWithPlane(const Plane &p) const
 
 	if (nOutside == nPoints)
 	{
+#ifdef LPORTAL_VERBOSE
 		print("LPortal::ClipWithPlane : Outside plane " + p);
+#endif
 		return CLIP_OUTSIDE;
 	}
 
@@ -133,7 +152,7 @@ void LPortal::CreateGeometry(PoolVector<Vector3> p_vertices, const Transform &tr
 
 	m_ptsWorld.resize(nPoints);
 
-	print("\tLPortal::CreateGeometry nPoints : " + itos(nPoints));
+	//print("\t\t\tLPortal::CreateGeometry nPoints : " + itos(nPoints));
 
 	for (int n=0; n<nPoints; n++)
 	{
@@ -141,7 +160,7 @@ void LPortal::CreateGeometry(PoolVector<Vector3> p_vertices, const Transform &tr
 		m_ptsWorld.set(n, ptWorld);
 		m_ptCentre += ptWorld;
 
-		print("\t\t" + itos(n) + "\tLocal : " + Variant(p_vertices[n]) + "\tWorld : " + ptWorld);
+		//print("\t\t\t\t" + itos(n) + "\tLocal : " + Variant(p_vertices[n]) + "\tWorld : " + ptWorld);
 	}
 
 	SortVertsClockwise();
@@ -237,7 +256,7 @@ void LPortal::ReverseWindingOrder()
 
 void LPortal::CopyReversedGeometry(const LPortal &source)
 {
-	print("CopyReversedGeometry");
+	//print("\t\t\tCopyReversedGeometry");
 	// points are the same but reverse winding order
 	int nPoints = source.m_ptsWorld.size();
 	m_ptCentre = source.m_ptCentre;
@@ -247,7 +266,7 @@ void LPortal::CopyReversedGeometry(const LPortal &source)
 	for (int n=0; n<nPoints; n++)
 	{
 		m_ptsWorld.set(n, source.m_ptsWorld[nPoints - n - 1]);
-		print("\t\t" + itos(n) + "\t: " + Variant(m_ptsWorld[n]));
+		//print("\t\t\t\t" + itos(n) + "\t: " + Variant(m_ptsWorld[n]));
 	}
 
 	PlaneFromPoints();
@@ -263,7 +282,7 @@ void LPortal::PlaneFromPoints()
 	// create plane from points
 	m_Plane = Plane(m_ptsWorld[0], m_ptsWorld[1], m_ptsWorld[2]);
 
-	print("Plane normal world space : " + m_Plane);
+	//print("\t\t\t\t\tPlane normal world space : " + m_Plane);
 
 }
 
@@ -271,6 +290,7 @@ void LPortal::PlaneFromPoints()
 LPortal::LPortal() {
 	// unset
 	m_iRoomNum = -1;
+	m_bMirror = false;
 //	m_uiFrameTouched_Blocked = 0;
 }
 

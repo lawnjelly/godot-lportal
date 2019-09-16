@@ -30,8 +30,8 @@ LRoomManager::LRoomManager()
 	m_uiFrameCounter = 0;
 
 	// to know which rooms to hide we keep track of which were shown this, and the previous frame
-	m_pCurr_VisibleRoomList = &m_VisibleRoomList[0];
-	m_pPrev_VisibleRoomList = &m_VisibleRoomList[1];
+	m_pCurr_VisibleRoomList = &m_VisibleRoomList_A;
+	m_pPrev_VisibleRoomList = &m_VisibleRoomList_B;
 }
 
 int LRoomManager::FindClosestRoom(const Vector3 &pt) const
@@ -119,7 +119,7 @@ LRoom * LRoomManager::GetRoomFromDOB(Node * pNode)
 }
 
 
-void LRoomManager::dob_register(Node * pDOB)
+void LRoomManager::dob_register(Node * pDOB, float radius)
 {
 	print_line("register_dob " + pDOB->get_name());
 
@@ -139,7 +139,11 @@ void LRoomManager::dob_register(Node * pDOB)
 	if (!pRoom)
 		return;
 
-	pRoom->DOB_Add(pSpat);
+	LDob dob;
+	dob.m_ID = pSpat->get_instance_id();
+	dob.m_fRadius = radius;
+
+	pRoom->DOB_Add(dob);
 
 	// save the room ID on the dob metadata
 	Obj_SetRoomNum(pSpat, iRoomNum);
@@ -164,8 +168,18 @@ bool LRoomManager::dob_update(Node * pDOB)
 		// remove from the list in old room and add to list in new room, and change the metadata
 		int iRoomNum = pNewRoom->m_RoomID;
 
-		pRoom->DOB_Remove(pDOB);
-		pNewRoom->DOB_Add(pSpat);
+		// get dob data to move to new room
+		unsigned int dob_id = pRoom->DOB_Find(pDOB);
+		assert (dob_id != -1);
+
+		// copy across data before removing
+		const LDob &data = pRoom->DOB_Get(dob_id);
+		pNewRoom->DOB_Add(data);
+
+		// remove from old room
+		pRoom->DOB_Remove(dob_id);
+
+
 
 		// save the room ID on the dob metadata
 		Obj_SetRoomNum(pSpat, iRoomNum);
@@ -186,7 +200,13 @@ bool LRoomManager::dob_teleport(Node * pDOB)
 void LRoomManager::dob_unregister(Node * pDOB)
 {
 	LRoom * pRoom = GetRoomFromDOB(pDOB);
-	pRoom->DOB_Remove(pDOB);
+
+	if (pRoom)
+	{
+		unsigned int dob_id = pRoom->DOB_Find(pDOB);
+		assert (dob_id != -1);
+		pRoom->DOB_Remove(dob_id);
+	}
 }
 
 int LRoomManager::dob_get_room_id(Node * pDOB)
@@ -316,7 +336,7 @@ void LRoomManager::FrameUpdate()
 		{
 			if (!m_BF_visible_rooms.GetBit(n))
 			{
-				m_Rooms[n].GetGodotRoom()->hide();
+				m_Rooms[n].Hide_All();
 			}
 		}
 	}
@@ -328,14 +348,29 @@ void LRoomManager::FrameUpdate()
 			int r = (*m_pPrev_VisibleRoomList)[n];
 
 			if (!m_BF_visible_rooms.GetBit(r))
-				m_Rooms[r].GetGodotRoom()->hide();
+				m_Rooms[r].Hide_All();
 		}
 
-		// swap the current and previous visible room list
-		LVector<int> * pTemp = m_pCurr_VisibleRoomList;
-		m_pCurr_VisibleRoomList = m_pPrev_VisibleRoomList;
-		m_pPrev_VisibleRoomList = pTemp;
 	}
+
+
+	// and hide all the dobs that are in visible rooms that haven't been made visible
+//	if (m_pCurr_VisibleRoomList->size() == 0)
+//		print_line("WARNING : vis room list size is 0");
+
+	for (int n=0; n<m_pCurr_VisibleRoomList->size(); n++)
+	{
+		int r = (*m_pCurr_VisibleRoomList)[n];
+		m_Rooms[r].FinalizeVisibility(*this);
+	}
+
+	// swap the current and previous visible room list
+	LVector<int> * pTemp = m_pCurr_VisibleRoomList;
+	m_pCurr_VisibleRoomList = m_pPrev_VisibleRoomList;
+	m_pPrev_VisibleRoomList = pTemp;
+
+
+	// hide all the DOB
 
 	// when running, emit less debugging output so as not to choke the IDE
 	LPortal::m_bRunning = true;

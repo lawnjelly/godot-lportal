@@ -59,7 +59,7 @@ private:
 	LVector<LSob> m_SOBs;
 
 	// dynamic objects
-	Vector<LDob> m_DOBs;
+	LVector<LDob> m_DOBs;
 
 	// portals are stored in the manager in a contiguous list
 	int m_iFirstPortal;
@@ -87,9 +87,18 @@ protected:
 	void DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, int portalID_from = -1);
 	void FirstTouch(LRoomManager &manager);
 
+	// hide godot room and all linked dobs
+	void Hide_All();
 
-	void DOB_Add(Spatial * pDOB);
-	bool DOB_Remove(Node * pDOB);
+	// hide all the objects not hit on this frame .. instead of calling godot hide without need
+	// (it might be expensive)
+	void FinalizeVisibility(LRoomManager &manager);
+
+
+	void DOB_Add(const LDob &dob);
+	const LDob &DOB_Get(unsigned int ui) const {return m_DOBs[ui];}
+	unsigned int DOB_Find(Node * pDOB) const;
+	bool DOB_Remove(unsigned int ui);
 	LRoom * DOB_Update(LRoomManager &manager, Spatial * pDOB);
 
 public:

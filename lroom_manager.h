@@ -48,7 +48,9 @@ class LRoomManager : public Spatial {
 
 	// keep track of which rooms are visible, so we can hide ones that aren't hit that were previously on
 	Lawn::LBitField_Dynamic m_BF_visible_rooms;
-	LVector<int> m_VisibleRoomList[2];
+
+	LVector<int> m_VisibleRoomList_A;
+	LVector<int> m_VisibleRoomList_B;
 
 	LVector<int> * m_pCurr_VisibleRoomList;
 	LVector<int> * m_pPrev_VisibleRoomList;
@@ -71,7 +73,7 @@ public:
 	// These are defined by their ability to move from room to room.
 	// You can still move static objects within the same room (e.g. elevators, moving platforms)
 	// as these don't require checks for changing rooms.
-	void dob_register(Node * pDOB);
+	void dob_register(Node * pDOB, float radius);
 	void dob_unregister(Node * pDOB);
 	bool dob_update(Node * pDOB);
 	bool dob_teleport(Node * pDOB);
