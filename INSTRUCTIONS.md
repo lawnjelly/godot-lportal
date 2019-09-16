@@ -72,6 +72,11 @@ Somewhat counter-intuitively, all DOBs should be maintained in your game __OUTSI
 All the following functions should be called on the LRoomManager node.
 
 * Call `dob_register(cam, 0.0)` to register a DOB to be handled
+
+The number 0.0 is the radius of the DOB in the visibility system. All DOBs are managed as spheres. For a camera the radius can be zero because it will never be visible (however it DOES require to be a DOB so that the system can keep track of which room it is in).
+
+If a DOB is being culled (popping out of view) when it should not, it is normally because the bounding radius needs to be larger. On the other hand, too large a radius will make the DOB render when it is not necessary, so it is a good idea to tweak this value. It is in Godot world units, so you may be able to simply measure you object in the IDE. 
+
 * Each frame, call `dob_update(cam)` to keep that DOB updated in the system
 
 If the DOB is not moving, or you want to deactivate it to save processing, simply don't call update again until you want to reactivate it.
