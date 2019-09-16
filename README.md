@@ -8,7 +8,7 @@ https://www.youtube.com/watch?v=xF_3Fe2HRdk
 _Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._
 
 ## Current status
-Mostly working now. Will do exhaustive testing of multiple portal views tomorrow.
+The system is mostly working. I am now testing / polishing the interface and adding a few features. I will make a first release before implementing PVS as PVS is an optional feature.
 
 ## Roadmap
 * Auto conversion of named room spatials and portal mesh instances to LRoom and LPortal DONE
@@ -19,8 +19,9 @@ Mostly working now. Will do exhaustive testing of multiple portal views tomorrow
 * Refactor code, moving LRooms and LPortals outside scene graph DONE
 * Cleanup code, Optimize DONE
 * Handle special cases (multiple portals views into room etc) DONE
-* Bug fixing / testing
-* Optimize non-moving statics
+* Bug fixing / testing ONGOING
+* Optimize non-moving statics DONE
+* Closable portals
 * PVS (primary and secondary)
 * Investigate multiple passes (shadows, lights)
 
