@@ -62,8 +62,26 @@ If you had several portals named 'portal_kitchen', Godot would not allow it, and
 
 You get the idea, you can use whatever scheme you want to make the name unique. Something like using the room the portal comes from, and a number is probably sensible, e.g. 'portal_kitchen*hall0' but it is totally up to you.
 
+### DOBs (Dynamic objects)
+While most of the world in the room portal is assumed to be static (non-moving), you will inevitably want some objects to move around in the scene. These objects that can move _between_ rooms are special, the visibility system has to keep track of which room they are in in order to render them correctly.
+
+Players, boxes, props, physics objects are all examples of candidates for DOBs, as well as the most crucial example, the camera itself. Unless the visibility system knows which room the camera is in, the system will not know what to render! We will use the camera as an example as you will need to register this as a DOB.
+
+Somewhat counter-intuitively, all DOBs should be maintained in your game __OUTSIDE__ the LRoomManager subtree. I.e., __NOT__ in a room. This is because the relationship between the DOB and the room is a soft one, the DOB can move between rooms. This is also handy because it makes it easier to use things like pools for your dynamic objects, because you don't have to worry about them being in different rooms in different places in the scene graph.
+
+All the following functions should be called on the LRoomManager node.
+
+* Call `dob_register(cam, 0.0)` to register a DOB to be handled
+* Each frame, call `dob_update(cam)` to keep that DOB updated in the system
+
+If the DOB is not moving, or you want to deactivate it to save processing, simply don't call update again until you want to reactivate it.
+
+* When you have finished with a DOB you should call `dob_unregister(cam)` to remove the soft link from the system. This is more important when you are creating and deleting DOBs (say with multiple game levels). If you are using a DOB throughout (say a camera) which gets deleted at the end of the app, it is not necessary to call unregister.
+
+* If you are suddenly moving a DOB a large distance (rather than into a neighbouring room), you should call `dob_teleport(cam)`. This uses a different system to estimate the new room that the DOB is in.
+
 ### Conversion
-Once you have built your rooms and portals and placed them as children in a structure as follows:
+Build your rooms and portals and placed them as children in a scene graph structure something like this:
 
 ```
 Root
@@ -77,6 +95,20 @@ Root
     room_hall
       MeshInstance (painting?)
       MeshInstance (floor, ceiling)
+  MyDOBs
+    Camera
+    Player
+    Monster
+    Box
+  AnythingElse
 ```
 * Change the RoomManager node type from a spatial to an LRoomManager in the Godot IDE
-* At startup / when you load the level, call LRoomManager.rooms_convert
+
+
+* At startup / when you load the level, call `rooms_convert()`
+
+This will provide some output to indicate the building of the optimized internal visibility structure.
+
+* Set which camera you want LPortal to use by calling `rooms_set_camera(cam)`
+
+
