@@ -109,11 +109,22 @@ Root
 ```
 * Change the RoomManager node type from a spatial to an LRoomManager in the Godot IDE
 
-
 * At startup / when you load the level, call `rooms_convert()`
 
 This will provide some output to indicate the building of the optimized internal visibility structure.
 
 * Set which camera you want LPortal to use by calling `rooms_set_camera(cam)`
 
+* Register the camera as a DOB (see above section on DOBs) and update each frame.
 
+* If you load a new game level, simply call `rooms_convert()` again (which clears the old data), and repeat each step.
+
+### Notes
+* The most involved step is building your original rooms and portals, and getting the names right. Watch the debug output in the console when converting the rooms, it will let you know or give indications where it is having trouble converting.
+
+#### Getting maximum performance
+LPortal is very efficient, and the culling process itself is only likely to be a bottleneck if you are creating too high a density of portals. On each frame, every portal the camera 'sees' through creates a new set of clipping planes for each edge of the portal, which can be a lot to check when you are seeing an object through a door, through a window, through another window etc. So bear this in mind when building levels.
+
+Portal polygons with fewer edges are also faster to cull against. So usually an axis aligned quad will make a lot of sense, even when covering an irregular opening (say a cave).
+
+Level design is thus a balancing act between creating a higher density of rooms / portals (with greater occlusion culling accuracy), and a greater number of clipping planes. In practice there is also the issue of drawcalls, often hardware is limited by how many objects it can draw performantly in a frame - often it is faster to draw a bunch of small objects together than to cull them.
