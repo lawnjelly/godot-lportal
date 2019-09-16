@@ -29,5 +29,54 @@ The reason for not creating bespoke editing within Godot is twofold:
 Within your scene graph, you will be building all your rooms as children of the same spatial, which you can convert to an LRoomManager in the Godot IDE. To avoid problems it is best to make sure you only have rooms as children of the room manager.
 
 ### Rooms
+Rooms are simply spatials, whose children should be the mesh instances that are static (non-moving) within the room. The naming of the room spatial is crucial in order for it to be recognised. All rooms should start with 'room_'.
+e.g.:
 
+* room_kitchen
+* room_hall
+* room_bathroom1
 
+You can use any character within the name (except '*', that is reserved, see the portal naming).
+
+### Portals
+In order to calculate the visibility between rooms (and the objects within rooms) you need to manually specify the location and shape of portals that should join the rooms. These should be thought of as doorways, or windows between rooms (and often cover exactly these features).
+
+Portals are mesh instances, but have very strict requirements, and again naming conventions.
+
+* Each portal should be a single-sided CONVEX polygon, on a single plane.
+* The portal should be a child of the room it links from.
+* Single-sided means it can only be seen from one direction. It should face out from the room it is a child of.
+* You only need to create one portal per opening between rooms, rather than one in each room.
+
+The mirror portal will be created automatically. This saves on editing in the modelling package. You can create the portal in either of the adjoining rooms.
+* The name of all portals must start with 'portal_' followed by the name of the room (not including the 'room_' prefix) that the portal should link to. e.g. 'portal_kitchen', 'portal_hall', 'portal_bathroom1'
+
+#### Portal naming
+There is a special case for naming portals - because Godot cannot handle more than one node with the same name!
+
+If you had several portals named 'portal_kitchen', Godot would not allow it, and would add characters to the name, and screw up the system. To get around this, and allow unique names for each portal, LPortal will ignore anything in the portal name after a '*' character. e.g.:
+
+* portal_kitchen*0
+* portal_kitchen*from_the_hall
+* portal_kitchen*it_is_sunny_today
+
+You get the idea, you can use whatever scheme you want to make the name unique. Something like using the room the portal comes from, and a number is probably sensible, e.g. 'portal_kitchen*hall0' but it is totally up to you.
+
+### Conversion
+Once you have built your rooms and portals and placed them as children in a structure as follows:
+
+```
+Root
+  RoomManager
+    room_kitchen
+      MeshInstance (table?)
+      MeshInstance (walls?)
+      MeshInstance (floor, ceiling)
+      MeshInstance (chair?)
+      portal_hall
+    room_hall
+      MeshInstance (painting?)
+      MeshInstance (floor, ceiling)
+```
+* Change the RoomManager node type from a spatial to an LRoomManager in the Godot IDE
+* At startup / when you load the level, call LRoomManager.rooms_convert
