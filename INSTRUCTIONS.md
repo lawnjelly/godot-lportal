@@ -3,7 +3,7 @@
 ## About
 One of the most requested features for Godot 3 has been occlusion culling (in some form). It is on the roadmap to be added to the core of the engine in Godot 4.0, but until that is available, I figured that I could come up with an interrim solution that would allow the production of some of the games that need this.
 
-There are several approaches to occlusion culling, but one of the oldest and tried and tested techniques is the use of rooms (or 'cells') and portals. There was some support for portal rendering in Godot 2 but I have implemented this new system from scratch. Portal rendering was particularly attractive as an interrim solution partly because it is easier to integrate with the existing engine, and partly because I have done it before(!).
+There are several approaches to occlusion culling, but one of the oldest and tried and tested techniques is the use of rooms (or 'cells') and portals. Portal rendering is particularly useful in indoor scenes, especially 1st / 3rd person games. It is not so useful in outdoor scenes. There was some support for portal rendering in Godot 2 but I have implemented this new system from scratch. Portal rendering was particularly attractive as an interrim solution partly because it is easier to integrate with the existing engine, and partly because I have done it before(!).
 
 There is a simple explanation here of the concept:
 
@@ -15,6 +15,8 @@ LPortal is a portal rendering system for Godot 3.2. It may compile with 3.1, but
 * Easy to use
 * Easy to iterate levels (re-exporting full levels from e.g. blender after editing)
 * Fast (good algorithms, no dynamic allocation and cache friendly)
+
+LPortal does not strictly speaking require rooms to be concave (they can be odd shapes), however the portals should be placed such that no portal is in front of the portal plane of another portal in the room. I.e. the portals themselves should form some kind of convex structure.
 
 ## The details
 The first thing you may notice is that LPortal doesn't make much use of special features within the editor, and simply relies on careful naming of spatials (or Empties within Blender). There is one new node type, 'LRoomManager', which behaves pretty much as any spatial however it has some added functions and runs an entire visibility system under the hood.
@@ -84,6 +86,8 @@ If the DOB is not moving, or you want to deactivate it to save processing, simpl
 * When you have finished with a DOB you should call `dob_unregister(cam)` to remove the soft link from the system. This is more important when you are creating and deleting DOBs (say with multiple game levels). If you are using a DOB throughout (say a camera) which gets deleted at the end of the app, it is not necessary to call unregister.
 
 * If you are suddenly moving a DOB a large distance (rather than into a neighbouring room), you should call `dob_teleport(cam)`. This uses a different system to estimate the new room that the DOB is in.
+
+* DOBs should only move between rooms via the portals. In fact that is how their movement between rooms is defined. This is why a room's portals should form a convex space, never concave. In order to limit movement between rooms to the portals, you should use e.g. physics, or a navmesh.
 
 ### Conversion
 Build your rooms and portals and placed them as children in a scene graph structure something like this:
