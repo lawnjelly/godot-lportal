@@ -144,4 +144,4 @@ LPortal is very efficient, and the culling process itself is only likely to be a
 
 Portal polygons with fewer edges are also faster to cull against. So usually an axis aligned quad will make a lot of sense, even when covering an irregular opening (say a cave).
 
-Level design is thus a balancing act between creating a higher density of rooms / portals (with greater occlusion culling accuracy), and a greater number of clipping planes. In practice there is also the issue of drawcalls, often hardware is limited by how many objects it can draw performantly in a frame - often it is faster to draw a bunch of small objects together than to cull them.
+Level design is thus a balancing act between creating a higher density of rooms / portals (with greater occlusion culling accuracy), and a greater number of clipping planes. In practice there is also the issue of drawcalls, often hardware is limited by how many objects it can draw performantly in a frame - often it is faster to merge a bunch of small objects together than to cull them.
