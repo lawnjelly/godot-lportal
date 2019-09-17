@@ -30,7 +30,7 @@ The reason for not creating bespoke editing within Godot is twofold:
 Within your scene graph, you will be building all your rooms as children of the same spatial, which you can convert to an LRoomManager in the Godot IDE. To avoid problems it is best to make sure you only have rooms as children of the room manager.
 
 ### Rooms
-Rooms are simply spatials, whose children should be the mesh instances that are static (non-moving) within the room. The naming of the room spatial is crucial in order for it to be recognised. All rooms should start with 'room_'.
+Rooms are simply spatials, whose children should contain the mesh instances that are static (non-moving) within the room. The naming of the room spatial is crucial in order for it to be recognised. All rooms should start with 'room_'.
 e.g.:
 
 * room_kitchen
@@ -124,6 +124,13 @@ This will provide some output to indicate the building of the optimized internal
 
 ### Notes
 * The most involved step is building your original rooms and portals, and getting the names right. Watch the debug output in the console when converting the rooms, it will let you know or give indications where it is having trouble converting.
+* You can use hierarchies of nodes to place your static MeshInstances within a room, so it is easier to place groups e.g.:
+```
+room_office
+  Desk (spatial)
+    Table (mesh instance)
+    Chair (mesh instance)
+```
 
 #### Getting maximum performance
 LPortal is very efficient, and the culling process itself is only likely to be a bottleneck if you are creating too high a density of portals. On each frame, every portal the camera 'sees' through creates a new set of clipping planes for each edge of the portal, which can be a lot to check when you are seeing an object through a door, through a window, through another window etc. So bear this in mind when building levels.
