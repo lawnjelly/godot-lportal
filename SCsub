@@ -2,14 +2,16 @@
 Import('env')
 
 sources = [
-    "register_types.cpp",
-    "lroom.cpp",
-    "lroom_manager.cpp",
-    "lroom_converter.cpp",
-    "lportal.cpp",
-    "lplanes_pool.cpp",
-    "ldob.cpp",
-    "lbitfield_dynamic.cpp",
+    "lportal_all.cpp",
+#    "register_types.cpp",
+#    "lroom.cpp",
+#    "lroom_manager.cpp",
+#    "lroom_converter.cpp",
+#    "lportal.cpp",
+#    "lplanes_pool.cpp",
+#    "ldob.cpp",
+#    "lbound.cpp",
+#    "lbitfield_dynamic.cpp",
 ]
 
 module_env = env.Clone()

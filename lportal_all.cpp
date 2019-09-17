@@ -1,0 +1,10 @@
+// single compilation unit
+#include "register_types.cpp"
+#include "lroom.cpp"
+#include "lroom_manager.cpp"
+#include "lroom_converter.cpp"
+#include "lportal.cpp"
+#include "lplanes_pool.cpp"
+#include "ldob.cpp"
+#include "lbound.cpp"
+#include "lbitfield_dynamic.cpp"

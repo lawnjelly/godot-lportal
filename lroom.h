@@ -30,6 +30,7 @@
 #include "scene/3d/spatial.h"
 #include "lvector.h"
 #include "ldob.h"
+#include "lbound.h"
 
 
 namespace Lawn {class LBitField_Dynamic;}
@@ -76,6 +77,10 @@ private:
 
 	// frame counter when last touched .. prevents handling rooms multiple times
 	unsigned int m_uiFrameTouched;
+
+	// optional bounding convex hull, for accurate detection of which room to start in
+	// when registering DOBs and teleporting them
+	LBound m_Bound;
 
 	String m_szName;
 

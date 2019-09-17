@@ -66,6 +66,8 @@ private:
 	void Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &lroom, LAABB &bb_room);
 
 	void Convert_Portals();
+	void Convert_Bounds();
+	bool Convert_Bound(LRoom &lroom, MeshInstance * pMI);
 
 
 	void LRoom_DetectPortalMeshes(LRoom &lroom, LTempRoom &troom);
@@ -79,12 +81,20 @@ private:
 
 	// helper
 	bool Node_IsRoom(Node * pNode) const;
+	bool Node_IsPortal(Node * pNode) const;
+	bool Node_IsBound(Node * pNode) const;
+	bool Node_IsIgnore(Node * pNode) const;
+
 	int FindRoom_ByName(String szName) const;
+
 
 
 	LRoomManager * m_pManager;
 	LVector<LTempRoom> m_TempRooms;
 
+	bool Bound_AddPlaneIfUnique(LVector<Plane> &planes, const Plane &p);
+
 	static void print(String sz);
+
 
 };

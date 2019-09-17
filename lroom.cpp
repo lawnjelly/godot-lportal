@@ -418,6 +418,8 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 			case LPortal::eClipResult::CLIP_PARTIAL:
 				overall_res = res;
 				break;
+			default: // suppress warning
+				break;
 			}
 
 			if (overall_res == LPortal::eClipResult::CLIP_OUTSIDE)

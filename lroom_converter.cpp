@@ -23,6 +23,7 @@
 #include "lroom_manager.h"
 #include "lportal.h"
 #include "scene/3d/mesh_instance.h"
+#include "core/math/quick_hull.h"
 
 // save typing, I am lazy
 #define LMAN m_pManager
@@ -57,6 +58,7 @@ void LRoomConverter::Convert(LRoomManager &manager)
 
 	Convert_Rooms();
 	Convert_Portals();
+	Convert_Bounds();
 	LPortal::m_bRunning = true;
 
 	// temp rooms no longer needed
@@ -103,6 +105,17 @@ void LRoomConverter::Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &l
 	for (int n=0; n<nChildren; n++)
 	{
 		Node * pChild = pParent->get_child(n);
+
+		// we are not interested in portal meshes, as they will be deleted later in conversion
+		if (Node_IsPortal(pChild))
+			continue;
+		// we can optionally ignore nodes (they will still be shown / hidden with the room though)
+		if (Node_IsIgnore(pChild))
+			continue;
+		// not interested in bounds
+		if (Node_IsBound(pChild))
+			continue;
+
 
 		VisualInstance * pVI = Object::cast_to<VisualInstance>(pChild);
 		if (pVI)
@@ -170,6 +183,113 @@ bool LRoomConverter::Convert_Room(Spatial * pNode, int lroomID)
 	return true;
 }
 
+bool LRoomConverter::Bound_AddPlaneIfUnique(LVector<Plane> &planes, const Plane &p)
+{
+	for (int n=0; n<planes.size(); n++)
+	{
+		const Plane &o = planes[n];
+
+		// this is a fudge factor for how close planes can be to be considered the same ...
+		// to prevent ridiculous amounts of planes
+		const float d = 0.08f;
+
+		if (fabs(p.d - o.d) > d) continue;
+
+		float dot = p.normal.dot(o.normal);
+		if (dot < 0.98f) continue;
+
+		// match!
+		return false;
+	}
+
+	// test
+//	Vector3 va(1, 0, 0);
+//	Vector3 vb(1, 0.2, 0);
+//	vb.normalize();
+//	float dot = va.dot(vb);
+//	print("va dot vb is " + String(Variant(dot)));
+
+	// is unique
+//	print("\t\t\t\tAdding bound plane : " + p);
+
+	planes.push_back(p);
+	return true;
+}
+
+bool LRoomConverter::Convert_Bound(LRoom &lroom, MeshInstance * pMI)
+{
+	print("\t\tConvert_Bound : " + pMI->get_name());
+
+	// some godot jiggery pokery to get the mesh verts in local space
+	Ref<Mesh> rmesh = pMI->get_mesh();
+	Array arrays = rmesh->surface_get_arrays(0);
+	PoolVector<Vector3> p_vertices = arrays[VS::ARRAY_VERTEX];
+
+	// convert to world space
+	Transform trans = pMI->get_global_transform();
+	Vector<Vector3> points;
+	for (int n=0; n<p_vertices.size(); n++)
+	{
+		Vector3 ptWorld = trans.xform(p_vertices[n]);
+		points.push_back(ptWorld);
+
+		// expand the room AABB to make sure it encompasses the bound
+		lroom.m_AABB.expand_to(ptWorld);
+	}
+
+	if (points.size() > 3)
+	{
+		Geometry::MeshData md;
+		Error err = QuickHull::build(points, md);
+		if (err == OK)
+		{
+			// get the planes
+			for (int n=0; n<md.faces.size(); n++)
+			{
+				const Plane &p = md.faces[n].plane;
+				Bound_AddPlaneIfUnique(lroom.m_Bound.m_Planes, p);
+			}
+
+			print("\t\t\tcontained " + itos(lroom.m_Bound.m_Planes.size()) + " planes.");
+			return true;
+		}
+	}
+
+	return false;
+}
+
+void LRoomConverter::Convert_Bounds()
+{
+	for (int n=0; n<LMAN->m_Rooms.size(); n++)
+	{
+		LRoom &lroom = LMAN->m_Rooms[n];
+
+		//print("DetectBounds from room " + lroom.get_name());
+
+		Spatial * pGRoom = lroom.GetGodotRoom();
+		assert (pGRoom);
+
+
+		for (int n=0; n<pGRoom->get_child_count(); n++)
+		{
+			Node * pChild = pGRoom->get_child(n);
+
+			if (Node_IsBound(pChild))
+			{
+				MeshInstance * pMesh = Object::cast_to<MeshInstance>(pChild);
+				assert (pMesh);
+				Convert_Bound(lroom, pMesh);
+
+				// delete the mesh
+				pGRoom->remove_child(pChild);
+				pChild->queue_delete();
+			}
+		}
+
+	}
+
+}
+
 void LRoomConverter::Convert_Portals()
 {
 	for (int pass=0; pass<3; pass++)
@@ -228,16 +348,16 @@ void LRoomConverter::LRoom_DetectPortalMeshes(LRoom &lroom, LTempRoom &troom)
 	{
 		Node * pChild = pGRoom->get_child(n);
 
-		MeshInstance * pMesh = Object::cast_to<MeshInstance>(pChild);
-		if (pMesh)
+		if (Node_IsPortal(pChild))
 		{
+
+			MeshInstance * pMesh = Object::cast_to<MeshInstance>(pChild);
+			assert (pMesh);
+
 			// name must start with 'portal_'
 			// and ends with the name of the room we want to link to (without the 'room_')
-			if (LPortal::NameStartsWith(pMesh, "portal_"))
-			{
-				String szLinkRoom = LPortal::FindNameAfter(pMesh, "portal_");
-				LRoom_DetectedPortalMesh(lroom, troom, pMesh, szLinkRoom);
-			}
+			String szLinkRoom = LPortal::FindNameAfter(pMesh, "portal_");
+			LRoom_DetectedPortalMesh(lroom, troom, pMesh, szLinkRoom);
 		}
 	}
 
@@ -252,20 +372,14 @@ void LRoomConverter::LRoom_DetectPortalMeshes(LRoom &lroom, LTempRoom &troom)
 		{
 			Node * pChild = pGRoom->get_child(n);
 
-			MeshInstance * pMesh = Object::cast_to<MeshInstance>(pChild);
-			if (pMesh)
+			if (Node_IsPortal(pChild))
 			{
-				// name must start with 'portal_'
-				// and ends with the name of the room we want to link to (without the 'room_')
-				if (LPortal::NameStartsWith(pMesh, "portal_"))
-				{
-					// delete the original child, as it is no longer needed at runtime (except maybe for debugging .. NYI?)
-					//	pMeshInstance->hide();
-					pMesh->get_parent()->remove_child(pMesh);
-					pMesh->queue_delete();
+				// delete the original child, as it is no longer needed at runtime (except maybe for debugging .. NYI?)
+				//	pMeshInstance->hide();
+				pChild->get_parent()->remove_child(pChild);
+				pChild->queue_delete();
 
-					bDetectedOne = true;
-				}
+				bDetectedOne = true;
 			}
 
 			if (bDetectedOne)
@@ -350,7 +464,7 @@ void LRoomConverter::LRoom_MakePortalsTwoWay(LRoom &lroom, LTempRoom &troom, int
 		print("\t\tcreating opposite portal");
 
 		// get the temproom this portal is linking to
-		LTempRoom &nroom = m_TempRooms[portal_orig.m_iRoomNum];
+		//LTempRoom &nroom = m_TempRooms[portal_orig.m_iRoomNum];
 
 		// does a portal already exist back to the orig room?
 		// NOTE this doesn't cope with multiple portals between pairs of rooms yet.
@@ -400,6 +514,38 @@ bool LRoomConverter::Node_IsRoom(Node * pNode) const
 		return false;
 
 	if (LPortal::NameStartsWith(pSpat, "room_"))
+		return true;
+
+	return false;
+}
+
+bool LRoomConverter::Node_IsIgnore(Node * pNode) const
+{
+	if (LPortal::NameStartsWith(pNode, "ignore_"))
+		return true;
+
+	return false;
+}
+
+bool LRoomConverter::Node_IsBound(Node * pNode) const
+{
+	MeshInstance * pMI = Object::cast_to<MeshInstance>(pNode);
+	if (!pMI)
+		return false;
+
+	if (LPortal::NameStartsWith(pMI, "bound_"))
+		return true;
+
+	return false;
+}
+
+bool LRoomConverter::Node_IsPortal(Node * pNode) const
+{
+	MeshInstance * pMI = Object::cast_to<MeshInstance>(pNode);
+	if (!pMI)
+		return false;
+
+	if (LPortal::NameStartsWith(pMI, "portal_"))
 		return true;
 
 	return false;

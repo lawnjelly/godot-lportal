@@ -36,9 +36,14 @@ LRoomManager::LRoomManager()
 
 int LRoomManager::FindClosestRoom(const Vector3 &pt) const
 {
+
 	//print_line("FindClosestRoom");
 	int closest = -1;
 	float closest_dist = FLT_MAX;
+
+	// uses bounds if this is available
+	int closest_within = -1;
+	float within_dist = FLT_MAX;
 
 	for (int n=0; n<m_Rooms.size(); n++)
 	{
@@ -51,7 +56,32 @@ int LRoomManager::FindClosestRoom(const Vector3 &pt) const
 			closest = n;
 			closest_dist = d;
 		}
+
+		// is there a bound?
+		if (lroom.m_Bound.IsActive())
+		{
+			// is it within the aabb?
+			if (lroom.m_AABB.has_point(pt))
+			{
+				// is it within the convex hull?
+				float dist = lroom.m_Bound.GetClosestDistance(pt);
+
+				// find the lowest within distance of the nearby room convex hulls
+				if (dist < within_dist)
+				{
+					closest_within = n;
+					within_dist = dist;
+				}
+			}
+		}
 	}
+
+	// some logic whether to use the hulls or the closest dist
+	if (within_dist < 1.0f)
+	{
+		return closest_within;
+	}
+
 
 	return closest;
 }
