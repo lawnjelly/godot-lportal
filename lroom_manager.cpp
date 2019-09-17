@@ -119,13 +119,13 @@ LRoom * LRoomManager::GetRoomFromDOB(Node * pNode)
 }
 
 
-void LRoomManager::dob_register(Node * pDOB, float radius)
+bool LRoomManager::dob_register(Node * pDOB, float radius)
 {
 	print_line("register_dob " + pDOB->get_name());
 
 	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
 	if (!pSpat)
-		return;
+		return false;
 
 	Vector3 pt = pSpat->get_global_transform().origin;
 
@@ -133,11 +133,11 @@ void LRoomManager::dob_register(Node * pDOB, float radius)
 	print_line("register_dob closest room " + itos(iRoomNum));
 
 	if (iRoomNum == -1)
-		return;
+		return false;
 
 	LRoom * pRoom = GetRoom(iRoomNum);
 	if (!pRoom)
-		return;
+		return false;
 
 	LDob dob;
 	dob.m_ID = pSpat->get_instance_id();
@@ -147,19 +147,20 @@ void LRoomManager::dob_register(Node * pDOB, float radius)
 
 	// save the room ID on the dob metadata
 	Obj_SetRoomNum(pSpat, iRoomNum);
+	return true;
 }
 
 
-bool LRoomManager::dob_update(Node * pDOB)
+int LRoomManager::dob_update(Node * pDOB)
 {
 	// find the room the object is attached to
 	LRoom * pRoom = GetRoomFromDOB(pDOB);
 	if (!pRoom)
-		return false;
+		return -1;
 
 	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
 	if (!pSpat)
-		return false;
+		return -1;
 
 	LRoom * pNewRoom = pRoom->DOB_Update(*this, pSpat);
 
@@ -184,29 +185,69 @@ bool LRoomManager::dob_update(Node * pDOB)
 		// save the room ID on the dob metadata
 		Obj_SetRoomNum(pSpat, iRoomNum);
 
-		return true;
+		// new room number
+		return iRoomNum;
 	}
 
-	return false;
+	// still in the same room
+	return pRoom->m_RoomID;
 }
 
+// not tested...
 bool LRoomManager::dob_teleport(Node * pDOB)
 {
+	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
+	if (!pSpat)
+		return false;
+
+	// old room
+	LRoom * pOldRoom = GetRoomFromDOB(pDOB);
+	if (!pOldRoom)
+		return false;
+
+	Vector3 pt = pSpat->get_global_transform().origin;
+
+	int iRoomNum = FindClosestRoom(pt);
+	//print_line("dob_teleport closest room " + itos(iRoomNum));
+
+	if (iRoomNum == -1)
+		return false;
+
+	LRoom * pNewRoom = GetRoom(iRoomNum);
+	if (!pNewRoom)
+		return false;
+
+	// detach from old room, add to new room
+	// get dob data to move to new room
+	unsigned int dob_id = pOldRoom->DOB_Find(pDOB);
+	assert (dob_id != -1);
+
+	// copy across data before removing
+	const LDob &data = pOldRoom->DOB_Get(dob_id);
+	pNewRoom->DOB_Add(data);
+
+	// remove from old room
+	pOldRoom->DOB_Remove(dob_id);
+
+	// save the room ID on the dob metadata
+	Obj_SetRoomNum(pSpat, iRoomNum);
+
 	return true;
 }
 
 
 
-void LRoomManager::dob_unregister(Node * pDOB)
+bool LRoomManager::dob_unregister(Node * pDOB)
 {
 	LRoom * pRoom = GetRoomFromDOB(pDOB);
 
 	if (pRoom)
 	{
 		unsigned int dob_id = pRoom->DOB_Find(pDOB);
-		assert (dob_id != -1);
-		pRoom->DOB_Remove(dob_id);
+		return pRoom->DOB_Remove(dob_id);
 	}
+
+	return false;
 }
 
 int LRoomManager::dob_get_room_id(Node * pDOB)

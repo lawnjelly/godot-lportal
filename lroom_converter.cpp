@@ -97,6 +97,41 @@ int LRoomConverter::FindRoom_ByName(String szName) const
 	return -1;
 }
 
+void LRoomConverter::Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &lroom, LAABB &bb_room)
+{
+	int nChildren = pParent->get_child_count();
+	for (int n=0; n<nChildren; n++)
+	{
+		Node * pChild = pParent->get_child(n);
+
+		VisualInstance * pVI = Object::cast_to<VisualInstance>(pChild);
+		if (pVI)
+		{
+			print("\t\tFound VI : " + pVI->get_name());
+
+
+			// update bound to find centre of room roughly
+			AABB bb = pVI->get_transformed_aabb();
+			bb_room.ExpandToEnclose(bb);
+
+			// store some info about the static object for use at runtime
+			LSob sob;
+			sob.m_ID = pVI->get_instance_id();
+			sob.m_aabb = bb;
+
+			lroom.m_SOBs.push_back(sob);
+		}
+		else
+		{
+			// not visual instances
+		}
+
+		// does it have further children?
+		Convert_Room_FindObjects_Recursive(pChild, lroom, bb_room);
+	}
+
+}
+
 bool LRoomConverter::Convert_Room(Spatial * pNode, int lroomID)
 {
 	// get the room part of the name
@@ -120,33 +155,8 @@ bool LRoomConverter::Convert_Room(Spatial * pNode, int lroomID)
 	LAABB bb_room;
 	bb_room.SetToMaxOpposite();
 
-	int nChildren = pNode->get_child_count();
-	for (int n=0; n<nChildren; n++)
-	{
-		Node * pChild = pNode->get_child(n);
-
-		VisualInstance * pVI = Object::cast_to<VisualInstance>(pChild);
-		if (pVI)
-		{
-			print("\t\tFound VI : " + pVI->get_name());
-
-
-			// update bound to find centre of room roughly
-			AABB bb = pVI->get_transformed_aabb();
-			bb_room.ExpandToEnclose(bb);
-
-			// store some info about the static object for use at runtime
-			LSob sob;
-			sob.m_ID = pVI->get_instance_id();
-			sob.m_aabb = bb;
-
-			lroom.m_SOBs.push_back(sob);
-		}
-		else
-		{
-			// not visual instances NYI
-		}
-	}
+	// recursively find statics
+	Convert_Room_FindObjects_Recursive(pNode, lroom, bb_room);
 
 	// store the lroom centre and bound
 	lroom.m_ptCentre = bb_room.FindCentre();

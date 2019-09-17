@@ -63,6 +63,8 @@ private:
 
 	void Convert_Rooms();
 	bool Convert_Room(Spatial * pNode, int lroomID);
+	void Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &lroom, LAABB &bb_room);
+
 	void Convert_Portals();
 
 

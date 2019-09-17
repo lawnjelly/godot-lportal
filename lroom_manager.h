@@ -69,19 +69,26 @@ public:
 	// normally this will be your main camera, but you can choose another for debugging
 	void rooms_set_camera(Node * pCam);
 
+	// get the Godot room that is associated with an LPortal room
+	// (can be used to find the name etc of a room ID returned by dob_update)
+	Node * rooms_get_room(int room_id);
+
 	// Dynamic objects .. cameras, players, boxes etc
 	// These are defined by their ability to move from room to room.
 	// You can still move static objects within the same room (e.g. elevators, moving platforms)
 	// as these don't require checks for changing rooms.
-	void dob_register(Node * pDOB, float radius);
-	void dob_unregister(Node * pDOB);
-	bool dob_update(Node * pDOB);
+	bool dob_register(Node * pDOB, float radius);
+	bool dob_unregister(Node * pDOB);
+
+	// returns the room ID within
+	int dob_update(Node * pDOB);
+
+	// if we are moving the DOB possibly through multiple rooms, then teleport rather than detect
+	// portal crossings
 	bool dob_teleport(Node * pDOB);
 
-	// supplementary functions available from script
+	// helper func, not needed usually as dob_update returns the room
 	int dob_get_room_id(Node * pDOB);
-	Node * rooms_get_room(int room_id);
-
 
 protected:
 	static void _bind_methods();
