@@ -20,8 +20,9 @@ The system is mostly working. I am now testing / polishing the interface and add
 * Refactor code, moving LRooms and LPortals outside scene graph DONE
 * Cleanup code, Optimize DONE
 * Handle special cases (multiple portals views into room etc) DONE
-* Bug fixing / testing ONGOING
 * Optimize non-moving statics DONE
+* Optional convex hull bound for rooms DONE
+* Bug fixing / testing ONGOING
 * Closable portals
 * PVS (primary and secondary)
 * Investigate multiple passes (shadows, lights)
