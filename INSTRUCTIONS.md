@@ -63,6 +63,13 @@ If you had several portals named 'portal_kitchen', Godot would not allow it, and
 
 You get the idea, you can use whatever scheme you want to make the name unique. Something like using the room the portal comes from, and a number is probably sensible, e.g. 'portal_kitchen*hall0' but it is totally up to you.
 
+### Room Bounds
+When you first add an object to a room at runtime, it has to decide which room it should be in. You have the choice of either not specifying a bound for a room (in which case it will choose the nearest room centre to the object to choose the room). This will however not work in some circumstances with combinations of small and large rooms. For this reason you can optionally specify a convex hull bound for a room.
+
+The bound should be stored as a MeshInstance child of the room, with a specific naming convention, it should start with the prefix 'bound_'. You can put anything after the prefix (or leave as is).
+
+Although the bound will be treated as a convex hull at runtime, you don't have to be perfect when creating it because the geometry will be run through the quickhull algorithm.
+
 ### DOBs (Dynamic objects)
 While most of the world in the room portal is assumed to be static (non-moving), you will inevitably want some objects to move around in the scene. These objects that can move _between_ rooms are special, the visibility system has to keep track of which room they are in in order to render them correctly.
 
