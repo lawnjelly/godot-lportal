@@ -149,6 +149,136 @@ room_office
     Chair (mesh instance)
 ```
 
+#### Debugging
+A significant portion of LPortal is devoted to debugging, as without feedback it is difficult to diagnose problems that are occurring. The debugging occurs in 2 stages - the initial conversion, and at runtime, it will provide the visibility tree when you request debug output for a frame with rooms_log_frame().
+
+A sample conversion is as follows:
+```
+running convert
+Convert_Rooms
+Convert_Room : room_myroom_x0y0
+		Found VI : WallsAndFloor
+		Found VI : Box
+		Found VI : Box2
+			myroom_x0y0 centre 0, 1, 0
+Convert_Room : room_myroom_x1y0
+		Found VI : WallsAndFloor
+		Found VI : Box
+		Found VI : Box2
+			myroom_x1y0 centre 4, 1, 0
+Convert_Room : room_myroom_x0y1
+		Found VI : WallsAndFloor
+		Found VI : Box
+		Found VI : Box2
+			myroom_x0y1 centre 0, 1, 4
+Convert_Room : room_myroom_x1y1
+		Found VI : WallsAndFloor
+		Found VI : Box
+		Found VI : Box2
+			myroom_x1y1 centre 4, 1, 4
+Convert_Portals pass 0
+
+DETECT_PORTALS from room myroom_x0y0
+	detected to myroom_x0y1
+	detected to myroom_x1y0
+	detected to myroom_x1y0
+DETECT_PORTALS from room myroom_x1y0
+	detected to myroom_x1y1
+	detected to myroom_x2y0
+	WARNING : portal to room myroom_x2y0, room not found
+	detected to myroom_x2y0
+	WARNING : portal to room myroom_x2y0, room not found
+DETECT_PORTALS from room myroom_x0y1
+	detected to myroom_x0y2
+	WARNING : portal to room myroom_x0y2, room not found
+	detected to myroom_x1y1
+	detected to myroom_x1y1
+DETECT_PORTALS from room myroom_x1y1
+	detected to myroom_x1y2
+	WARNING : portal to room myroom_x1y2, room not found
+	detected to myroom_x2y1
+	WARNING : portal to room myroom_x2y1, room not found
+	detected to myroom_x2y1
+	WARNING : portal to room myroom_x2y1, room not found
+Convert_Portals pass 1
+
+MAKE_PORTALS_TWOWAY from room myroom_x0y0
+	contains 3 portals
+	considering portal myroom_x0y1
+		creating opposite portal
+	considering portal myroom_x1y0
+		creating opposite portal
+	considering portal myroom_x1y0
+		creating opposite portal
+MAKE_PORTALS_TWOWAY from room myroom_x1y0
+	contains 3 portals
+	considering portal myroom_x1y1
+		creating opposite portal
+	considering portal myroom_x0y0
+		is MIRROR, ignoring
+	considering portal myroom_x0y0
+		is MIRROR, ignoring
+MAKE_PORTALS_TWOWAY from room myroom_x0y1
+	contains 3 portals
+	considering portal myroom_x1y1
+		creating opposite portal
+	considering portal myroom_x1y1
+		creating opposite portal
+	considering portal myroom_x0y0
+		is MIRROR, ignoring
+MAKE_PORTALS_TWOWAY from room myroom_x1y1
+	contains 3 portals
+	considering portal myroom_x1y0
+		is MIRROR, ignoring
+	considering portal myroom_x0y1
+		is MIRROR, ignoring
+	considering portal myroom_x0y1
+		is MIRROR, ignoring
+Convert_Portals pass 2
+
+	CONVERT_BOUND : 'bound_ofroom' for room 'myroom_x0y0'
+			contained 6 planes.
+	CONVERT_BOUND : 'bound_ofroom' for room 'myroom_x1y0'
+			contained 6 planes.
+	CONVERT_BOUND : 'bound_ofroom' for room 'myroom_x0y1'
+			contained 6 planes.
+	CONVERT_BOUND : 'bound_ofroom' for room 'myroom_x1y1'
+			contained 6 planes.
+```
+You can see that conversion takes place in several stages:
+
+1) Finding the rooms and visual instances (meshes etc)
+2) Detecting portal meshes
+3) Making portals two way
+4) Detecting room bounds
+
+A sample visibility tree for a frame is as follows:
+```
+FRAME 172
+
+ROOM 'myroom_x0y0' planes 6 portals 3
+	DOB Camera2 culled
+	PORTAL 0 (0) myroom_x0y1 normal 0, -0, 1
+	
+	ROOM 'myroom_x0y1' planes 10 portals 3
+		DOB @Monster@4 culled
+		PORTAL 0 (6) myroom_x1y1 normal 1, -0, -0
+			Outside plane 0.996257, 0, -0.086442, 0
+			CULLED (outside planes)
+		PORTAL 1 (7) myroom_x1y1 normal 1, -0, -0
+			Outside plane 0.996257, 0, -0.086442, 0
+			CULLED (outside planes)
+		PORTAL 2 (8) myroom_x0y0 normal 0, 0, -1
+			CULLED (wrong direction)
+	PORTAL 1 (1) myroom_x1y0 normal 1, -0, -0
+		Outside plane 0.996257, 0, -0.086442, 0
+		CULLED (outside planes)
+	PORTAL 2 (2) myroom_x1y0 normal 1, -0, -0
+		Outside plane 0.996257, 0, -0.086442, 0
+		CULLED (outside planes)
+```
+Visibility starts from the room the camera is in, checks the objects within against the clipping planes (just the view frustum at first), then checks each portal to see if it is visible. If it is visible it checks the room on the other side of the portal, and continues the process recursively. Each time it moves through a portal it adds clipping planes from the camera to the edges of the portal. This ensures that objects that are hidden by portal planes are not rendered. 
+
 #### Getting maximum performance
 LPortal is very efficient, and the culling process itself is only likely to be a bottleneck if you are creating too high a density of portals. On each frame, every portal the camera 'sees' through creates a new set of clipping planes for each edge of the portal, which can be a lot to check when you are seeing an object through a door, through a window, through another window etc. So bear this in mind when building levels.
 
