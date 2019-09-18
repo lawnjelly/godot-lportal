@@ -1,6 +1,7 @@
 # godot-lportal
 Portal rendering module for Godot 3.2\
-_Work in progress, not yet released_
+_Work in progress_
+Although not yet released, I am trying to make sure that committed versions are runnable, so if you want to test out the system, simply follow the installation instructions. Note that the function definitions are still subject to change, but any rooms you build should be compatible with later versions.
 
 Video of initial testing:\
 https://www.youtube.com/watch?v=xF_3Fe2HRdk \
@@ -28,7 +29,7 @@ The system is mostly working. I am now testing / polishing the interface and add
 * Investigate multiple passes (shadows, lights)
 
 ## Instructions
-See INSTRUCTIONS.md
+See INSTRUCTIONS.md and TUTORIAL.md
 
 ## Installation
 You will need to compile Godot from source (for now). See:
