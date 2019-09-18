@@ -15,7 +15,9 @@ https://www.youtube.com/watch?v=8xgb-ZcZV9s
 * Easy to iterate levels (re-exporting full levels from e.g. blender after editing)
 * Fast (good algorithms, no dynamic allocation and cache friendly)
 
-LPortal does not strictly speaking require rooms to be concave (they can be odd shapes), however the portals should be placed such that no portal is in front of the portal plane of another portal in the room. I.e. the portals themselves should form some kind of convex structure.
+As with most room portal systems, LPortal works better if rooms are convex. Most portal systems require you to specify the convex hull (bound) for each room. In LPortal this is optional. The convex hull is only required for calculating the 'start room' of a dynamic object when you either initially place it (dob_register), or teleport it (dob_teleport). As such, both of these functions have an alternative hint version where the user can specify the start room manually. This is possible in some simpler designs of games, and avoids the laborious need to model room bounds (convex hulls).
+
+If you are exclusively using the hint commands, and not creating bounds, there is strictly speaking no longer a requirement for the rooms to be convex, they can be concave shapes. This allows considerable flexibility in level design. HOWEVER, the portals should be placed such that no portal is in front of the portal plane of another portal in the room. I.e. the portals themselves should form some kind of convex structure.
 
 ## The details
 The first thing you may notice is that LPortal doesn't make much use of special features within the editor, and simply relies on careful naming of spatials (or Empties within Blender). There is one new node type, 'LRoomManager', which behaves pretty much as any spatial however it has some added functions and runs an entire visibility system under the hood.
@@ -24,7 +26,7 @@ The reason for not creating bespoke editing within Godot is twofold:
 1) This is a non-official plugin to the engine, without modifying core, or creating a specific importer
 2) Using the node names to denote rooms and portals allows the whole level to be edited (and more importantly re-edited) within a modelling package such as blender.*
 
-* _Note that although the whole game level can be created in the modelling package, this is optional, you can also create it in the Godot editor._
+*_Note that although the whole game level can be created in the modelling package, this is optional, you can also create it in the Godot editor._
 
 ### The room manager
 Within your scene graph, you will be building all your rooms as children of the same spatial, which you can convert to an LRoomManager in the Godot IDE. To avoid problems it is best to make sure you only have rooms as children of the room manager.
@@ -64,7 +66,15 @@ If you had several portals named 'portal_kitchen', Godot would not allow it, and
 You get the idea, you can use whatever scheme you want to make the name unique. Something like using the room the portal comes from, and a number is probably sensible, e.g. 'portal_kitchen*hall0' but it is totally up to you.
 
 ### Room Bounds
-When you first add an object to a room at runtime, it has to decide which room it should be in. You have the choice of either not specifying a bound for a room (in which case it will choose the nearest room centre to the object to choose the room). This will however not work in some circumstances with combinations of small and large rooms. For this reason you can optionally specify a convex hull bound for a room.
+When you first add an object to a room at runtime, it has to decide which room it should be in.
+
+You have three choices here:
+
+1) Manually supply the convex hull (bound) for a room
+2) Do not supply a bound, in which case LPortal will simply choose the nearest room centre to the object. _(this can choose the wrong room when rooms are different sizes, for instance a hallway by a large room, so it is not recommended)_
+3) Use the dob_register_hint and teleport_hint versions, where the user specifies the start room
+
+Approach (1) is the most powerful and flexible, but requires creating a bound, either in your modelling package or within Godot IDE.
 
 The bound should be stored as a MeshInstance child of the room, with a specific naming convention, it should start with the prefix 'bound_'. You can put anything after the prefix (or leave as is).
 
