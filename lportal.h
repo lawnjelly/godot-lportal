@@ -75,8 +75,6 @@ public:
 	// useful funcs
 	static bool NameStartsWith(Node * pNode, String szSearch);
 	static String FindNameAfter(Node * pNode, String szStart);
-	static void print(String sz);
-	static bool m_bRunning;
 };
 
 

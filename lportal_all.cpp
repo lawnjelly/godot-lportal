@@ -1,5 +1,6 @@
 // single compilation unit
 #include "register_types.cpp"
+#include "ldebug.cpp"
 #include "lroom.cpp"
 #include "lroom_manager.cpp"
 #include "lroom_converter.cpp"

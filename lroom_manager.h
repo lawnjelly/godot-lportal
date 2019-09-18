@@ -59,6 +59,12 @@ class LRoomManager : public Spatial {
 	// already to prevent multiple hits on rooms and objects
 	unsigned int m_uiFrameCounter;
 
+	// for debugging, can turn LPortal on and off
+	bool m_bActive;
+
+	// for debugging, can emulate view frustum culling
+	bool m_bFrustumOnly;
+
 public:
 	LRoomManager();
 
@@ -73,11 +79,23 @@ public:
 	// (can be used to find the name etc of a room ID returned by dob_update)
 	Node * rooms_get_room(int room_id);
 
+	// turn on and off culling for debugging
+	void rooms_set_active(bool bActive);
+
+	// 0 to 6 .. defaults to 4 which is (2) in our priorities (i.e. 6 - level)
+	void rooms_set_logging(int level);
+
+	// provide debugging output on the next frame
+	void rooms_log_frame();
+
 	// Dynamic objects .. cameras, players, boxes etc
 	// These are defined by their ability to move from room to room.
 	// You can still move static objects within the same room (e.g. elevators, moving platforms)
 	// as these don't require checks for changing rooms.
 	bool dob_register(Node * pDOB, float radius);
+	// register but let LPortal know which room the dob should start in
+	bool dob_register_hint(Node * pDOB, float radius, Node * pRoom);
+
 	bool dob_unregister(Node * pDOB);
 
 	// returns the room ID within
@@ -86,6 +104,8 @@ public:
 	// if we are moving the DOB possibly through multiple rooms, then teleport rather than detect
 	// portal crossings
 	bool dob_teleport(Node * pDOB);
+	bool dob_teleport_hint(Node * pDOB, Node * pRoom);
+
 
 	// helper func, not needed usually as dob_update returns the room
 	int dob_get_room_id(Node * pDOB);
@@ -97,7 +117,14 @@ protected:
 	// The recursive visibility function needs to allocate loads of planes.
 	// We use a pool for this instead of allocating on the fly.
 	LPlanesPool m_Pool;
+
+	// 0 to 5
+	int m_iLoggingLevel;
 private:
+	// internal
+	bool DobRegister(Spatial * pDOB, float radius, int iRoom);
+	bool DobTeleport(Spatial * pDOB, int iNewRoomID);
+
 
 	// helper funcs
 	const LRoom * GetRoom(int i) const;
@@ -113,6 +140,9 @@ private:
 
 	// this is where we do all the culling
 	void FrameUpdate();
+
+	// debugging emulate view frustum
+	void FrameUpdate_FrustumOnly();
 
 	// find which room is linked by a portal
 	LRoom &Portal_GetLinkedRoom(const LPortal &port);

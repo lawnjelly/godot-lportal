@@ -23,11 +23,15 @@
 #include "scene/3d/camera.h"
 #include "scene/3d/mesh_instance.h"
 #include "lroom_converter.h"
+#include "ldebug.h"
 
 LRoomManager::LRoomManager()
 {
 	m_cameraID = 0;
 	m_uiFrameCounter = 0;
+	m_iLoggingLevel = 2;
+	m_bActive = true;
+	m_bFrustumOnly = false;
 
 	// to know which rooms to hide we keep track of which were shown this, and the previous frame
 	m_pCurr_VisibleRoomList = &m_VisibleRoomList_A;
@@ -149,35 +153,103 @@ LRoom * LRoomManager::GetRoomFromDOB(Node * pNode)
 }
 
 
-bool LRoomManager::dob_register(Node * pDOB, float radius)
+// register but let LPortal know which room the dob should start in
+bool LRoomManager::dob_register_hint(Node * pDOB, float radius, Node * pRoom)
 {
-	print_line("register_dob " + pDOB->get_name());
+	if (!pDOB)
+	{
+		WARN_PRINT_ONCE("dob_register_hint : pDOB is NULL");
+		return false;
+	}
+
+	LPRINT(3, "dob_register_hint " + pDOB->get_name());
+
+	if (!pRoom)
+	{
+		WARN_PRINT_ONCE("dob_register_hint : pRoom is NULL");
+		return false;
+	}
+
+
+	int iRoom = Obj_GetRoomNum(pRoom);
 
 	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
 	if (!pSpat)
+	{
+		WARN_PRINT_ONCE("dob_register_hint : DOB is not a spatial");
 		return false;
+	}
 
-	Vector3 pt = pSpat->get_global_transform().origin;
 
-	int iRoomNum = FindClosestRoom(pt);
-	print_line("register_dob closest room " + itos(iRoomNum));
+	return DobRegister(pSpat, radius, iRoom);
+}
 
-	if (iRoomNum == -1)
+
+bool LRoomManager::DobRegister(Spatial * pDOB, float radius, int iRoom)
+{
+	//LPRINT(3, "register_dob " + pDOB->get_name());
+
+	if (iRoom == -1)
+	{
+		WARN_PRINT_ONCE("LRoomManager::DobRegister : room ID is -1");
 		return false;
+	}
 
-	LRoom * pRoom = GetRoom(iRoomNum);
+	LRoom * pRoom = GetRoom(iRoom);
 	if (!pRoom)
 		return false;
 
 	LDob dob;
-	dob.m_ID = pSpat->get_instance_id();
+	dob.m_ID = pDOB->get_instance_id();
 	dob.m_fRadius = radius;
 
 	pRoom->DOB_Add(dob);
 
 	// save the room ID on the dob metadata
-	Obj_SetRoomNum(pSpat, iRoomNum);
+	Obj_SetRoomNum(pDOB, iRoom);
 	return true;
+}
+
+
+bool LRoomManager::dob_register(Node * pDOB, float radius)
+{
+	if (!pDOB)
+	{
+		WARN_PRINT_ONCE("dob_register : pDOB is NULL");
+		return false;
+	}
+
+	LPRINT(3, "dob_register " + pDOB->get_name());
+
+	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
+	if (!pSpat)
+	{
+		WARN_PRINT_ONCE("dob_register : DOB is not a spatial");
+		return false;
+	}
+
+	Vector3 pt = pSpat->get_global_transform().origin;
+
+	int iRoomNum = FindClosestRoom(pt);
+	LPRINT(2, "dob_register closest room " + itos(iRoomNum));
+
+	return DobRegister(pSpat, radius, iRoomNum);
+//	if (iRoomNum == -1)
+//		return false;
+
+//	LRoom * pRoom = GetRoom(iRoomNum);
+//	if (!pRoom)
+//		return false;
+
+//	LDob dob;
+//	dob.m_ID = pSpat->get_instance_id();
+//	dob.m_fRadius = radius;
+
+//	pRoom->DOB_Add(dob);
+
+//	// save the room ID on the dob metadata
+//	Obj_SetRoomNum(pSpat, iRoomNum);
+//	return true;
 }
 
 
@@ -223,27 +295,53 @@ int LRoomManager::dob_update(Node * pDOB)
 	return pRoom->m_RoomID;
 }
 
-// not tested...
-bool LRoomManager::dob_teleport(Node * pDOB)
+bool LRoomManager::dob_teleport_hint(Node * pDOB, Node * pRoom)
 {
+	if (!pDOB)
+	{
+		WARN_PRINT_ONCE("dob_teleport_hint : pDOB is NULL");
+		return false;
+	}
+
+	LPRINT(1, "dob_teleport_hint " + pDOB->get_name());
+
+	if (!pRoom)
+	{
+		WARN_PRINT_ONCE("dob_teleport_hint : pRoom is NULL");
+		return false;
+	}
+
+
+	int iRoom = Obj_GetRoomNum(pRoom);
+
 	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
 	if (!pSpat)
+	{
+		WARN_PRINT_ONCE("dob_teleport_hint : DOB is not a spatial");
 		return false;
+	}
 
+	return DobTeleport(pSpat, iRoom);
+}
+
+
+bool LRoomManager::DobTeleport(Spatial * pDOB, int iNewRoomID)
+{
 	// old room
 	LRoom * pOldRoom = GetRoomFromDOB(pDOB);
 	if (!pOldRoom)
+	{
+		WARN_PRINT_ONCE("LRoomManager::DobTeleport : pOldRoom is NULL");
 		return false;
+	}
 
-	Vector3 pt = pSpat->get_global_transform().origin;
-
-	int iRoomNum = FindClosestRoom(pt);
-	//print_line("dob_teleport closest room " + itos(iRoomNum));
-
-	if (iRoomNum == -1)
+	if (iNewRoomID == -1)
+	{
+		WARN_PRINT_ONCE("LRoomManager::DobTeleport : iNewRoomID is -1");
 		return false;
+	}
 
-	LRoom * pNewRoom = GetRoom(iRoomNum);
+	LRoom * pNewRoom = GetRoom(iNewRoomID);
 	if (!pNewRoom)
 		return false;
 
@@ -260,9 +358,55 @@ bool LRoomManager::dob_teleport(Node * pDOB)
 	pOldRoom->DOB_Remove(dob_id);
 
 	// save the room ID on the dob metadata
-	Obj_SetRoomNum(pSpat, iRoomNum);
+	Obj_SetRoomNum(pDOB, iNewRoomID);
 
 	return true;
+}
+
+
+// not tested...
+bool LRoomManager::dob_teleport(Node * pDOB)
+{
+	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
+	if (!pSpat)
+		return false;
+
+	Vector3 pt = pSpat->get_global_transform().origin;
+
+	int iRoomNum = FindClosestRoom(pt);
+	//print_line("dob_teleport closest room " + itos(iRoomNum));
+
+	if (iRoomNum == -1)
+		return false;
+
+	return DobTeleport(pSpat, iRoomNum);
+
+//	// old room
+//	LRoom * pOldRoom = GetRoomFromDOB(pDOB);
+//	if (!pOldRoom)
+//		return false;
+
+
+//	LRoom * pNewRoom = GetRoom(iRoomNum);
+//	if (!pNewRoom)
+//		return false;
+
+//	// detach from old room, add to new room
+//	// get dob data to move to new room
+//	unsigned int dob_id = pOldRoom->DOB_Find(pDOB);
+//	assert (dob_id != -1);
+
+//	// copy across data before removing
+//	const LDob &data = pOldRoom->DOB_Get(dob_id);
+//	pNewRoom->DOB_Add(data);
+
+//	// remove from old room
+//	pOldRoom->DOB_Remove(dob_id);
+
+//	// save the room ID on the dob metadata
+//	Obj_SetRoomNum(pSpat, iRoomNum);
+
+//	return true;
 }
 
 
@@ -296,6 +440,43 @@ Node * LRoomManager::rooms_get_room(int room_id)
 }
 
 
+// turn on and off culling for debugging
+void LRoomManager::rooms_set_active(bool bActive)
+{
+	if (bActive == m_bActive)
+		return;
+
+	m_bActive = bActive;
+
+	if (m_bActive)
+	{
+		// clear these to ensure the system is initialized
+		m_pCurr_VisibleRoomList->clear();
+		m_pPrev_VisibleRoomList->clear();
+	}
+
+	// show all
+	for (int n=0; n<m_Rooms.size(); n++)
+	{
+		LRoom &lroom = m_Rooms[n];
+		lroom.Show_All();
+	}
+
+
+}
+
+void LRoomManager::rooms_set_logging(int level)
+{
+	// 0 is no logging, 6 is max logging (i.e. reverse of the priorities in the code)
+	Lawn::LDebug::m_iLoggingLevel = 6-level;
+}
+
+// provide debugging output on the next frame
+void LRoomManager::rooms_log_frame()
+{
+	Lawn::LDebug::m_bRunning = false;
+}
+
 
 void LRoomManager::rooms_set_camera(Node * pCam)
 {
@@ -314,7 +495,7 @@ void LRoomManager::rooms_set_camera(Node * pCam)
 	m_cameraID = pCam->get_instance_id();
 
 	// use this temporarily to force debug
-	LPortal::m_bRunning = false;
+//	rooms_log_frame();
 }
 
 // convert empties and meshes to rooms and portals
@@ -325,6 +506,12 @@ void LRoomManager::rooms_convert()
 }
 
 
+// debugging emulate view frustum
+void LRoomManager::FrameUpdate_FrustumOnly()
+{
+	// NYI
+}
+
 void LRoomManager::FrameUpdate()
 {
 	if (Engine::get_singleton()->is_editor_hint())
@@ -333,8 +520,21 @@ void LRoomManager::FrameUpdate()
 		return;
 	}
 
+	// could turn off internal processing? not that important
+	if (!m_bActive)
+		return;
+
+	if (m_bFrustumOnly)
+	{
+		// debugging emulate view frustum
+		FrameUpdate_FrustumOnly();
+		return;
+	}
+
 	// we keep a frame counter to prevent visiting things multiple times on the same frame in recursive functions
 	m_uiFrameCounter++;
+
+	LPRINT(5, "\nFRAME " + itos(m_uiFrameCounter));
 
 	// clear the visible room list to write to each frame
 	m_pCurr_VisibleRoomList->clear();
@@ -444,7 +644,7 @@ void LRoomManager::FrameUpdate()
 	// hide all the DOB
 
 	// when running, emit less debugging output so as not to choke the IDE
-	LPortal::m_bRunning = true;
+	Lawn::LDebug::m_bRunning = true;
 }
 
 
@@ -472,6 +672,12 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("rooms_set_camera"), &LRoomManager::rooms_set_camera);
 	ClassDB::bind_method(D_METHOD("rooms_get_room"), &LRoomManager::rooms_get_room);
 
+	// debugging
+	ClassDB::bind_method(D_METHOD("rooms_set_logging"), &LRoomManager::rooms_set_logging);
+	ClassDB::bind_method(D_METHOD("rooms_log_frame"), &LRoomManager::rooms_log_frame);
+	ClassDB::bind_method(D_METHOD("rooms_set_active"), &LRoomManager::rooms_set_active);
+
+
 	// functions to add dynamic objects to the culling system
 	// Note that these should not be placed directly in rooms, the system will 'soft link' to them
 	// so they can be held, e.g. in pools elsewhere in the scene graph
@@ -479,6 +685,10 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("dob_unregister"), &LRoomManager::dob_unregister);
 	ClassDB::bind_method(D_METHOD("dob_update"), &LRoomManager::dob_update);
 	ClassDB::bind_method(D_METHOD("dob_teleport"), &LRoomManager::dob_teleport);
+
+	ClassDB::bind_method(D_METHOD("dob_register_hint"), &LRoomManager::dob_register_hint);
+	ClassDB::bind_method(D_METHOD("dob_teleport_hint"), &LRoomManager::dob_teleport_hint);
+
 
 	ClassDB::bind_method(D_METHOD("dob_get_room_id"), &LRoomManager::dob_get_room_id);
 }

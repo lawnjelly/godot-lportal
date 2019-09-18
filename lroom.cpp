@@ -24,15 +24,8 @@
 #include "lportal.h"
 #include "lbitfield_dynamic.h"
 #include "lroom_manager.h"
+#include "ldebug.h"
 
-//#define LROOM_VERBOSE
-
-void LRoom::print(String sz)
-{
-#ifdef LROOM_VERBOSE
-	LPortal::print(sz);
-#endif
-}
 
 LRoom::LRoom() {
 	m_RoomID = -1;
@@ -116,9 +109,7 @@ LRoom * LRoom::DOB_Update(LRoomManager &manager, Spatial * pDOB)
 
 		if (dist > slop)
 		{
-#ifdef LROOM_VERBOSE
-			print("DOB at pos " + pt + " ahead of portal " + port.get_name() + " by " + String(Variant(dist)));
-#endif
+			LPRINT(0, "DOB at pos " + pt + " ahead of portal " + port.get_name() + " by " + String(Variant(dist)));
 
 			// we want to move into the adjoining room
 			return &manager.Portal_GetLinkedRoom(port);
@@ -184,6 +175,29 @@ void LRoom::Hide_All()
 	}
 }
 
+// show godot room and all linked dobs and all sobs
+void LRoom::Show_All()
+{
+	GetGodotRoom()->show();
+
+	for (int n=0; n<m_SOBs.size(); n++)
+	{
+		LSob &sob = m_SOBs[n];
+		Spatial * pS = sob.GetSpatial();
+		if (pS)
+			pS->show();
+	}
+
+	for (int n=0; n<m_DOBs.size(); n++)
+	{
+		LDob &dob = m_DOBs[n];
+		Spatial * pS = dob.GetSpatial();
+		if (pS)
+			pS->show();
+	}
+}
+
+
 void LRoom::FirstTouch(LRoomManager &manager)
 {
 	// set the frame counter
@@ -205,17 +219,17 @@ void LRoom::FirstTouch(LRoomManager &manager)
 void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, int portalID_from)
 {
 	// prevent too much depth
-	if (depth >= 8)
+	if (depth > 8)
 	{
-#ifdef LROOM_VERBOSE
-		print("\t\t\tDEPTH LIMIT REACHED");
-#endif
+		LPRINT_RUN(2, "\t\t\tDEPTH LIMIT REACHED");
+		WARN_PRINT_ONCE("LPortal Depth Limit reached (seeing through > 8 portals)");
 		return;
 	}
 
-#ifdef LROOM_VERBOSE
-	print("DetermineVisibility_Recursive from " + get_name());
-#endif
+	// for debugging
+	Lawn::LDebug::m_iTabDepth = depth;
+	LPRINT_RUN(2, "");
+	LPRINT_RUN(2, "ROOM '" + get_name() + "' planes " + itos(planes.size()) + " portals " + itos(m_iNumPortals) );
 
 	// only handle one touch per frame so far (one portal into room)
 	//assert (manager.m_uiFrameCounter > m_uiFrameTouched);
@@ -269,7 +283,7 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 		if (bShow)
 			sob.m_bVisible = true;
 
-	}
+	} // for through sobs
 
 
 #else
@@ -334,7 +348,6 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 			bool bShow = true;
 			const Vector3 &pt = pObj->get_global_transform().origin;
 
-			//print_line("\t\t\tculling dob " + pObj->get_name());
 			float radius = dob.m_fRadius;
 
 			for (int p=0; p<planes.size(); p++)
@@ -350,21 +363,31 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 			}
 
 			if (bShow)
+			{
+				LPRINT_RUN(1, "\tDOB " + pObj->get_name() + " visible");
 				dob.m_bVisible = true;
+			}
+			else
+			{
+				LPRINT_RUN(1, "\tDOB " + pObj->get_name() + " culled");
+			}
 		}
-	}
+	} // for through dobs
 
 
 
 	// look through portals
-	for (int p=0; p<m_iNumPortals; p++)
+	for (int port_num=0; port_num<m_iNumPortals; port_num++)
 	{
-		int port_id = m_iFirstPortal + p;
+		int port_id = m_iFirstPortal + port_num;
 
 		// ignore if the portal we are looking in from
 		// is this needed? surely the portal we are looking in from is in another room?
-		if (port_id == portalID_from)
-			continue;
+//		if (port_id == portalID_from)
+//		{
+//			LPRINT_RUN(2, "\tIGNORING PORTAL LOOKING IN FROM");
+//			continue;
+//		}
 
 		const LPortal &port = manager.m_Portals[port_id];
 
@@ -379,9 +402,7 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 		// Note we need to deal with 'side on' portals, and the camera has a spreading view, so we cannot simply dot
 		// the portal normal with camera direction, we need to take into account angle to the portal itself.
 		const Vector3 &portal_normal = port.m_Plane.normal;
-#ifdef LROOM_VERBOSE
-		print("\ttesting portal " + port.get_name() + " normal " + portal_normal);
-#endif
+		LPRINT_RUN(2, "\tPORTAL " + itos (port_num) + " (" + itos(port_id) + ") " + port.get_name() + " normal " + portal_normal);
 
 		// we will dot the portal angle with a ray from the camera to the portal centre
 		// (there might be an even better ray direction but this will do for now)
@@ -390,12 +411,10 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 		// doesn't actually need to be normalized?
 		float dot = dir_portal.dot(portal_normal);
 
-//		float dot = cam.m_ptDir.dot(portal_normal);
 		if (dot <= -0.0f) // 0.0
 		{
-#ifdef LROOM_VERBOSE
-			print("\t\tportal culled (wrong direction) dot is " + String(Variant(dot)) + ", dir_portal is " + dir_portal);
-#endif
+			//LPRINT_RUN(2, "\t\tCULLED (wrong direction) dot is " + String(Variant(dot)) + ", dir_portal is " + dir_portal);
+			LPRINT_RUN(2, "\t\tCULLED (wrong direction)");
 			continue;
 		}
 
@@ -406,6 +425,7 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 		// and still want to look through the portal.
 		// So we are starting this loop from 1, ASSUMING that plane zero is the near clipping plane.
 		// If it isn't we would need a different strategy
+
 		for (int l=1; l<planes.size(); l++)
 		{
 			LPortal::eClipResult res = port.ClipWithPlane(planes[l]);
@@ -429,9 +449,7 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 		// this portal is culled
 		if (overall_res == LPortal::eClipResult::CLIP_OUTSIDE)
 		{
-#ifdef LROOM_VERBOSE
-			print("\t\tportal culled (outside planes)");
-#endif
+			LPRINT_RUN(2, "\t\tCULLED (outside planes)");
 			continue;
 		}
 
@@ -450,7 +468,11 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 
 
 			if (pLinkedRoom)
+			{
 				pLinkedRoom->DetermineVisibility_Recursive(manager, depth + 1, cam, new_planes, port_id);
+				// for debugging need to reset tab depth
+				Lawn::LDebug::m_iTabDepth = depth;
+			}
 
 			// we no longer need these planes
 			manager.m_Pool.Free(uiPoolMem);
@@ -464,7 +486,8 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 			// slow anyway because of the number of planes to test.
 			WARN_PRINT_ONCE("Planes pool is empty");
 		}
-	}
+
+	} // for p through portals
 }
 
 

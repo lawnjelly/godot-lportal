@@ -24,23 +24,19 @@
 #include "lportal.h"
 #include "scene/3d/mesh_instance.h"
 #include "core/math/quick_hull.h"
+#include "ldebug.h"
 
 // save typing, I am lazy
 #define LMAN m_pManager
 
-void LRoomConverter::print(String sz)
-{
-	// easy to turn on and off debugging
-	print_line(sz);
-}
 
 
 void LRoomConverter::Convert(LRoomManager &manager)
 {
 	// This just is simply used to set how much debugging output .. more during conversion, less during running
 	// except when requested by explicitly clearing this flag.
-	LPortal::m_bRunning = false;
-	print_line("running convert");
+	Lawn::LDebug::m_bRunning = false;
+	LPRINT(5, "running convert");
 
 	LMAN = &manager;
 	int count = CountRooms();
@@ -59,16 +55,17 @@ void LRoomConverter::Convert(LRoomManager &manager)
 	Convert_Rooms();
 	Convert_Portals();
 	Convert_Bounds();
-	LPortal::m_bRunning = true;
 
 	// temp rooms no longer needed
 	m_TempRooms.clear(true);
+
+	Lawn::LDebug::m_bRunning = true;
 }
 
 
 void LRoomConverter::Convert_Rooms()
 {
-	print_line("Convert_Rooms");
+	LPRINT(5,"Convert_Rooms");
 
 	// first find all room empties and convert to LRooms
 	int count = 0;
@@ -120,7 +117,7 @@ void LRoomConverter::Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &l
 		VisualInstance * pVI = Object::cast_to<VisualInstance>(pChild);
 		if (pVI)
 		{
-			print("\t\tFound VI : " + pVI->get_name());
+			LPRINT(2, "\t\tFound VI : " + pVI->get_name());
 
 
 			// update bound to find centre of room roughly
@@ -151,7 +148,7 @@ bool LRoomConverter::Convert_Room(Spatial * pNode, int lroomID)
 	String szFullName = pNode->get_name();
 	String szRoom = LPortal::FindNameAfter(pNode, "room_");
 
-	print_line("Convert_Room : " + szFullName);
+	LPRINT(4, "Convert_Room : " + szFullName);
 
 	// get a reference to the lroom we are writing to
 	LRoom &lroom = LMAN->m_Rooms[lroomID];
@@ -159,6 +156,11 @@ bool LRoomConverter::Convert_Room(Spatial * pNode, int lroomID)
 	// store the godot room
 	lroom.m_GodotID = pNode->get_instance_id();
 	lroom.m_RoomID = lroomID;
+
+	// save the room ID on the godot room metadata
+	// This is used when registering DOBs and teleporting them with hints
+	// i.e. the Godot room is used to lookup the room ID of the startroom.
+	LMAN->Obj_SetRoomNum(pNode, lroomID);
 
 	// create a new LRoom to exchange the children over to, and delete the original empty
 	lroom.m_szName = szRoom;
@@ -178,7 +180,7 @@ bool LRoomConverter::Convert_Room(Spatial * pNode, int lroomID)
 	lroom.m_AABB.position = bb_room.m_ptMins;
 	lroom.m_AABB.size = bb_room.m_ptMaxs - bb_room.m_ptMins;
 
-	print_line("\t" + String(lroom.m_szName) + " centre " + lroom.m_ptCentre);
+	LPRINT(2, "\t\t\t" + String(lroom.m_szName) + " centre " + lroom.m_ptCentre);
 
 	return true;
 }
@@ -218,7 +220,7 @@ bool LRoomConverter::Bound_AddPlaneIfUnique(LVector<Plane> &planes, const Plane 
 
 bool LRoomConverter::Convert_Bound(LRoom &lroom, MeshInstance * pMI)
 {
-	print("\t\tConvert_Bound : " + pMI->get_name());
+	LPRINT(2, "\tCONVERT_BOUND : '" + pMI->get_name() + "' for room '" + lroom.get_name() + "'");
 
 	// some godot jiggery pokery to get the mesh verts in local space
 	Ref<Mesh> rmesh = pMI->get_mesh();
@@ -250,7 +252,7 @@ bool LRoomConverter::Convert_Bound(LRoom &lroom, MeshInstance * pMI)
 				Bound_AddPlaneIfUnique(lroom.m_Bound.m_Planes, p);
 			}
 
-			print("\t\t\tcontained " + itos(lroom.m_Bound.m_Planes.size()) + " planes.");
+			LPRINT(2, "\t\t\tcontained " + itos(lroom.m_Bound.m_Planes.size()) + " planes.");
 			return true;
 		}
 	}
@@ -294,7 +296,8 @@ void LRoomConverter::Convert_Portals()
 {
 	for (int pass=0; pass<3; pass++)
 	{
-		print_line("Convert_Portals pass " + itos(pass));
+		LPRINT(2, "Convert_Portals pass " + itos(pass));
+		LPRINT(2, "");
 
 		for (int n=0; n<LMAN->m_Rooms.size(); n++)
 		{
@@ -338,7 +341,7 @@ int LRoomConverter::CountRooms()
 // go through the nodes hanging off the room looking for those that are meshes to mark portal locations
 void LRoomConverter::LRoom_DetectPortalMeshes(LRoom &lroom, LTempRoom &troom)
 {
-	print("DetectPortalMeshes from room " + lroom.get_name());
+	LPRINT(2, "DETECT_PORTALS from room " + lroom.get_name());
 
 	Spatial * pGRoom = lroom.GetGodotRoom();
 	assert (pGRoom);
@@ -415,13 +418,13 @@ void LRoomConverter::LRoom_MakePortalFinalList(LRoom &lroom, LTempRoom &troom)
 // found a portal mesh! create a matching LPortal
 void LRoomConverter::LRoom_DetectedPortalMesh(LRoom &lroom, LTempRoom &troom, MeshInstance * pMeshInstance, String szLinkRoom)
 {
-	print("\tDetected PortalMesh to " + szLinkRoom);
+	LPRINT(2, "\tdetected to " + szLinkRoom);
 
 	// which room does this portal want to link to?
 	int iLinkRoom = FindRoom_ByName(szLinkRoom);
 	if (iLinkRoom == -1)
 	{
-		print("\t\tWARNING : portal to room " + szLinkRoom + ", room not found");
+		LWARN(5, "portal to room " + szLinkRoom + ", room not found");
 		//WARN_PRINTS("portal to room " + szLinkRoom + ", room not found");
 		return;
 	}
@@ -440,7 +443,7 @@ void LRoomConverter::LRoom_DetectedPortalMesh(LRoom &lroom, LTempRoom &troom, Me
 	lport.CreateGeometry(p_vertices, pMeshInstance->get_global_transform());
 
 
-	print("\t\t\tnum portals now " + itos(troom.m_Portals.size()));
+//	LPRINT(2, "\t\t\tnum portals now " + itos(troom.m_Portals.size()));
 }
 
 
@@ -448,20 +451,21 @@ void LRoomConverter::LRoom_DetectedPortalMesh(LRoom &lroom, LTempRoom &troom, Me
 // will automatically create a mirror portal the other way.
 void LRoomConverter::LRoom_MakePortalsTwoWay(LRoom &lroom, LTempRoom &troom, int iRoomNum)
 {
-	print("LRoomConverter::LRoom_MakePortalsTwoWay from room " + lroom.get_name() + ", contains " + itos (troom.m_Portals.size()) + " portals");
+	LPRINT(2, "MAKE_PORTALS_TWOWAY from room " + lroom.get_name());
+	LPRINT(2, "\tcontains " + itos (troom.m_Portals.size()) + " portals");
 	for (int n=0; n<troom.m_Portals.size(); n++)
 	{
 		const LPortal &portal_orig = troom.m_Portals[n];
-		print("\tconsidering portal " + portal_orig.get_name());
+		LPRINT(2, "\tconsidering portal " + portal_orig.get_name());
 
 		// only make original portals into mirror portals, to prevent infinite recursion
 		if (portal_orig.m_bMirror)
 		{
-			print ("\t\tis MIRROR, ignoring");
+			LPRINT (2, "\t\tis MIRROR, ignoring");
 			continue;
 		}
 
-		print("\t\tcreating opposite portal");
+		LPRINT(2, "\t\tcreating opposite portal");
 
 		// get the temproom this portal is linking to
 		//LTempRoom &nroom = m_TempRooms[portal_orig.m_iRoomNum];

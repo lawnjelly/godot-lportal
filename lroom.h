@@ -93,7 +93,12 @@ protected:
 	void FirstTouch(LRoomManager &manager);
 
 	// hide godot room and all linked dobs
+	// USED AT RUNTIME
 	void Hide_All();
+
+	// show godot room and all linked dobs and all sobs
+	// ONLY USED IN DEBUGGING to turn LPortal on and off
+	void Show_All();
 
 	// hide all the objects not hit on this frame .. instead of calling godot hide without need
 	// (it might be expensive)
@@ -110,8 +115,6 @@ public:
 	LRoom();
 	Spatial * GetGodotRoom() const;
 
-private:
-	static void print(String sz);
 };
 
 

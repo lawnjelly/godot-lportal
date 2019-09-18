@@ -21,24 +21,7 @@
 #include "lportal.h"
 #include "core/engine.h"
 #include "lroom.h"
-
-
-//#define LPORTAL_VERBOSE
-
-bool LPortal::m_bRunning = false;
-
-void LPortal::print(String sz)
-{
-#ifdef LPORTAL_VERBOSE
-	if (m_bRunning)
-	{
-	}
-	else
-	{
-		print_line(sz);
-	}
-#endif
-}
+#include "ldebug.h"
 
 
 bool LPortal::NameStartsWith(Node * pNode, String szSearch)
@@ -132,9 +115,7 @@ LPortal::eClipResult LPortal::ClipWithPlane(const Plane &p) const
 
 	if (nOutside == nPoints)
 	{
-#ifdef LPORTAL_VERBOSE
-		print("LPortal::ClipWithPlane : Outside plane " + p);
-#endif
+		LPRINT_RUN(2, "\t\tOutside plane " + p);
 		return CLIP_OUTSIDE;
 	}
 
