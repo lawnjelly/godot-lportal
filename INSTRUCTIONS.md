@@ -286,7 +286,7 @@ Portal polygons with fewer edges are also faster to cull against. So usually an 
 
 Level design is thus a balancing act between creating a higher density of rooms / portals (with greater occlusion culling accuracy), and a greater number of clipping planes. In practice there is also the issue of drawcalls, often hardware is limited by how many objects it can draw performantly in a frame - often it is faster to merge a bunch of small objects together than to cull them.
 
-### Command summary
+### Command reference
 * `void rooms_convert()` - prepare lportal for rendering
 * `void rooms_set_camera(Node * pCam)` - set which camera visibility is calculated from
 * `Node * rooms_get_rooms(int room_id)` - returns godot room node from lportal room id
