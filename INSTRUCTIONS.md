@@ -145,3 +145,20 @@ LPortal is very efficient, and the culling process itself is only likely to be a
 Portal polygons with fewer edges are also faster to cull against. So usually an axis aligned quad will make a lot of sense, even when covering an irregular opening (say a cave).
 
 Level design is thus a balancing act between creating a higher density of rooms / portals (with greater occlusion culling accuracy), and a greater number of clipping planes. In practice there is also the issue of drawcalls, often hardware is limited by how many objects it can draw performantly in a frame - often it is faster to merge a bunch of small objects together than to cull them.
+
+### Command summary
+* `void rooms_convert()` - prepare lportal for rendering
+* `void rooms_set_camera(Node * pCam)` - set which camera visibility is calculated from
+* `Node * rooms_get_rooms(int room_id)` - returns godot room node from lportal room id
+* `void rooms_set_active(bool bActive)` - turns on and off lportal
+* `void rooms_log_frame()` - output debug logs for the next frame
+* `void rooms_set_logging(int level)` - set debug logging level, 0 - 6 (0 is none, 6 is most)
+
+* `bool dob_register(Node * pDOB, float radius)` - have lportal find start room
+* `bool dob_register_hint(Node * pDOB, float radius, Node * pRoom)` - user provides start room
+* `bool dob_unregister(Node * pDOB)`
+* `int dob_update(Node * pDOB)` - returns room ID within
+* `bool dob_teleport(Node * pDOB)` - have lportal find start room
+* `bool dob_teleport_hint(Node * pDOB, Node * pRoom)` - user provides start room
+* `int dob_get_room_id(Node * pDOB)` - return room ID the dob is currently within
+
