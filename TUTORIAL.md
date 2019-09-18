@@ -50,6 +50,8 @@ func _ready():
 func _process(delta):
 	$Camera.rotate_y(delta)
 ```
+This script tells LPortal to convert and prepare the rooms for rendering, and sets the camera LPortal will use. You also need to register the camera as a DOB (dynamic object) with LPortal, because it may move around between rooms.
+
 15) Now run the project. If all goes well you should now see the camera rotating from above, and different parts of the rooms get hidden and shown as they come into and out of view.
 
 ![culling](images/culling.png)
