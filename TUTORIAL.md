@@ -3,6 +3,9 @@ _(A complete project is available in the LPortalTutorial.zip file.)_
 
 1) Create a new Godot project, and add a spatial, this will be the root of your scene graph. Name it 'Root'.
 2) Add an LRoomManager node as a child of the Root, and call it 'RoomList'. This will be where you place your rooms.
+
+_*If the LRoomManager node is not available in the IDE, Godot has not been compiled with the LPortal module. See INSTRUCTIONS.md._
+
 3) Create a spatial under the RoomList, and name it 'room_kitchen'.
 4) As children of room_kitchen, create simple MeshInstance boxes for a floor and 4 walls, but make one of the walls out of 2 boxes, leaving a hole for a doorway.
 
@@ -55,5 +58,3 @@ func _process(delta):
 17) Try adding other MeshInstances to the rooms - tables, chairs etc. See them culled as they move in and out of view.
 
 If you make any mistakes, check that the portal and rooms have the exact correct names: 'room_kitchen', 'room_lounge', and 'portal_lounge'. You can examine the debug output produced during the conversion which should help diagnose any problems.
-
-If the LRoomManager node is not available in the IDE, Godot has not been compiled with the LPortal module. See INSTRUCTIONS.md.
