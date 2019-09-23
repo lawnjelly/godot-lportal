@@ -252,6 +252,8 @@ You can see that conversion takes place in several stages:
 3) Making portals two way
 4) Detecting room bounds
 
+_(Note that if you are reading the log in the Godot IDE you may need to bump up the value of network/limits/debugger_stdout/max_chars_per_second in the project settings, to prevent getting an output overflow message)_
+
 A sample visibility tree for a frame is as follows:
 ```
 FRAME 172
