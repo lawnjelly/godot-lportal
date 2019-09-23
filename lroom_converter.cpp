@@ -89,7 +89,7 @@ int LRoomConverter::FindRoom_ByName(String szName) const
 {
 	for (int n=0; n<LMAN->m_Rooms.size(); n++)
 	{
-		if (LMAN->m_Rooms[n].m_szName == 	szName)
+		if (LMAN->m_Rooms[n].m_szName == szName)
 			return n;
 	}
 

@@ -22,6 +22,7 @@
 #include "core/engine.h"
 #include "lroom.h"
 #include "ldebug.h"
+#include "lroom_manager.h"
 
 
 bool LPortal::NameStartsWith(Node * pNode, String szSearch)
@@ -71,7 +72,7 @@ String LPortal::FindNameAfter(Node * pNode, String szStart)
 //////////////////////////////////////////////////////////
 
 // add clipping planes to the vector formed by each portal edge and the camera
-void LPortal::AddPlanes(const Vector3 &ptCam, LVector<Plane> &planes) const
+void LPortal::AddPlanes(LRoomManager &manager, const Vector3 &ptCam, LVector<Plane> &planes) const
 {
 	// short version
 	const Vector<Vector3> &pts = m_ptsWorld;
@@ -97,6 +98,16 @@ void LPortal::AddPlanes(const Vector3 &ptCam, LVector<Plane> &planes) const
 	// first and last
 	p = Plane(ptCam, pts[0], pts[nPoints-1]);
 	planes.push_back(p);
+
+	// debug
+	if (!manager.m_bDebugPlanes)
+		return;
+
+	for (int n=0; n<nPoints; n++)
+	{
+		manager.m_DebugPlanes.push_back(pts[n]);
+	}
+
 }
 
 

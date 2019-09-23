@@ -31,6 +31,7 @@
 #include "lvector.h"
 
 class LRoom;
+class LRoomManager;
 
 class LPortal {
 public:
@@ -50,7 +51,7 @@ public:
 	String m_szName;
 
 	LPortal::eClipResult ClipWithPlane(const Plane &p) const;
-	void AddPlanes(const Vector3 &ptCam, LVector<Plane> &planes) const;
+	void AddPlanes(LRoomManager &manager, const Vector3 &ptCam, LVector<Plane> &planes) const;
 
 	// normal determined by winding order
 	Vector<Vector3> m_ptsWorld;

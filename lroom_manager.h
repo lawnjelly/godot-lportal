@@ -44,7 +44,7 @@ class LRoomManager : public Spatial {
 
 
 	// godot ID of the camera (which should be registered as a DOB to allow moving between rooms)
-	ObjectID m_cameraID;
+	ObjectID m_ID_camera;
 
 	// keep track of which rooms are visible, so we can hide ones that aren't hit that were previously on
 	Lawn::LBitField_Dynamic m_BF_visible_rooms;
@@ -81,6 +81,8 @@ public:
 
 	// turn on and off culling for debugging
 	void rooms_set_active(bool bActive);
+
+	void rooms_set_debug_planes(bool bActive);
 
 	// 0 to 6 .. defaults to 4 which is (2) in our priorities (i.e. 6 - level)
 	void rooms_set_logging(int level);
@@ -124,6 +126,7 @@ private:
 	// internal
 	bool DobRegister(Spatial * pDOB, float radius, int iRoom);
 	bool DobTeleport(Spatial * pDOB, int iNewRoomID);
+	void CreateDebug();
 
 
 	// helper funcs
@@ -144,12 +147,25 @@ private:
 	// debugging emulate view frustum
 	void FrameUpdate_FrustumOnly();
 
+	// draw planes and room hulls
+	void FrameUpdate_DrawDebug(const LCamera &cam);
+
 	// find which room is linked by a portal
 	LRoom &Portal_GetLinkedRoom(const LPortal &port);
 
 	// lists of rooms and portals, contiguous list so cache friendly
 	LVector<LRoom> m_Rooms;
 	LVector<LPortal> m_Portals;
+
+public:
+	// whether debug planes is switched on
+	bool m_bDebugPlanes;
+
+	// the planes are shown as a list of lines from the camera to the portal verts
+	LVector<Vector3> m_DebugPlanes;
+private:
+	ObjectID m_ID_DebugPlanes;
+	Ref<SpatialMaterial> m_mat_Debug_Planes;
 };
 
 #endif

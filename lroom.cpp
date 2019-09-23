@@ -90,7 +90,7 @@ LRoom * LRoom::DOB_Update(LRoomManager &manager, Spatial * pDOB)
 	const Vector3 &pt = pDOB->get_global_transform().origin;
 
 	// is it the camera?
-	bool bCamera = pDOB->get_instance_id() == manager.m_cameraID;
+	bool bCamera = pDOB->get_instance_id() == manager.m_ID_camera;
 	float slop = 0.2f;
 	if (bCamera)
 		slop = 0.0f;
@@ -144,7 +144,7 @@ void LRoom::FinalizeVisibility(LRoomManager &manager)
 		const LDob &dob = m_DOBs[n];
 
 		// don't cull the main camera
-		if (dob.m_ID == manager.m_cameraID)
+		if (dob.m_ID == manager.m_ID_camera)
 			continue;
 
 		Spatial * pS = dob.GetSpatial();
@@ -464,7 +464,7 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 			new_planes.copy_from(planes);
 
 			// add the planes for the portal
-			port.AddPlanes(cam.m_ptPos, new_planes);
+			port.AddPlanes(manager, cam.m_ptPos, new_planes);
 
 
 			if (pLinkedRoom)

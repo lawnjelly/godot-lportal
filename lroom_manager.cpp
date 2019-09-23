@@ -24,10 +24,12 @@
 #include "scene/3d/mesh_instance.h"
 #include "lroom_converter.h"
 #include "ldebug.h"
+#include "scene/3d/immediate_geometry.h"
 
 LRoomManager::LRoomManager()
 {
-	m_cameraID = 0;
+	m_ID_camera = 0;
+	m_ID_DebugPlanes = 0;
 	m_uiFrameCounter = 0;
 	m_iLoggingLevel = 2;
 	m_bActive = true;
@@ -36,6 +38,8 @@ LRoomManager::LRoomManager()
 	// to know which rooms to hide we keep track of which were shown this, and the previous frame
 	m_pCurr_VisibleRoomList = &m_VisibleRoomList_A;
 	m_pPrev_VisibleRoomList = &m_VisibleRoomList_B;
+
+	m_bDebugPlanes = false;
 }
 
 int LRoomManager::FindClosestRoom(const Vector3 &pt) const
@@ -185,6 +189,30 @@ bool LRoomManager::dob_register_hint(Node * pDOB, float radius, Node * pRoom)
 }
 
 
+void LRoomManager::CreateDebug()
+{
+	ImmediateGeometry * p = memnew(ImmediateGeometry);
+	p->set_name("debug_planes");
+	add_child(p);
+
+	m_ID_DebugPlanes = p->get_instance_id();
+
+//	m_mat_Debug_Planes->set_as_toplevel(true);
+
+	m_mat_Debug_Planes = Ref<SpatialMaterial>(memnew(SpatialMaterial));
+	m_mat_Debug_Planes->set_flag(SpatialMaterial::FLAG_UNSHADED, true);
+//	m_mat_Debug_Planes->set_line_width(6.0);
+//	m_mat_Debug_Planes->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+//	m_mat_Debug_Planes->set_flag(SpatialMaterial::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+//	m_mat_Debug_Planes->set_flag(SpatialMaterial::FLAG_SRGB_VERTEX_COLOR, true);
+	m_mat_Debug_Planes->set_albedo(Color(1, 0, 1, 1));
+
+	p->set_material_override(m_mat_Debug_Planes);
+
+	p->hide();
+}
+
+
 bool LRoomManager::DobRegister(Spatial * pDOB, float radius, int iRoom)
 {
 	//LPRINT(3, "register_dob " + pDOB->get_name());
@@ -234,22 +262,6 @@ bool LRoomManager::dob_register(Node * pDOB, float radius)
 	LPRINT(2, "dob_register closest room " + itos(iRoomNum));
 
 	return DobRegister(pSpat, radius, iRoomNum);
-//	if (iRoomNum == -1)
-//		return false;
-
-//	LRoom * pRoom = GetRoom(iRoomNum);
-//	if (!pRoom)
-//		return false;
-
-//	LDob dob;
-//	dob.m_ID = pSpat->get_instance_id();
-//	dob.m_fRadius = radius;
-
-//	pRoom->DOB_Add(dob);
-
-//	// save the room ID on the dob metadata
-//	Obj_SetRoomNum(pSpat, iRoomNum);
-//	return true;
 }
 
 
@@ -380,33 +392,6 @@ bool LRoomManager::dob_teleport(Node * pDOB)
 		return false;
 
 	return DobTeleport(pSpat, iRoomNum);
-
-//	// old room
-//	LRoom * pOldRoom = GetRoomFromDOB(pDOB);
-//	if (!pOldRoom)
-//		return false;
-
-
-//	LRoom * pNewRoom = GetRoom(iRoomNum);
-//	if (!pNewRoom)
-//		return false;
-
-//	// detach from old room, add to new room
-//	// get dob data to move to new room
-//	unsigned int dob_id = pOldRoom->DOB_Find(pDOB);
-//	assert (dob_id != -1);
-
-//	// copy across data before removing
-//	const LDob &data = pOldRoom->DOB_Get(dob_id);
-//	pNewRoom->DOB_Add(data);
-
-//	// remove from old room
-//	pOldRoom->DOB_Remove(dob_id);
-
-//	// save the room ID on the dob metadata
-//	Obj_SetRoomNum(pSpat, iRoomNum);
-
-//	return true;
 }
 
 
@@ -437,6 +422,22 @@ Node * LRoomManager::rooms_get_room(int room_id)
 		return NULL;
 
 	return pRoom->GetGodotRoom();
+}
+
+void LRoomManager::rooms_set_debug_planes(bool bActive)
+{
+	m_bDebugPlanes = bActive;
+
+	Object * pObj = ObjectDB::get_instance(m_ID_DebugPlanes);
+	ImmediateGeometry * im = Object::cast_to<ImmediateGeometry>(pObj);
+	if (!im)
+		return;
+
+	if (bActive)
+		im->show();
+	else
+		im->hide();
+
 }
 
 
@@ -480,7 +481,7 @@ void LRoomManager::rooms_log_frame()
 
 void LRoomManager::rooms_set_camera(Node * pCam)
 {
-	m_cameraID = 0;
+	m_ID_camera = 0;
 
 	if (!pCam)
 		return;
@@ -492,7 +493,7 @@ void LRoomManager::rooms_set_camera(Node * pCam)
 		return;
 	}
 
-	m_cameraID = pCam->get_instance_id();
+	m_ID_camera = pCam->get_instance_id();
 
 	// use this temporarily to force debug
 //	rooms_log_frame();
@@ -531,6 +532,9 @@ void LRoomManager::FrameUpdate()
 		return;
 	}
 
+	if (m_bDebugPlanes)
+		m_DebugPlanes.clear();
+
 	// we keep a frame counter to prevent visiting things multiple times on the same frame in recursive functions
 	m_uiFrameCounter++;
 
@@ -541,9 +545,9 @@ void LRoomManager::FrameUpdate()
 
 	// get the camera desired and make into lcamera
 	Camera * pCamera = 0;
-	if (m_cameraID)
+	if (m_ID_camera)
 	{
-		Object *pObj = ObjectDB::get_instance(m_cameraID);
+		Object *pObj = ObjectDB::get_instance(m_ID_camera);
 		pCamera = Object::cast_to<Camera>(pObj);
 	}
 	else
@@ -588,7 +592,7 @@ void LRoomManager::FrameUpdate()
 	assert (pCamera);
 	Transform tr = pCamera->get_global_transform();
 	cam.m_ptPos = tr.origin;
-	cam.m_ptDir = tr.basis.get_row(2); // or possibly get_axis .. z is what we want
+	cam.m_ptDir = -tr.basis.get_axis(2); // or possibly get_axis .. z is what we want
 
 	// luckily godot already has a function to return a list of the camera clipping planes
 	planes.copy_from(pCamera->get_frustum());
@@ -643,10 +647,41 @@ void LRoomManager::FrameUpdate()
 
 	// hide all the DOB
 
+	// draw debug
+	FrameUpdate_DrawDebug(cam);
+
 	// when running, emit less debugging output so as not to choke the IDE
 	Lawn::LDebug::m_bRunning = true;
 }
 
+
+void LRoomManager::FrameUpdate_DrawDebug(const LCamera &cam)
+{
+	if (!m_bDebugPlanes)
+		return;
+
+	Vector3 ptCam = cam.m_ptPos;
+	// slight adjustment to prevent parallel lines in viewport
+	ptCam += (cam.m_ptDir * 0.1f);
+
+	Object * pObj = ObjectDB::get_instance(m_ID_DebugPlanes);
+	ImmediateGeometry * im = Object::cast_to<ImmediateGeometry>(pObj);
+	if (!im)
+		return;
+
+	im->clear();
+
+	im->begin(Mesh::PRIMITIVE_LINES, NULL);
+
+	int nVerts = m_DebugPlanes.size();
+
+	for (int n=0; n<nVerts; n++)
+	{
+		im->add_vertex(ptCam);
+		im->add_vertex(m_DebugPlanes[n]);
+	}
+	im->end();
+}
 
 void LRoomManager::_notification(int p_what) {
 
@@ -654,9 +689,15 @@ void LRoomManager::_notification(int p_what) {
 	case NOTIFICATION_ENTER_TREE: {
 			// turn on process, unless we are in the editor
 			if (!Engine::get_singleton()->is_editor_hint())
+			{
 				set_process_internal(true);
+				CreateDebug();
+			}
 			else
 				set_process_internal(false);
+
+
+
 		} break;
 	case NOTIFICATION_INTERNAL_PROCESS: {
 			FrameUpdate();
@@ -676,6 +717,7 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("rooms_set_logging"), &LRoomManager::rooms_set_logging);
 	ClassDB::bind_method(D_METHOD("rooms_log_frame"), &LRoomManager::rooms_log_frame);
 	ClassDB::bind_method(D_METHOD("rooms_set_active"), &LRoomManager::rooms_set_active);
+	ClassDB::bind_method(D_METHOD("rooms_set_debug_planes"), &LRoomManager::rooms_set_debug_planes);
 
 
 	// functions to add dynamic objects to the culling system

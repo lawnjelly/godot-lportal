@@ -51,10 +51,9 @@ public:
 
 class LRoom
 {
-	friend class LPortal;
-	friend class LRoomManager;
-	friend class LRoomConverter;
 private:
+
+public:
 
 	// static objects
 	LVector<LSob> m_SOBs;
@@ -82,12 +81,12 @@ private:
 	// when registering DOBs and teleporting them
 	LBound m_Bound;
 
-	String m_szName;
 
-public:
+	String m_szName;
+	////////////////////////////////////////////////////////////
+
 	const String &get_name() const {return m_szName;}
 
-protected:
 	// main function
 	void DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, int portalID_from = -1);
 	void FirstTouch(LRoomManager &manager);
@@ -111,7 +110,6 @@ protected:
 	bool DOB_Remove(unsigned int ui);
 	LRoom * DOB_Update(LRoomManager &manager, Spatial * pDOB);
 
-public:
 	LRoom();
 	Spatial * GetGodotRoom() const;
 
