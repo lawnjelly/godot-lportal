@@ -281,7 +281,7 @@ ROOM 'myroom_x0y0' planes 6 portals 3
 ```
 Visibility starts from the room the camera is in, checks the objects within against the clipping planes (just the view frustum at first), then checks each portal to see if it is visible. If it is visible it checks the room on the other side of the portal, and continues the process recursively. Each time it moves through a portal it adds clipping planes from the camera to the edges of the portal. This ensures that objects that are hidden by portal planes are not rendered.
 
-You can show the portal culling graphically by calling `rooms_set_debug_planes(true)`.
+You can show the portal culling graphically by calling `rooms_set_debug_planes(true)`, and show the room bounds (if defined) by calling `rooms_set_debug_bounds(true)`.
 
 #### Getting maximum performance
 LPortal is very efficient, and the culling process itself is only likely to be a bottleneck if you are creating too high a density of portals. On each frame, every portal the camera 'sees' through creates a new set of clipping planes for each edge of the portal, which can be a lot to check when you are seeing an object through a door, through a window, through another window etc. So bear this in mind when building levels.
@@ -298,6 +298,7 @@ Level design is thus a balancing act between creating a higher density of rooms 
 * `void rooms_log_frame()` - output debug logs for the next frame
 * `void rooms_set_logging(int level)` - set debug logging level, 0 - 6 (0 is none, 6 is most)
 * `void rooms_set_debug_planes(bool bActive)` - turns on and off graphic debugging of portal planes
+* `void rooms_set_debug_bounds(bool bActive)` - turns on and off graphic debugging of room bounds
 
 * `bool dob_register(Node * pDOB, float radius)` - have lportal find start room
 * `bool dob_register_hint(Node * pDOB, float radius, Node * pRoom)` - user provides start room
