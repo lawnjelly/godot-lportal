@@ -11,7 +11,7 @@ https://www.youtube.com/watch?v=NmlWkkhGoJA
 _Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._
 
 ## Current status
-The system is mostly working. I am now testing / polishing the interface and adding a few features. I will make a first release before implementing PVS as PVS is an optional feature.
+The system is mostly working. I am now testing / polishing the interface and adding debugging. I will leave PVS and closable portals until after the first release.
 
 ## Roadmap
 * Auto conversion of named room spatials and portal mesh instances to LRoom and LPortal DONE
@@ -24,6 +24,8 @@ The system is mostly working. I am now testing / polishing the interface and add
 * Handle special cases (multiple portals views into room etc) DONE
 * Optimize non-moving statics DONE
 * Optional convex hull bound for rooms DONE
+* Add debug graphical view of portal planes DONE
+* Add debug graphical view of room bounds
 * Bug fixing / testing ONGOING
 * Closable portals
 * PVS (primary and secondary)
