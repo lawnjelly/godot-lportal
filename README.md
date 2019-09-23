@@ -27,7 +27,8 @@ The system is mostly working. I am now testing / polishing the interface and add
 * Optimize non-moving statics DONE
 * Optional convex hull bound for rooms DONE
 * Add debug graphical view of portal planes DONE
-* Add debug graphical view of room bounds
+* Add debug graphical view of room bounds DONE
+* Dealing with shadows from objects outside of view
 * Bug fixing / testing ONGOING
 * Closable portals
 * PVS (primary and secondary)
