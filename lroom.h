@@ -113,6 +113,8 @@ public:
 	LRoom();
 	Spatial * GetGodotRoom() const;
 
+	// retained purely for debugging visualization
+	Geometry::MeshData m_Bound_MeshData;
 };
 
 

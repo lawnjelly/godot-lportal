@@ -253,6 +253,22 @@ bool LRoomConverter::Convert_Bound(LRoom &lroom, MeshInstance * pMI)
 			}
 
 			LPRINT(2, "\t\t\tcontained " + itos(lroom.m_Bound.m_Planes.size()) + " planes.");
+
+			// make a copy of the mesh data for debugging
+			// note this could be avoided in release builds? NYI
+			lroom.m_Bound_MeshData = md;
+
+//			for (int f=0; f<md.faces.size(); f++)
+//			{
+//				String sz;
+//				sz = "face " + itos (f) + ", indices ";
+//				for (int i=0; i<md.faces[f].indices.size(); i++)
+//				{
+//					sz += itos(md.faces[f].indices[i]) + ", ";
+//				}
+//				LPRINT(2, sz);
+//			}
+
 			return true;
 		}
 	}
