@@ -80,6 +80,9 @@ The bound should be stored as a MeshInstance child of the room, with a specific 
 
 Although the bound will be treated as a convex hull at runtime, you don't have to be perfect when creating it because the geometry will be run through the quickhull algorithm.
 
+### Ignore objects
+You can optionally prevent objects being added to LPortal internal room system (so they will not be culled to the planes). To do this, their name should begin with 'ignore_'. Note this is only relevant for objects derived from VisualInstance, LPortal ignores all non-visual instance objects. However note that these objects will still be culled when entire rooms are hidden by LPortal.
+
 ### DOBs (Dynamic objects)
 While most of the world in the room portal is assumed to be static (non-moving), you will inevitably want some objects to move around in the scene. These objects that can move _between_ rooms are special, the visibility system has to keep track of which room they are in in order to render them correctly.
 
