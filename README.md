@@ -30,7 +30,7 @@ The system is mostly working. I am now testing / polishing the interface and add
 * Investigate multiple passes (shadows, lights)
 
 ## Instructions
-See INSTRUCTIONS.md and TUTORIAL.md
+See [INSTRUCTIONS.md](INSTRUCTIONS.md)  and [TUTORIAL.md](TUTORIAL.md)
 
 ## Installation
 You will need to compile Godot from source (for now). See:
