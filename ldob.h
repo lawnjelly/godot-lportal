@@ -38,7 +38,7 @@ public:
 
 	ObjectID m_ID; // godot object
 	AABB m_aabb; // world space
-	bool m_bVisible;
+	//bool m_bSOBVisible;
 };
 
 // dynamic object

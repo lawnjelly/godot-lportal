@@ -180,11 +180,9 @@ void LRoom::FinalizeVisibility(LRoomManager &manager)
 
 		if (pVI)
 		{
-			SoftShow(pVI, sob.m_bVisible);
-//			if (sob.m_bVisible)
-//				pVI->show();
-//			else
-//				pVI->hide();
+			//SoftShow(pVI, sob.m_bSOBVisible);
+			bool bVisible = manager.m_BF_visible_SOBs.GetBit(n) != 0;
+			SoftShow(pVI, bVisible);
 		}
 	}
 
@@ -303,14 +301,12 @@ void LRoom::FirstTouch(LRoomManager &manager)
 	manager.m_pCurr_VisibleRoomList->push_back(m_RoomID);
 
 	// hide all objects
-	int last_sob = m_iFirstSOB + m_iNumSOBs;
-	for (int n=m_iFirstSOB; n<last_sob; n++)
-	{
-		LSob &sob = manager.m_SOBs[n];
-		sob.m_bVisible = false;
-	}
-//	for (int n=0; n<m_SOBs.size(); n++)
-//		m_SOBs[n].m_bVisible = false;
+//	int last_sob = m_iFirstSOB + m_iNumSOBs;
+//	for (int n=m_iFirstSOB; n<last_sob; n++)
+//	{
+//		LSob &sob = manager.m_SOBs[n];
+//		sob.m_bSOBVisible = false;
+//	}
 
 	// hide all dobs
 	for (int n=0; n<m_DOBs.size(); n++)
@@ -389,7 +385,7 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 
 		if (bShow)
 		{
-			sob.m_bVisible = true;
+			//sob.m_bSOBVisible = true;
 			// sob is renderable and visible (not shadow only)
 			manager.m_BF_visible_SOBs.SetBit(n, true);
 			//manager.m_BF_render_SOBs.SetBit(n, true);
