@@ -32,6 +32,7 @@ LRoom::LRoom() {
 	m_uiFrameTouched = 0;
 	m_iFirstPortal = 0;
 	m_iNumPortals = 0;
+	m_bVisible = true;
 }
 
 
@@ -63,7 +64,7 @@ unsigned int LRoom::DOB_Find(Node * pDOB) const
 
 	for (int n=0; n<m_DOBs.size(); n++)
 	{
-		if (m_DOBs[n].m_ID == id)
+		if (m_DOBs[n].m_ID_Spatial == id)
 		{
 			return n;
 		}
@@ -119,6 +120,49 @@ LRoom * LRoom::DOB_Update(LRoomManager &manager, Spatial * pDOB)
 	return 0;
 }
 
+
+// instead of directly showing and hiding objects we now set their layer,
+// and the camera will hide them with a cull mask. This is so that
+// objects can still be rendered outside immediate view for casting shadows.
+// All objects in view (that are set to cast shadows) should cast shadows, so the actual
+// shown objects are a superset of the softshown.
+void LRoom::SoftShow(VisualInstance * pVI, bool bShow) const
+{
+	// hijack this layer number
+	uint32_t mask = pVI->get_layer_mask();
+	uint32_t orig_mask = mask;
+
+	const int SOFT_SHOW_MASK = 1 << SOFT_SHOW_BIT;
+	const int SOFT_HIDE_MASK = 1 << SOFT_HIDE_BIT;
+
+	if (bShow)
+	{
+		// set
+		mask |= SOFT_SHOW_MASK;
+		// clear
+		mask &= ~(1 | SOFT_HIDE_MASK);
+	}
+	else
+	{
+		// set
+		mask |= SOFT_HIDE_MASK;
+		// clear
+		mask &= ~(1 | SOFT_SHOW_MASK);
+	}
+
+
+	// noop? don't touch the visual server if no change to mask
+	if (mask == orig_mask)
+		return;
+
+	pVI->set_layer_mask(mask);
+
+//	pVI->set_layer_mask_bit(0, false);
+//	pVI->set_layer_mask_bit(SOFT_HIDE_BIT, bShow == false);
+//	pVI->set_layer_mask_bit(SOFT_SHOW_BIT, bShow);
+}
+
+
 // hide all the objects not hit on this frame .. instead of calling godot hide without need
 // (it might be expensive)
 void LRoom::FinalizeVisibility(LRoomManager &manager)
@@ -128,14 +172,15 @@ void LRoom::FinalizeVisibility(LRoomManager &manager)
 	for (int n=0; n<m_SOBs.size(); n++)
 	{
 		const LSob &sob = m_SOBs[n];
-		Spatial * pS = sob.GetSpatial();
+		VisualInstance * pVI = sob.GetVI();
 
-		if (pS)
+		if (pVI)
 		{
-			if (sob.m_bVisible)
-				pS->show();
-			else
-				pS->hide();
+			SoftShow(pVI, sob.m_bVisible);
+//			if (sob.m_bVisible)
+//				pVI->show();
+//			else
+//				pVI->hide();
 		}
 	}
 
@@ -144,57 +189,99 @@ void LRoom::FinalizeVisibility(LRoomManager &manager)
 		const LDob &dob = m_DOBs[n];
 
 		// don't cull the main camera
-		if (dob.m_ID == manager.m_ID_camera)
+		if (dob.m_ID_Spatial == manager.m_ID_camera)
 			continue;
 
-		Spatial * pS = dob.GetSpatial();
-		if (pS)
+//		Spatial * pSpat = dob.GetSpatial();
+//		if (pSpat)
+//		{
+//			// all should be showing .. this is mostly a no op
+//			pSpat->show();
+//		}
+
+		VisualInstance * pVI = dob.GetVI();
+		if (pVI)
 		{
-			if (dob.m_bVisible)
-			{
-				//print("LRoom::FinalizeVisibility making visible dob " + pS->get_name());
-				pS->show();
-			}
-			else
-				pS->hide();
+			SoftShow(pVI, dob.m_bVisible);
+//			if (dob.m_bVisible)
+//			{
+//				//print("LRoom::FinalizeVisibility making visible dob " + pS->get_name());
+//				pS->show();
+//			}
+//			else
+//				pS->hide();
 		}
 	}
 }
 
-// hide godot room and all linked dobs
-void LRoom::Hide_All()
+// allows us to show / hide all dobs as the room visibility changes
+void LRoom::Room_MakeVisible(bool bVisible)
 {
-	GetGodotRoom()->hide();
+	// noop
+	if (bVisible == m_bVisible)
+		return;
 
-	for (int n=0; n<m_DOBs.size(); n++)
+	m_bVisible = bVisible;
+
+	if (m_bVisible)
 	{
-		LDob &dob = m_DOBs[n];
-		Spatial * pS = dob.GetSpatial();
-		if (pS)
-			pS->hide();
+		// show room
+		GetGodotRoom()->show();
+
+		// show all dobs
+		for (int n=0; n<m_DOBs.size(); n++)
+		{
+			LDob &dob = m_DOBs[n];
+			Spatial * pS = dob.GetSpatial();
+			if (pS)
+				pS->show();
+		}
+	}
+	else
+	{
+		// hide room
+		GetGodotRoom()->hide();
+
+		// hide all dobs
+		for (int n=0; n<m_DOBs.size(); n++)
+		{
+			LDob &dob = m_DOBs[n];
+			Spatial * p = dob.GetSpatial();
+			if (p)
+				p->hide();
+		}
 	}
 }
 
+
+// hide godot room and all linked dobs
+//void LRoom::Hide_All()
+//{
+//	GetGodotRoom()->hide();
+
+//	for (int n=0; n<m_DOBs.size(); n++)
+//	{
+//		LDob &dob = m_DOBs[n];
+//		Spatial * p = dob.GetSpatial();
+//		if (p)
+//			p->hide();
+//	}
+//}
+
 // show godot room and all linked dobs and all sobs
-void LRoom::Show_All()
+void LRoom::Debug_ShowAll()
 {
-	GetGodotRoom()->show();
+	Room_MakeVisible(true);
 
-	for (int n=0; n<m_SOBs.size(); n++)
-	{
-		LSob &sob = m_SOBs[n];
-		Spatial * pS = sob.GetSpatial();
-		if (pS)
-			pS->show();
-	}
+	// NYI .. change layers to all be visible
+//	for (int n=0; n<m_SOBs.size(); n++)
+//	{
+//		LSob &sob = m_SOBs[n];
+//		Spatial * pS = sob.GetSpatial();
+//		if (pS)
+//			pS->show();
+//	}
 
-	for (int n=0; n<m_DOBs.size(); n++)
-	{
-		LDob &dob = m_DOBs[n];
-		Spatial * pS = dob.GetSpatial();
-		if (pS)
-			pS->show();
-	}
 }
 
 
@@ -202,6 +289,11 @@ void LRoom::FirstTouch(LRoomManager &manager)
 {
 	// set the frame counter
 	m_uiFrameTouched = manager.m_uiFrameCounter;
+
+	// show this room and add to visible list of rooms
+	Room_MakeVisible(true);
+
+	manager.m_BF_visible_rooms.SetBit(m_RoomID, true);
 
 	// keep track of which rooms are shown this frame
 	manager.m_pCurr_VisibleRoomList->push_back(m_RoomID);
@@ -238,9 +330,6 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 	if (m_uiFrameTouched < manager.m_uiFrameCounter)
 		FirstTouch(manager);
 
-	// show this room and add to visible list of rooms
-	GetGodotRoom()->show();
-	manager.m_BF_visible_rooms.SetBit(m_RoomID, true);
 
 #define LPORTAL_CULL_STATIC
 #ifdef LPORTAL_CULL_STATIC

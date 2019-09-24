@@ -34,11 +34,26 @@ Spatial * LSob::GetSpatial() const
 }
 
 
+VisualInstance * LSob::GetVI() const
+{
+	Object * pObj = ObjectDB::get_instance(m_ID);
+	VisualInstance * pVI = Object::cast_to<VisualInstance>(pObj);
+	return pVI;
+}
+
+
 
 Spatial * LDob::GetSpatial() const
 {
-	Object * pObj = ObjectDB::get_instance(m_ID);
+	Object * pObj = ObjectDB::get_instance(m_ID_Spatial);
 	Spatial * pSpat = Object::cast_to<Spatial>(pObj);
 	return pSpat;
+}
+
+VisualInstance * LDob::GetVI() const
+{
+	Object * pObj = ObjectDB::get_instance(m_ID_VI);
+	VisualInstance * pVI = Object::cast_to<VisualInstance>(pObj);
+	return pVI;
 }
 

@@ -54,6 +54,8 @@ class LRoom
 private:
 
 public:
+	static const int SOFT_SHOW_BIT = 18;
+	static const int SOFT_HIDE_BIT = 19;
 
 	// static objects
 	LVector<LSob> m_SOBs;
@@ -81,7 +83,6 @@ public:
 	// when registering DOBs and teleporting them
 	LBound m_Bound;
 
-
 	String m_szName;
 	////////////////////////////////////////////////////////////
 
@@ -91,13 +92,16 @@ public:
 	void DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, int portalID_from = -1);
 	void FirstTouch(LRoomManager &manager);
 
+
+	// allows us to show / hide all dobs as the room visibility changes
+	void Room_MakeVisible(bool bVisible);
+
 	// hide godot room and all linked dobs
 	// USED AT RUNTIME
-	void Hide_All();
+//	void Hide_All();
 
 	// show godot room and all linked dobs and all sobs
-	// ONLY USED IN DEBUGGING to turn LPortal on and off
-	void Show_All();
+	void Debug_ShowAll();
 
 	// hide all the objects not hit on this frame .. instead of calling godot hide without need
 	// (it might be expensive)
@@ -115,6 +119,18 @@ public:
 
 	// retained purely for debugging visualization
 	Geometry::MeshData m_Bound_MeshData;
+
+	bool IsVisible() const {return m_bVisible;}
+private:
+	// instead of directly showing and hiding objects we now set their layer,
+	// and the camera will hide them with a cull mask. This is so that
+	// objects can still be rendered outside immediate view for casting shadows.
+	void SoftShow(VisualInstance * pVI, bool bShow) const;
+
+	// whether lportal thinks this room is currently visible
+	// this allows us to show / hide dobs as they cross room boundaries
+	bool m_bVisible;
+
 };
 
 

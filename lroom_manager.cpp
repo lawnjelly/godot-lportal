@@ -25,6 +25,7 @@
 #include "lroom_converter.h"
 #include "ldebug.h"
 #include "scene/3d/immediate_geometry.h"
+#include "lroom.h"
 
 LRoomManager::LRoomManager()
 {
@@ -224,6 +225,24 @@ void LRoomManager::CreateDebug()
 }
 
 
+ObjectID LRoomManager::DobRegister_FindVIRecursive(Node * pNode) const
+{
+	// is the node a VI?
+	VisualInstance * pVI = Object::cast_to<VisualInstance>(pNode);
+	if (pVI)
+		return pVI->get_instance_id();
+
+	// try the children
+	for (int n=0; n<pNode->get_child_count(); n++)
+	{
+		ObjectID res = DobRegister_FindVIRecursive(pNode->get_child(n));
+		if (res)
+			return res;
+	}
+
+	return 0;
+}
+
 bool LRoomManager::DobRegister(Spatial * pDOB, float radius, int iRoom)
 {
 	//LPRINT(3, "register_dob " + pDOB->get_name());
@@ -238,14 +257,22 @@ bool LRoomManager::DobRegister(Spatial * pDOB, float radius, int iRoom)
 	if (!pRoom)
 		return false;
 
+	// The dob is derived from spatial, but the visual instances may be children of the dob
+	// rather than the node itself .. we need visual instances for layer culling for shadows
 	LDob dob;
-	dob.m_ID = pDOB->get_instance_id();
+	dob.m_ID_Spatial = pDOB->get_instance_id();
 	dob.m_fRadius = radius;
+
+	dob.m_ID_VI = DobRegister_FindVIRecursive(pDOB);
 
 	pRoom->DOB_Add(dob);
 
 	// save the room ID on the dob metadata
 	Obj_SetRoomNum(pDOB, iRoom);
+
+	// change visibility
+	DobChangeVisibility(pDOB, 0, pRoom);
+
 	return true;
 }
 
@@ -305,7 +332,8 @@ int LRoomManager::dob_update(Node * pDOB)
 		// remove from old room
 		pRoom->DOB_Remove(dob_id);
 
-
+		// change visibility
+		DobChangeVisibility(pSpat, pRoom, pNewRoom);
 
 		// save the room ID on the dob metadata
 		Obj_SetRoomNum(pSpat, iRoomNum);
@@ -383,6 +411,9 @@ bool LRoomManager::DobTeleport(Spatial * pDOB, int iNewRoomID)
 	// save the room ID on the dob metadata
 	Obj_SetRoomNum(pDOB, iNewRoomID);
 
+	// change visibility
+	DobChangeVisibility(pDOB, pOldRoom, pNewRoom);
+
 	return true;
 }
 
@@ -419,6 +450,29 @@ bool LRoomManager::dob_unregister(Node * pDOB)
 
 	return false;
 }
+
+void LRoomManager::DobChangeVisibility(Spatial * pDOB, const LRoom * pOld, const LRoom * pNew)
+{
+	bool bVisOld = false;
+	bool bVisNew = false;
+
+	if (pOld)
+		bVisOld = pOld->IsVisible();
+
+	if (pNew)
+		bVisNew = pNew->IsVisible();
+
+
+	if (bVisOld != bVisNew)
+	{
+		if (!bVisOld)
+			pDOB->show();
+		else
+			pDOB->hide();
+	}
+
+}
+
 
 int LRoomManager::dob_get_room_id(Node * pDOB)
 {
@@ -486,7 +540,7 @@ void LRoomManager::rooms_set_active(bool bActive)
 	for (int n=0; n<m_Rooms.size(); n++)
 	{
 		LRoom &lroom = m_Rooms[n];
-		lroom.Show_All();
+		lroom.Debug_ShowAll();
 	}
 
 
@@ -520,6 +574,9 @@ void LRoomManager::rooms_set_camera(Node * pCam)
 	}
 
 	m_ID_camera = pCam->get_instance_id();
+
+	// new .. select the cull layer
+	pCamera->set_cull_mask_bit(LRoom::SOFT_HIDE_BIT, false);
 
 	// use this temporarily to force debug
 //	rooms_log_frame();
@@ -637,7 +694,7 @@ void LRoomManager::FrameUpdate()
 		{
 			if (!m_BF_visible_rooms.GetBit(n))
 			{
-				m_Rooms[n].Hide_All();
+				m_Rooms[n].Room_MakeVisible(false);
 			}
 		}
 	}
@@ -649,7 +706,7 @@ void LRoomManager::FrameUpdate()
 			int r = (*m_pPrev_VisibleRoomList)[n];
 
 			if (!m_BF_visible_rooms.GetBit(r))
-				m_Rooms[r].Hide_All();
+				m_Rooms[r].Room_MakeVisible(false);
 		}
 
 	}

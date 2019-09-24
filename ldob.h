@@ -34,6 +34,7 @@ class LSob
 {
 public:
 	Spatial * GetSpatial() const;
+	VisualInstance * GetVI() const;
 
 	ObjectID m_ID; // godot object
 	AABB m_aabb; // world space
@@ -45,8 +46,10 @@ class LDob
 {
 public:
 	Spatial * GetSpatial() const;
+	VisualInstance * GetVI() const;
 
-	ObjectID m_ID;
+	ObjectID m_ID_Spatial;
+	ObjectID m_ID_VI;
 	bool m_bVisible;
 	float m_fRadius;
 };

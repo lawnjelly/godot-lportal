@@ -125,8 +125,10 @@ protected:
 private:
 	// internal
 	bool DobRegister(Spatial * pDOB, float radius, int iRoom);
+	ObjectID DobRegister_FindVIRecursive(Node * pNode) const;
 	bool DobTeleport(Spatial * pDOB, int iNewRoomID);
 	void CreateDebug();
+	void DobChangeVisibility(Spatial * pDOB, const LRoom * pOld, const LRoom * pNew);
 
 
 	// helper funcs
