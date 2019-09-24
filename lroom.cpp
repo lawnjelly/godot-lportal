@@ -341,21 +341,25 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 		FirstTouch(manager);
 
 
-#define LPORTAL_CULL_STATIC
-#ifdef LPORTAL_CULL_STATIC
 
 	// clip all objects in this room to the clipping planes
 	int last_sob = m_iFirstSOB + m_iNumSOBs;
 	for (int n=m_iFirstSOB; n<last_sob; n++)
 	{
 		LSob &sob = manager.m_SOBs[n];
-//	for (int n=0; n<m_SOBs.size(); n++)
-//	{
-//		LSob &sob = m_SOBs[n];
 
 		// already determined to be visible through another portal
-		if (sob.m_bVisible)
+		//if (sob.m_bVisible)
+			//continue;
+
+
+		//LPRINT_RUN(2, "sob " + itos(n) + " " + sob.GetSpatial()->get_name());
+		// already determined to be visible through another portal
+		if (manager.m_BF_visible_SOBs.GetBit(n))
+		{
+			//LPRINT_RUN(2, "\talready visible");
 			continue;
+		}
 
 		bool bShow = true;
 
@@ -384,60 +388,16 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 		}
 
 		if (bShow)
+		{
 			sob.m_bVisible = true;
+			// sob is renderable and visible (not shadow only)
+			manager.m_BF_visible_SOBs.SetBit(n, true);
+			//manager.m_BF_render_SOBs.SetBit(n, true);
+			//manager.m_RenderList_SOBs.push_back(n);
+		}
 
 	} // for through sobs
 
-
-#else
-	// clip all objects in this room to the clipping planes
-	for (int n=0; n<m_SOBs.size(); n++)
-	{
-		const LSob sob = m_SOBs[n];
-		Object * pNode = ObjectDB::get_instance(sob.m_ID);
-
-		VisualInstance * pObj = Object::cast_to<VisualInstance>(pNode);
-
-		// should always be a visual instance, only these are added as SOBs
-		if (pObj)
-		{
-			//Vector3 pt = pObj->get_global_transform().origin;
-
-			bool bShow = true;
-
-
-			// estimate the radius .. for now
-			AABB bb = pObj->get_transformed_aabb();
-
-			print("\t\t\tculling object " + pObj->get_name());
-
-			for (int p=0; p<planes.size(); p++)
-			{
-//				float dist = planes[p].distance_to(pt);
-//				print("\t\t\t\t" + itos(p) + " : dist " + String(Variant(dist)));
-
-				float r_min, r_max;
-				bb.project_range_in_plane(planes[p], r_min, r_max);
-
-				print("\t\t\t\t" + itos(p) + " : r_min " + String(Variant(r_min)) + ", r_max " + String(Variant(r_max)));
-
-
-				if (r_min > 0.0f)
-				{
-					bShow = false;
-					break;
-				}
-			}
-
-			if (bShow)
-				sob.m_bVisible = true;
-//				pObj->show();
-//			else
-//				pObj->hide();
-
-		}
-	}
-#endif
 
 	// cull DOBs
 	for (int n=0; n<m_DOBs.size(); n++)

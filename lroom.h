@@ -61,9 +61,6 @@ public:
 	int m_iFirstSOB;
 	int m_iNumSOBs;
 
-	// static objects
-	//LVector<LSob> m_SOBs;
-
 	// dynamic objects
 	LVector<LDob> m_DOBs;
 

@@ -58,6 +58,13 @@ void LRoomConverter::Convert(LRoomManager &manager)
 	Convert_Portals();
 	Convert_Bounds();
 
+	// make sure manager bitfields are the correct size for number of objects
+	int num_sobs = LMAN->m_SOBs.size();
+	LPRINT(5,"Total SOBs " + itos(num_sobs));
+	//LMAN->m_BF_render_SOBs.Create(num_sobs);
+	LMAN->m_BF_visible_SOBs.Create(num_sobs);
+
+
 	// temp rooms no longer needed
 	m_TempRooms.clear(true);
 
