@@ -41,6 +41,8 @@ void LRoomConverter::Convert(LRoomManager &manager)
 	LMAN = &manager;
 	int count = CountRooms();
 
+	LMAN->m_SOBs.clear();
+
 	// make sure bitfield is right size for number of rooms
 	LMAN->m_BF_visible_rooms.Create(count);
 
@@ -129,7 +131,8 @@ void LRoomConverter::Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &l
 			sob.m_ID = pVI->get_instance_id();
 			sob.m_aabb = bb;
 
-			lroom.m_SOBs.push_back(sob);
+			//lroom.m_SOBs.push_back(sob);
+			LRoom_PushBackSOB(lroom, sob);
 		}
 		else
 		{
@@ -408,6 +411,17 @@ void LRoomConverter::LRoom_DetectPortalMeshes(LRoom &lroom, LTempRoom &troom)
 	} // while
 
 }
+
+void LRoomConverter::LRoom_PushBackSOB(LRoom &lroom, const LSob &sob)
+{
+	// first added for this room?
+	if (lroom.m_iNumSOBs == 0)
+		lroom.m_iFirstSOB = LMAN->m_SOBs.size();
+
+	LMAN->m_SOBs.push_back(sob);
+	lroom.m_iNumSOBs++;
+}
+
 
 // handles the slight faff involved in getting a new portal in the manager contiguous list of portals
 LPortal * LRoomConverter::LRoom_RequestNewPortal(LRoom &lroom)

@@ -100,6 +100,7 @@ private:
 	void LRoom_MakePortalFinalList(LRoom &lroom, LTempRoom &troom);
 	void LRoom_DetectedPortalMesh(LRoom &lroom, LTempRoom &troom, MeshInstance * pMeshInstance, String szLinkRoom);
 	LPortal * LRoom_RequestNewPortal(LRoom &lroom);
+	void LRoom_PushBackSOB(LRoom &lroom, const LSob &sob);
 
 	void TRoom_MakeOppositePortal(const LPortal &port, int iRoomOrig);
 

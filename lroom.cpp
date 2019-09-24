@@ -33,6 +33,9 @@ LRoom::LRoom() {
 	m_iFirstPortal = 0;
 	m_iNumPortals = 0;
 	m_bVisible = true;
+
+	m_iFirstSOB = 0;
+	m_iNumSOBs = 0;
 }
 
 
@@ -169,9 +172,10 @@ void LRoom::FinalizeVisibility(LRoomManager &manager)
 {
 	//print_line("FinalizeVisibility room " + get_name() + " NumSOBs " + itos(m_SOBs.size()) + ", NumDOBs " + itos(m_DOBs.size()));
 
-	for (int n=0; n<m_SOBs.size(); n++)
+	int last_sob = m_iFirstSOB + m_iNumSOBs;
+	for (int n=m_iFirstSOB; n<last_sob; n++)
 	{
-		const LSob &sob = m_SOBs[n];
+		const LSob &sob = manager.m_SOBs[n];
 		VisualInstance * pVI = sob.GetVI();
 
 		if (pVI)
@@ -299,8 +303,14 @@ void LRoom::FirstTouch(LRoomManager &manager)
 	manager.m_pCurr_VisibleRoomList->push_back(m_RoomID);
 
 	// hide all objects
-	for (int n=0; n<m_SOBs.size(); n++)
-		m_SOBs[n].m_bVisible = false;
+	int last_sob = m_iFirstSOB + m_iNumSOBs;
+	for (int n=m_iFirstSOB; n<last_sob; n++)
+	{
+		LSob &sob = manager.m_SOBs[n];
+		sob.m_bVisible = false;
+	}
+//	for (int n=0; n<m_SOBs.size(); n++)
+//		m_SOBs[n].m_bVisible = false;
 
 	// hide all dobs
 	for (int n=0; n<m_DOBs.size(); n++)
@@ -335,9 +345,13 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 #ifdef LPORTAL_CULL_STATIC
 
 	// clip all objects in this room to the clipping planes
-	for (int n=0; n<m_SOBs.size(); n++)
+	int last_sob = m_iFirstSOB + m_iNumSOBs;
+	for (int n=m_iFirstSOB; n<last_sob; n++)
 	{
-		LSob &sob = m_SOBs[n];
+		LSob &sob = manager.m_SOBs[n];
+//	for (int n=0; n<m_SOBs.size(); n++)
+//	{
+//		LSob &sob = m_SOBs[n];
 
 		// already determined to be visible through another portal
 		if (sob.m_bVisible)

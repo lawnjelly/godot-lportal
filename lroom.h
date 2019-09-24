@@ -57,8 +57,12 @@ public:
 	static const int SOFT_SHOW_BIT = 18;
 	static const int SOFT_HIDE_BIT = 19;
 
+	// static objects are stored in the manager in a contiguous list
+	int m_iFirstSOB;
+	int m_iNumSOBs;
+
 	// static objects
-	LVector<LSob> m_SOBs;
+	//LVector<LSob> m_SOBs;
 
 	// dynamic objects
 	LVector<LDob> m_DOBs;

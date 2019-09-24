@@ -159,6 +159,9 @@ private:
 	LVector<LRoom> m_Rooms;
 	LVector<LPortal> m_Portals;
 
+	// static objects
+	LVector<LSob> m_SOBs;
+
 public:
 	// whether debug planes is switched on
 	bool m_bDebugPlanes;
