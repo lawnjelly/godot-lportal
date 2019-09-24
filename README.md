@@ -13,7 +13,16 @@ https://www.youtube.com/watch?v=NmlWkkhGoJA
 _Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._
 
 ## Current status
-The system is mostly working. I am now testing / polishing the interface and adding debugging. I will leave PVS and closable portals until after the first release.
+The basic system is mostly working. I am now testing / polishing the interface and adding debugging. I will leave PVS and closable portals until after the first release.
+
+I am now working on shadows. Shadows can be cast by objects that are not 'in view', thus with the naive culling system, in some circumstances shadows will pop into and out of view.
+
+There are three possibilities here:
+1) Draw everything in the shadow pass (use Godot default octree). This gets rid of artefacts but would be slow and negate a lot of the benefits of visibility culling.
+2) Draw everything roughly around the visible objects. The current version does this now, with the main pass only rendering objects in view, but the shadow pass draws everything within the rooms in view. This is better than naive version, but still can suffer 'popping' of shadows at doorways.
+3) More intelligent system to try and work out which shadow casters are relevant to the view.
+
+Note that I've had to move from showing and hiding objects, to using Godot object and camera layers to differentiate between which objects to render from the camera and which for shadows, at least for now. This is a little hacky, and might interfere with your own code if you are using godot layers - layer 1 (default layer) is unset for all objects, and 19 and 20 are currently used by the system to toggle visibility internally.
 
 ## Roadmap
 * Auto conversion of named room spatials and portal mesh instances to LRoom and LPortal DONE
