@@ -97,6 +97,7 @@ private:
 	void FrameUpdate();
 	void FrameUpdate_Prepare();
 	void FrameUpdate_FinalizeRooms();
+	void FrameUpdate_AddShadowCasters();
 	void FrameUpdate_FinalizeVisibility_WithinRooms();
 
 	// debugging emulate view frustum

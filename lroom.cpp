@@ -129,7 +129,7 @@ LRoom * LRoom::DOB_Update(LRoomManager &manager, Spatial * pDOB)
 // objects can still be rendered outside immediate view for casting shadows.
 // All objects in view (that are set to cast shadows) should cast shadows, so the actual
 // shown objects are a superset of the softshown.
-void LRoom::SoftShow(VisualInstance * pVI, bool bShow) const
+void LRoom::SoftShow(VisualInstance * pVI, bool bShow)
 {
 	// hijack this layer number
 	uint32_t mask = pVI->get_layer_mask();
@@ -163,6 +163,25 @@ void LRoom::SoftShow(VisualInstance * pVI, bool bShow) const
 //	pVI->set_layer_mask_bit(0, false);
 //	pVI->set_layer_mask_bit(SOFT_HIDE_BIT, bShow == false);
 //	pVI->set_layer_mask_bit(SOFT_SHOW_BIT, bShow);
+}
+
+
+// naive version, adds all the non visible objects in visible rooms as shadow casters
+void LRoom::AddShadowCasters(LRoomManager &manager)
+{
+	int last_sob = m_iFirstSOB + m_iNumSOBs;
+	for (int n=m_iFirstSOB; n<last_sob; n++)
+	{
+		bool bVisible = manager.m_BF_visible_SOBs.GetBit(n) != 0;
+
+		// already in list
+		if (bVisible)
+			continue;
+
+		manager.m_BF_render_SOBs.SetBit(n, true);
+		manager.m_RenderList_SOBs.push_back(n);
+	}
+
 }
 
 

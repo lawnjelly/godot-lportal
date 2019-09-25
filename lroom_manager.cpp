@@ -698,6 +698,14 @@ void LRoomManager::FrameUpdate()
 	// set soft visibility of objects within visible rooms
 	FrameUpdate_FinalizeVisibility_WithinRooms();
 
+	FrameUpdate_AddShadowCasters();
+
+	// swap the current and previous visible room list
+	LVector<int> * pTemp = m_pCurr_VisibleRoomList;
+	m_pCurr_VisibleRoomList = m_pPrev_VisibleRoomList;
+	m_pPrev_VisibleRoomList = pTemp;
+
+
 	// draw debug
 	FrameUpdate_DrawDebug(cam, *pRoom);
 
@@ -735,6 +743,17 @@ void LRoomManager::FrameUpdate_FinalizeRooms()
 	}
 }
 
+void LRoomManager::FrameUpdate_AddShadowCasters()
+{
+	// simple for the moment, add all objects in visible rooms as casters if they are not already visible
+	for (int n=0; n<m_pCurr_VisibleRoomList->size(); n++)
+	{
+		int r = (*m_pCurr_VisibleRoomList)[n];
+		m_Rooms[r].AddShadowCasters(*this);
+	}
+
+}
+
 void LRoomManager::FrameUpdate_FinalizeVisibility_WithinRooms()
 {
 	// and hide all the dobs that are in visible rooms that haven't been made visible
@@ -747,10 +766,6 @@ void LRoomManager::FrameUpdate_FinalizeVisibility_WithinRooms()
 		m_Rooms[r].FinalizeVisibility(*this);
 	}
 
-	// swap the current and previous visible room list
-	LVector<int> * pTemp = m_pCurr_VisibleRoomList;
-	m_pCurr_VisibleRoomList = m_pPrev_VisibleRoomList;
-	m_pPrev_VisibleRoomList = pTemp;
 
 }
 

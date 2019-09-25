@@ -108,6 +108,8 @@ public:
 	// (it might be expensive)
 	void FinalizeVisibility(LRoomManager &manager);
 
+	// naive version, adds all the non visible objects in visible rooms as shadow casters
+	void AddShadowCasters(LRoomManager &manager);
 
 	void DOB_Add(const LDob &dob);
 	const LDob &DOB_Get(unsigned int ui) const {return m_DOBs[ui];}
@@ -126,7 +128,7 @@ private:
 	// instead of directly showing and hiding objects we now set their layer,
 	// and the camera will hide them with a cull mask. This is so that
 	// objects can still be rendered outside immediate view for casting shadows.
-	void SoftShow(VisualInstance * pVI, bool bShow) const;
+	static void SoftShow(VisualInstance * pVI, bool bShow);
 
 	// whether lportal thinks this room is currently visible
 	// this allows us to show / hide dobs as they cross room boundaries
