@@ -23,6 +23,7 @@ public:
 	LPlanesPool();
 private:
 	LVector<Plane> m_Planes[	POOL_MAX];
-	unsigned char m_ucTaken[POOL_MAX];
-	unsigned int m_uiCount;
+
+	uint8_t m_ucFreeList[POOL_MAX];
+	uint32_t m_uiNumFree;
 };
