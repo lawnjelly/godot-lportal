@@ -124,12 +124,12 @@ public:
 	Geometry::MeshData m_Bound_MeshData;
 
 	bool IsVisible() const {return m_bVisible;}
-private:
 	// instead of directly showing and hiding objects we now set their layer,
 	// and the camera will hide them with a cull mask. This is so that
 	// objects can still be rendered outside immediate view for casting shadows.
 	static void SoftShow(VisualInstance * pVI, bool bShow);
 
+private:
 	// whether lportal thinks this room is currently visible
 	// this allows us to show / hide dobs as they cross room boundaries
 	bool m_bVisible;

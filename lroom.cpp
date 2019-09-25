@@ -191,19 +191,19 @@ void LRoom::FinalizeVisibility(LRoomManager &manager)
 {
 	//print_line("FinalizeVisibility room " + get_name() + " NumSOBs " + itos(m_SOBs.size()) + ", NumDOBs " + itos(m_DOBs.size()));
 
-	int last_sob = m_iFirstSOB + m_iNumSOBs;
-	for (int n=m_iFirstSOB; n<last_sob; n++)
-	{
-		const LSob &sob = manager.m_SOBs[n];
-		VisualInstance * pVI = sob.GetVI();
+//	int last_sob = m_iFirstSOB + m_iNumSOBs;
+//	for (int n=m_iFirstSOB; n<last_sob; n++)
+//	{
+//		const LSob &sob = manager.m_SOBs[n];
+//		VisualInstance * pVI = sob.GetVI();
 
-		if (pVI)
-		{
-			//SoftShow(pVI, sob.m_bSOBVisible);
-			bool bVisible = manager.m_BF_visible_SOBs.GetBit(n) != 0;
-			SoftShow(pVI, bVisible);
-		}
-	}
+//		if (pVI)
+//		{
+//			//SoftShow(pVI, sob.m_bSOBVisible);
+//			bool bVisible = manager.m_BF_visible_SOBs.GetBit(n) != 0;
+//			SoftShow(pVI, bVisible);
+//		}
+//	}
 
 	for (int n=0; n<m_DOBs.size(); n++)
 	{

@@ -700,6 +700,8 @@ void LRoomManager::FrameUpdate()
 
 	FrameUpdate_AddShadowCasters();
 
+	FrameUpdate_FinalizeVisibility_SoftShow();
+
 	// swap the current and previous visible room list
 	LVector<int> * pTemp = m_pCurr_VisibleRoomList;
 	m_pCurr_VisibleRoomList = m_pPrev_VisibleRoomList;
@@ -753,6 +755,28 @@ void LRoomManager::FrameUpdate_AddShadowCasters()
 	}
 
 }
+
+void LRoomManager::FrameUpdate_FinalizeVisibility_SoftShow()
+{
+	// apply the appropriate soft show for each sob in the render list
+	int nSOBs = m_RenderList_SOBs.size();
+
+	for (int n=0; n<nSOBs; n++)
+	{
+		int ID = m_RenderList_SOBs[n];
+		const LSob &sob	 = m_SOBs[ID];
+
+		VisualInstance * pVI = sob.GetVI();
+
+		if (pVI)
+		{
+			//SoftShow(pVI, sob.m_bSOBVisible);
+			bool bVisible = m_BF_visible_SOBs.GetBit(ID) != 0;
+			LRoom::SoftShow(pVI, bVisible);
+		}
+	}
+}
+
 
 void LRoomManager::FrameUpdate_FinalizeVisibility_WithinRooms()
 {
