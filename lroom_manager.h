@@ -49,6 +49,12 @@ class LRoomManager : public Spatial {
 	// keep track of which rooms are visible, so we can hide ones that aren't hit that were previously on
 	Lawn::LBitField_Dynamic m_BF_visible_rooms;
 
+
+	// the render list is all objects that are in view,
+	// and also objects out of view but casting shadows INTO the view
+	LVector<int> m_RenderList_SOBs;
+	Lawn::LBitField_Dynamic m_BF_render_SOBs;
+
 	// visible bit marks in view, if not set, it is a shadow caster only
 	Lawn::LBitField_Dynamic m_BF_visible_SOBs;
 

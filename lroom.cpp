@@ -344,11 +344,6 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 	{
 		LSob &sob = manager.m_SOBs[n];
 
-		// already determined to be visible through another portal
-		//if (sob.m_bVisible)
-			//continue;
-
-
 		//LPRINT_RUN(2, "sob " + itos(n) + " " + sob.GetSpatial()->get_name());
 		// already determined to be visible through another portal
 		if (manager.m_BF_visible_SOBs.GetBit(n))
@@ -388,8 +383,8 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 			//sob.m_bSOBVisible = true;
 			// sob is renderable and visible (not shadow only)
 			manager.m_BF_visible_SOBs.SetBit(n, true);
-			//manager.m_BF_render_SOBs.SetBit(n, true);
-			//manager.m_RenderList_SOBs.push_back(n);
+			manager.m_BF_render_SOBs.SetBit(n, true);
+			manager.m_RenderList_SOBs.push_back(n);
 		}
 
 	} // for through sobs
@@ -440,22 +435,11 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 	{
 		int port_id = m_iFirstPortal + port_num;
 
-		// ignore if the portal we are looking in from
-		// is this needed? surely the portal we are looking in from is in another room?
-//		if (port_id == portalID_from)
-//		{
-//			LPRINT_RUN(2, "\tIGNORING PORTAL LOOKING IN FROM");
-//			continue;
-//		}
-
 		const LPortal &port = manager.m_Portals[port_id];
 
 		// have we already handled the room on this frame?
 		// get the room pointed to by the portal
 		LRoom * pLinkedRoom = &manager.Portal_GetLinkedRoom(port);
-
-//		if (pLinkedRoom->m_uiFrameTouched == manager.m_uiFrameCounter)
-//			continue;
 
 		// cull by portal angle to camera.
 		// Note we need to deal with 'side on' portals, and the camera has a spreading view, so we cannot simply dot

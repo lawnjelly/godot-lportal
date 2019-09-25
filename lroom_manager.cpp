@@ -625,8 +625,8 @@ void LRoomManager::FrameUpdate()
 
 	// clear the visible room list to write to each frame
 	m_pCurr_VisibleRoomList->clear();
-	//m_RenderList_SOBs.clear();
-	//m_BF_render_SOBs.Blank();
+	m_RenderList_SOBs.clear();
+	m_BF_render_SOBs.Blank();
 	m_BF_visible_SOBs.Blank();
 
 	// get the camera desired and make into lcamera
