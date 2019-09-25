@@ -74,9 +74,77 @@ class LRoomManager : public Spatial {
 	// for debugging, can emulate view frustum culling
 	bool m_bFrustumOnly;
 
+private:
+	// lists of rooms and portals, contiguous list so cache friendly
+	LVector<LRoom> m_Rooms;
+	LVector<LPortal> m_Portals;
+
+	// static objects
+	LVector<LSob> m_SOBs;
+
+protected:
+	static void _bind_methods();
+	void _notification(int p_what);
+
+	// The recursive visibility function needs to allocate loads of planes.
+	// We use a pool for this instead of allocating on the fly.
+	LPlanesPool m_Pool;
+
+	// 0 to 5
+	int m_iLoggingLevel;
+private:
+	// this is where we do all the culling
+	void FrameUpdate();
+	void FrameUpdate_Prepare();
+	void FrameUpdate_FinalizeRooms();
+	void FrameUpdate_FinalizeVisibility_WithinRooms();
+
+	// debugging emulate view frustum
+	void FrameUpdate_FrustumOnly();
+
+	// draw planes and room hulls
+	void FrameUpdate_DrawDebug(const LCamera &cam, const LRoom &lroom);
+
+
+	// internal
+	LRoom &Portal_GetLinkedRoom(const LPortal &port);
+	bool DobRegister(Spatial * pDOB, float radius, int iRoom);
+	ObjectID DobRegister_FindVIRecursive(Node * pNode) const;
+	bool DobTeleport(Spatial * pDOB, int iNewRoomID);
+	void CreateDebug();
+	void DobChangeVisibility(Spatial * pDOB, const LRoom * pOld, const LRoom * pNew);
+
+
+	// helper funcs
+	const LRoom * GetRoom(int i) const;
+	LRoom * GetRoom(int i);
+
+	LRoom * GetRoomFromDOB(Node * pNode);
+	int FindClosestRoom(const Vector3 &pt) const;
+
+	// for DOBs, we need some way of storing the room ID on them, so we use metadata (currently)
+	// this is pretty gross but hey ho
+	int Obj_GetRoomNum(Node * pNode) const;
+	void Obj_SetRoomNum(Node * pNode, int num);
+
+public:
+	// whether debug planes is switched on
+	bool m_bDebugPlanes;
+	bool m_bDebugBounds;
+
+	// the planes are shown as a list of lines from the camera to the portal verts
+	LVector<Vector3> m_DebugPlanes;
+private:
+	ObjectID m_ID_DebugPlanes;
+	ObjectID m_ID_DebugBounds;
+	Ref<SpatialMaterial> m_mat_Debug_Planes;
+	Ref<SpatialMaterial> m_mat_Debug_Bounds;
+
+
 public:
 	LRoomManager();
 
+	// PUBLIC INTERFACE TO GDSCRIPT
 	// convert empties and meshes to rooms and portals
 	void rooms_convert();
 
@@ -121,68 +189,7 @@ public:
 	// helper func, not needed usually as dob_update returns the room
 	int dob_get_room_id(Node * pDOB);
 
-protected:
-	static void _bind_methods();
-	void _notification(int p_what);
 
-	// The recursive visibility function needs to allocate loads of planes.
-	// We use a pool for this instead of allocating on the fly.
-	LPlanesPool m_Pool;
-
-	// 0 to 5
-	int m_iLoggingLevel;
-private:
-	// internal
-	bool DobRegister(Spatial * pDOB, float radius, int iRoom);
-	ObjectID DobRegister_FindVIRecursive(Node * pNode) const;
-	bool DobTeleport(Spatial * pDOB, int iNewRoomID);
-	void CreateDebug();
-	void DobChangeVisibility(Spatial * pDOB, const LRoom * pOld, const LRoom * pNew);
-
-
-	// helper funcs
-	const LRoom * GetRoom(int i) const;
-	LRoom * GetRoom(int i);
-
-	LRoom * GetRoomFromDOB(Node * pNode);
-	int FindClosestRoom(const Vector3 &pt) const;
-
-	// for DOBs, we need some way of storing the room ID on them, so we use metadata (currently)
-	// this is pretty gross but hey ho
-	int Obj_GetRoomNum(Node * pNode) const;
-	void Obj_SetRoomNum(Node * pNode, int num);
-
-	// this is where we do all the culling
-	void FrameUpdate();
-
-	// debugging emulate view frustum
-	void FrameUpdate_FrustumOnly();
-
-	// draw planes and room hulls
-	void FrameUpdate_DrawDebug(const LCamera &cam, const LRoom &lroom);
-
-	// find which room is linked by a portal
-	LRoom &Portal_GetLinkedRoom(const LPortal &port);
-
-	// lists of rooms and portals, contiguous list so cache friendly
-	LVector<LRoom> m_Rooms;
-	LVector<LPortal> m_Portals;
-
-	// static objects
-	LVector<LSob> m_SOBs;
-
-public:
-	// whether debug planes is switched on
-	bool m_bDebugPlanes;
-	bool m_bDebugBounds;
-
-	// the planes are shown as a list of lines from the camera to the portal verts
-	LVector<Vector3> m_DebugPlanes;
-private:
-	ObjectID m_ID_DebugPlanes;
-	ObjectID m_ID_DebugBounds;
-	Ref<SpatialMaterial> m_mat_Debug_Planes;
-	Ref<SpatialMaterial> m_mat_Debug_Bounds;
 };
 
 #endif

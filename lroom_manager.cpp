@@ -596,6 +596,24 @@ void LRoomManager::FrameUpdate_FrustumOnly()
 	// NYI
 }
 
+void LRoomManager::FrameUpdate_Prepare()
+{
+	if (m_bDebugPlanes)
+		m_DebugPlanes.clear();
+	// clear the visible room list to write to each frame
+	m_pCurr_VisibleRoomList->clear();
+	m_RenderList_SOBs.clear();
+	m_BF_render_SOBs.Blank();
+	m_BF_visible_SOBs.Blank();
+
+	// as we hit visible rooms we will mark them in a bitset, so we can hide any rooms
+	// that are showing that haven't been hit this frame
+	m_BF_visible_rooms.Blank();
+
+	// reset the planes pool for another frame
+	m_Pool.Reset();
+}
+
 void LRoomManager::FrameUpdate()
 {
 	if (Engine::get_singleton()->is_editor_hint())
@@ -615,19 +633,12 @@ void LRoomManager::FrameUpdate()
 		return;
 	}
 
-	if (m_bDebugPlanes)
-		m_DebugPlanes.clear();
-
 	// we keep a frame counter to prevent visiting things multiple times on the same frame in recursive functions
 	m_uiFrameCounter++;
-
 	LPRINT(5, "\nFRAME " + itos(m_uiFrameCounter));
 
-	// clear the visible room list to write to each frame
-	m_pCurr_VisibleRoomList->clear();
-	m_RenderList_SOBs.clear();
-	m_BF_render_SOBs.Blank();
-	m_BF_visible_SOBs.Blank();
+	FrameUpdate_Prepare();
+
 
 	// get the camera desired and make into lcamera
 	Camera * pCamera = 0;
@@ -653,17 +664,11 @@ void LRoomManager::FrameUpdate()
 		return;
 	}
 
-	// as we hit visible rooms we will mark them in a bitset, so we can hide any rooms
-	// that are showing that haven't been hit this frame
-	m_BF_visible_rooms.Blank();
-
 	// lcamera contains the info needed for culling
 	LCamera cam;
 	cam.m_ptPos = Vector3(0, 0, 0);
 	cam.m_ptDir = Vector3 (-1, 0, 0);
 
-	// reset the planes pool for another frame
-	m_Pool.Reset();
 
 	// the first set of planes are allocated and filled with the view frustum planes
 	// Note that the visual server doesn't actually need to do view frustum culling as a result...
@@ -687,6 +692,21 @@ void LRoomManager::FrameUpdate()
 	// rendering through any portals in view into other rooms, etc etc
 	pRoom->DetermineVisibility_Recursive(*this, 0, cam, planes);
 
+	// finally hide all the rooms that are currently visible but not in the visible bitfield as having been hit
+	FrameUpdate_FinalizeRooms();
+
+	// set soft visibility of objects within visible rooms
+	FrameUpdate_FinalizeVisibility_WithinRooms();
+
+	// draw debug
+	FrameUpdate_DrawDebug(cam, *pRoom);
+
+	// when running, emit less debugging output so as not to choke the IDE
+	Lawn::LDebug::m_bRunning = true;
+}
+
+void LRoomManager::FrameUpdate_FinalizeRooms()
+{
 	// finally hide all the rooms that are currently visible but not in the visible bitfield as having been hit
 
 	// to get started
@@ -713,8 +733,10 @@ void LRoomManager::FrameUpdate()
 		}
 
 	}
+}
 
-
+void LRoomManager::FrameUpdate_FinalizeVisibility_WithinRooms()
+{
 	// and hide all the dobs that are in visible rooms that haven't been made visible
 //	if (m_pCurr_VisibleRoomList->size() == 0)
 //		print_line("WARNING : vis room list size is 0");
@@ -730,14 +752,6 @@ void LRoomManager::FrameUpdate()
 	m_pCurr_VisibleRoomList = m_pPrev_VisibleRoomList;
 	m_pPrev_VisibleRoomList = pTemp;
 
-
-	// hide all the DOB
-
-	// draw debug
-	FrameUpdate_DrawDebug(cam, *pRoom);
-
-	// when running, emit less debugging output so as not to choke the IDE
-	Lawn::LDebug::m_bRunning = true;
 }
 
 
