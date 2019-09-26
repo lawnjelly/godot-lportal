@@ -54,12 +54,17 @@ class LRoomManager : public Spatial {
 	// and also objects out of view but casting shadows INTO the view
 	LVector<int> m_VisibleList_SOBs;
 	LVector<int> m_CasterList_SOBs;
+
 	LVector<int> m_MasterList_SOBs;
 
 
 	Lawn::LBitField_Dynamic m_BF_visible_SOBs;
 	Lawn::LBitField_Dynamic m_BF_caster_SOBs;
 	Lawn::LBitField_Dynamic m_BF_master_SOBs;
+
+	// previous frame
+	LVector<int> m_MasterList_SOBs_prev;
+	Lawn::LBitField_Dynamic m_BF_master_SOBs_prev;
 
 
 	LVector<int> m_VisibleRoomList_A;
@@ -159,6 +164,9 @@ public:
 	// convert empties and meshes to rooms and portals
 	void rooms_convert();
 
+	// free memory for current set of rooms, prepare for converting a new game level
+	void rooms_release();
+
 	// choose which camera you want to use to determine visibility.
 	// normally this will be your main camera, but you can choose another for debugging
 	void rooms_set_camera(Node * pCam);
@@ -200,7 +208,9 @@ public:
 	// helper func, not needed usually as dob_update returns the room
 	int dob_get_room_id(Node * pDOB);
 
-
+	// LIGHTS
+	// global lights that will apply to all rooms
+	bool light_register(Node * pLightNode);
 };
 
 #endif

@@ -34,11 +34,41 @@ Spatial * LSob::GetSpatial() const
 }
 
 
+bool LSob::IsShadowCaster() const
+{
+	Object * pObj = ObjectDB::get_instance(m_ID);
+	GeometryInstance * pGI = Object::cast_to<GeometryInstance>(pObj);
+
+	if (pGI)
+	{
+		if (pGI->get_cast_shadows_setting() == GeometryInstance::SHADOW_CASTING_SETTING_OFF)
+			return false;
+
+		return true;
+	}
+
+	// not sure yet, maybe this should be true, depends what the non geometry objects are
+	return false;
+}
+
+
 VisualInstance * LSob::GetVI() const
 {
 	Object * pObj = ObjectDB::get_instance(m_ID);
 	VisualInstance * pVI = Object::cast_to<VisualInstance>(pObj);
 	return pVI;
+}
+
+void LSob::Show(bool bShow)
+{
+	Spatial * pS = GetSpatial();
+	if (!pS)
+		return;
+
+	if (bShow)
+		pS->show();
+	else
+		pS->hide();
 }
 
 

@@ -43,7 +43,7 @@ void LRoomConverter::Convert(LRoomManager &manager)
 
 	LMAN->m_SOBs.clear();
 	LMAN->m_ShadowCasters_SOB.clear();
-	LMAN->m_Lights.clear();
+	int num_global_lights = LMAN->m_Lights.size();
 
 	// make sure bitfield is right size for number of rooms
 	LMAN->m_BF_visible_rooms.Create(count);
@@ -59,7 +59,6 @@ void LRoomConverter::Convert(LRoomManager &manager)
 	Convert_Rooms();
 	Convert_Portals();
 	Convert_Bounds();
-	Convert_ShadowCasters();
 
 	// make sure manager bitfields are the correct size for number of objects
 	int num_sobs = LMAN->m_SOBs.size();
@@ -67,12 +66,19 @@ void LRoomConverter::Convert(LRoomManager &manager)
 	LMAN->m_BF_caster_SOBs.Create(num_sobs);
 	LMAN->m_BF_visible_SOBs.Create(num_sobs);
 	LMAN->m_BF_master_SOBs.Create(num_sobs);
+	LMAN->m_BF_master_SOBs_prev.Create(num_sobs);
 
+	// must be done after the bitfields
+	Convert_ShadowCasters();
+
+	// hide all in preparation for first frame
+	Convert_HideAll();
 
 	// temp rooms no longer needed
 	m_TempRooms.clear(true);
 
-
+	// clear out the local room lights, leave only global lights
+	LMAN->m_Lights.resize(num_global_lights);
 	Lawn::LDebug::m_bRunning = true;
 }
 
@@ -293,12 +299,23 @@ bool LRoomConverter::Convert_Bound(LRoom &lroom, MeshInstance * pMI)
 	return false;
 }
 
+// hide all in preparation for first frame
+void LRoomConverter::Convert_HideAll()
+{
+	for (int n=0; n<LMAN->m_SOBs.size(); n++)
+	{
+		LSob &sob = LMAN->m_SOBs[n];
+		sob.Show(false);
+	}
+}
+
 void LRoomConverter::Convert_ShadowCasters()
 {
-	LPRINT(5,"Convert_ShadowCasters");
+	LPRINT(5,"Convert_ShadowCasters ... numlights " + itos (LMAN->m_Lights.size()));
 
 	for (int n=0; n<LMAN->m_Rooms.size(); n++)
 	{
+		LPRINT(2,"\tRoom " + itos(n));
 		LRoom &lroom = LMAN->m_Rooms[n];
 		LRoom_FindShadowCasters(lroom);
 	}
@@ -386,19 +403,51 @@ int LRoomConverter::CountRooms()
 // find all objects that cast shadows onto the objects in this room
 void LRoomConverter::LRoom_FindShadowCasters(LRoom &lroom)
 {
-	return;
-
-	// first add all objects in this room as casters
-	for (int n=0; n<lroom.m_iNumSOBs; n++)
+	// each global light, and each light affecting this room
+	for (int n=0; n<LMAN->m_Lights.size(); n++)
 	{
-
-
+			LRoom_FindShadowCasters_FromLight(lroom, LMAN->m_Lights[n]);
 	}
 
+
+	return;
+}
+
+void LRoomConverter::LRoom_AddShadowCaster_SOB(LRoom &lroom, int sobID)
+{
+	// we will reuse the rendering bitflags for shadow casters for this ... to check for double entries (fnaa fnaa)
+	if (LMAN->m_BF_caster_SOBs.GetBit(sobID))
+		return;
+
+	LMAN->m_BF_caster_SOBs.SetBit(sobID, true);
+
+	// first?
+	if (!lroom.m_iNumShadowCasters_SOB)
+		lroom.m_iFirstShadowCaster_SOB = LMAN->m_ShadowCasters_SOB.size();
+
+	LMAN->m_ShadowCasters_SOB.push_back(sobID);
+	lroom.m_iNumShadowCasters_SOB++;
+}
+
+
+void LRoomConverter::LRoom_FindShadowCasters_FromLight(LRoom &lroom, const LLight &light)
+{
+	// blank this each time as it is used to create the list of casters
+	LMAN->m_BF_caster_SOBs.Blank();
+
+	// first add all objects in this room as casters
+//	int last_sob = lroom.m_iFirstSOB + lroom.m_iNumSOBs;
+//	for (int n=lroom.m_iFirstSOB; n<last_sob; n++)
+//	{
+//		//LSob &sob = manager.m_SOBs[n];
+//		LRoom_AddShadowCaster_SOB(lroom, n);
+//	}
+
+
 	// just a constant light direction for now
-	LLight light;
-	light.m_ptDir = Vector3(1.0f, -1.0f, 0.0f);
-	light.m_ptDir.normalize();
+//	LLight light;
+//	light.m_ptDir = Vector3(1.0f, -1.0f, 0.0f);
+//	light.m_ptDir.normalize();
 
 	// reset the planes pool for each render out from the source room
 	LMAN->m_Pool.Reset();
@@ -411,13 +460,66 @@ void LRoomConverter::LRoom_FindShadowCasters(LRoom &lroom)
 	LVector<Plane> &planes = LMAN->m_Pool.Get(pool_member);
 	planes.clear();
 
-	LRoom_FindShadowCasters_Recursive(lroom, light, planes);
-
+	Lawn::LDebug::m_iTabDepth = 0;
+	LRoom_FindShadowCasters_Recursive(lroom, 0, lroom, light, planes);
 
 }
 
-void LRoomConverter::LRoom_FindShadowCasters_Recursive(LRoom &lroom, const LLight &light, const LVector<Plane> &planes)
+
+void LRoomConverter::LRoom_FindShadowCasters_Recursive(LRoom &source_lroom, int depth, LRoom &lroom, const LLight &light, const LVector<Plane> &planes)
 {
+	// prevent too much depth
+	if (depth > 8)
+	{
+		LPRINT_RUN(2, "\t\t\tLRoom_FindShadowCasters_Recursive DEPTH LIMIT REACHED");
+//		WARN_PRINT_ONCE("LPortal Depth Limit reached (seeing through > 8 portals)");
+		return;
+	}
+
+	Lawn::LDebug::m_iTabDepth = depth;
+	LPRINT_RUN(2, "ROOM " + lroom.get_name());
+
+
+	// every object in this room is added that is within the planes
+	int last_sob = lroom.m_iFirstSOB + lroom.m_iNumSOBs;
+	for (int n=lroom.m_iFirstSOB; n<last_sob; n++)
+	{
+		LSob &sob = LMAN->m_SOBs[n];
+
+		// not a shadow caster? don't add to the list
+		if (!sob.IsShadowCaster())
+			continue;
+
+		bool bShow = true;
+		const AABB &bb = sob.m_aabb;
+
+//		print("\t\t\tculling object " + pObj->get_name());
+
+		for (int p=0; p<planes.size(); p++)
+		{
+//				float dist = planes[p].distance_to(pt);
+//				print("\t\t\t\t" + itos(p) + " : dist " + String(Variant(dist)));
+
+			float r_min, r_max;
+			bb.project_range_in_plane(planes[p], r_min, r_max);
+
+	//		print("\t\t\t\t" + itos(p) + " : r_min " + String(Variant(r_min)) + ", r_max " + String(Variant(r_max)));
+
+
+			if (r_min > 0.0f)
+			{
+				bShow = false;
+				break;
+			}
+		}
+
+		if (bShow)
+		{
+			LPRINT_RUN(2, "\tcaster " + itos(n) + ", " + sob.GetSpatial()->get_name());
+			LRoom_AddShadowCaster_SOB(source_lroom, n);
+		}
+	}
+
 	// look through every portal out
 	for (int n=0; n<lroom.m_iNumPortals; n++)
 	{
@@ -425,11 +527,47 @@ void LRoomConverter::LRoom_FindShadowCasters_Recursive(LRoom &lroom, const LLigh
 
 		const LPortal &port = LMAN->m_Portals[portalID];
 
+		LPRINT_RUN(2, "\tPORTAL " + itos (n) + " (" + itos(portalID) + ") " + port.get_name() + " normal " + port.m_Plane.normal);
 
 		// cull with light direction
 		float dot = port.m_Plane.normal.dot(light.m_ptDir);
 		if (dot <= 0.0f)
+		{
+			LPRINT_RUN(2, "\t\tCULLED (wrong direction)");
 			continue;
+		}
+
+		// is it culled by the planes?
+		LPortal::eClipResult overall_res = LPortal::eClipResult::CLIP_INSIDE;
+
+		// cull portal with planes
+		for (int l=0; l<planes.size(); l++)
+		{
+			LPortal::eClipResult res = port.ClipWithPlane(planes[l]);
+
+			switch (res)
+			{
+			case LPortal::eClipResult::CLIP_OUTSIDE:
+				overall_res = res;
+				break;
+			case LPortal::eClipResult::CLIP_PARTIAL:
+				overall_res = res;
+				break;
+			default: // suppress warning
+				break;
+			}
+
+			if (overall_res == LPortal::eClipResult::CLIP_OUTSIDE)
+				break;
+		}
+
+		// this portal is culled
+		if (overall_res == LPortal::eClipResult::CLIP_OUTSIDE)
+		{
+			LPRINT_RUN(2, "\t\tCULLED (outside planes)");
+			continue;
+		}
+
 
 		LRoom &linked_room = LMAN->Portal_GetLinkedRoom(port);
 
@@ -445,12 +583,11 @@ void LRoomConverter::LRoom_FindShadowCasters_Recursive(LRoom &lroom, const LLigh
 			new_planes.copy_from(planes);
 
 			// add the planes for the portal
-//			port.AddPlanes(manager, cam.m_ptPos, new_planes);
+			port.AddLightPlanes(light, new_planes);
 
-
-			LRoom_FindShadowCasters_Recursive(linked_room, light, new_planes);
+			LRoom_FindShadowCasters_Recursive(source_lroom, depth + 1, linked_room, light, new_planes);
 			// for debugging need to reset tab depth
-			//Lawn::LDebug::m_iTabDepth = depth;
+			Lawn::LDebug::m_iTabDepth = depth;
 
 			// we no longer need these planes
 			LMAN->m_Pool.Free(uiPoolMem);

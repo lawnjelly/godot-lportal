@@ -94,6 +94,7 @@ private:
 	void Convert_Bounds();
 	bool Convert_Bound(LRoom &lroom, MeshInstance * pMI);
 	void Convert_ShadowCasters();
+	void Convert_HideAll();
 
 
 	void LRoom_DetectPortalMeshes(LRoom &lroom, LTempRoom &troom);
@@ -102,8 +103,12 @@ private:
 	void LRoom_DetectedPortalMesh(LRoom &lroom, LTempRoom &troom, MeshInstance * pMeshInstance, String szLinkRoom);
 	LPortal * LRoom_RequestNewPortal(LRoom &lroom);
 	void LRoom_PushBackSOB(LRoom &lroom, const LSob &sob);
+
+	// shadows
 	void LRoom_FindShadowCasters(LRoom &lroom);
-	void LRoom_FindShadowCasters_Recursive(LRoom &lroom, const LLight &light, const LVector<Plane> &planes);
+	void LRoom_FindShadowCasters_FromLight(LRoom &lroom, const LLight &light);
+	void LRoom_FindShadowCasters_Recursive(LRoom &source_lroom, int depth, LRoom &lroom, const LLight &light, const LVector<Plane> &planes);
+	void LRoom_AddShadowCaster_SOB(LRoom &lroom, int sobID);
 
 	void TRoom_MakeOppositePortal(const LPortal &port, int iRoomOrig);
 

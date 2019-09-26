@@ -35,6 +35,8 @@ class LSob
 public:
 	Spatial * GetSpatial() const;
 	VisualInstance * GetVI() const;
+	void Show(bool bShow);
+	bool IsShadowCaster() const;
 
 	ObjectID m_ID; // godot object
 	AABB m_aabb; // world space

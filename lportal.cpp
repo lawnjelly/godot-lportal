@@ -71,6 +71,42 @@ String LPortal::FindNameAfter(Node * pNode, String szStart)
 
 //////////////////////////////////////////////////////////
 
+// preprocess
+void LPortal::AddLightPlanes(const LLight &light, LVector<Plane> &planes) const
+{
+	const Vector<Vector3> &pts = m_ptsWorld;
+
+	// assuming ortho light
+	int nPoints = pts.size();
+	ERR_FAIL_COND(nPoints < 3);
+
+	const int max_points = 32;
+	Vector3 pushed_pts[max_points];
+
+	if (nPoints > max_points)
+		nPoints = max_points;
+
+	// transform pushed points
+	for (int n=0; n<nPoints; n++)
+	{
+		pushed_pts[n] = pts[n] + light.m_ptDir;
+	}
+
+	Plane p;
+
+	for (int n=1; n<nPoints; n++)
+	{
+		p = Plane(pts[n-1], pts[n], pushed_pts[n]);
+		planes.push_back(p);
+	}
+
+	// first and last
+	p = Plane(pts[nPoints-1], pts[0], pushed_pts[0]);
+	planes.push_back(p);
+
+}
+
+
 // add clipping planes to the vector formed by each portal edge and the camera
 void LPortal::AddPlanes(LRoomManager &manager, const Vector3 &ptCam, LVector<Plane> &planes) const
 {

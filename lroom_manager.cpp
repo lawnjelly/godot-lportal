@@ -25,6 +25,7 @@
 #include "lroom_converter.h"
 #include "ldebug.h"
 #include "scene/3d/immediate_geometry.h"
+#include "scene/3d/light.h"
 #include "lroom.h"
 
 LRoomManager::LRoomManager()
@@ -451,6 +452,39 @@ bool LRoomManager::dob_unregister(Node * pDOB)
 	return false;
 }
 
+
+bool LRoomManager::light_register(Node * pLightNode)
+{
+	if (!pLightNode)
+	{
+		WARN_PRINT_ONCE("light_register : pLightNode is NULL");
+		return false;
+	}
+
+	LPRINT(3, "light_register " + pLightNode->get_name());
+
+	Light * pLight = Object::cast_to<Light>(pLightNode);
+	if (!pLight)
+	{
+		WARN_PRINT_ONCE("light_register : Node is not a light");
+		return false;
+	}
+
+	// create new light
+	LLight l;
+	l.m_GodotID = pLight->get_instance_id();
+
+	// direction
+	Transform tr = pLight->get_global_transform();
+	l.m_ptPos = tr.origin;
+	l.m_ptDir = tr.basis.get_axis(2); // or possibly get_axis .. z is what we want
+
+	m_Lights.push_back(l);
+
+	return true;
+}
+
+
 void LRoomManager::DobChangeVisibility(Spatial * pDOB, const LRoom * pOld, const LRoom * pNew)
 {
 	bool bVisOld = false;
@@ -589,6 +623,12 @@ void LRoomManager::rooms_convert()
 	conv.Convert(*this);
 }
 
+// free memory for current set of rooms, prepare for converting a new game level
+void LRoomManager::rooms_release()
+{
+	m_Lights.clear();
+}
+
 
 // debugging emulate view frustum
 void LRoomManager::FrameUpdate_FrustumOnly()
@@ -603,8 +643,15 @@ void LRoomManager::FrameUpdate_Prepare()
 	// clear the visible room list to write to each frame
 	m_pCurr_VisibleRoomList->clear();
 
+	// keep previous
+	m_BF_master_SOBs_prev.CopyFrom(m_BF_master_SOBs);
+
+	// note this can be done more efficiently with swapping pointer
+	m_MasterList_SOBs_prev.copy_from(m_MasterList_SOBs);
+
 	m_VisibleList_SOBs.clear();
 	m_CasterList_SOBs.clear();
+	m_MasterList_SOBs.clear();
 
 	m_BF_caster_SOBs.Blank();
 	m_BF_visible_SOBs.Blank();
@@ -807,6 +854,7 @@ void LRoomManager::FrameUpdate_FinalizeVisibility_SoftShow()
 			LRoom::SoftShow(pVI, bVisible);
 		}
 	}
+
 }
 
 
@@ -822,6 +870,24 @@ void LRoomManager::FrameUpdate_FinalizeVisibility_WithinRooms()
 		m_Rooms[r].FinalizeVisibility(*this);
 	}
 
+	// NEW shows and hides dobs according to the difference between the current and previous master list
+	for (int n=0; n<m_MasterList_SOBs_prev.size(); n++)
+	{
+		int ID = m_MasterList_SOBs_prev[n];
+		if (m_BF_master_SOBs.GetBit(ID) == 0)
+		{
+			LSob &sob = m_SOBs[ID];
+			sob.Show(false);
+		}
+	}
+
+	// show all in current master list
+	for (int n=0; n<m_MasterList_SOBs.size(); n++)
+	{
+		int ID = m_MasterList_SOBs[n];
+		LSob &sob = m_SOBs[ID];
+		sob.Show(true);
+	}
 
 }
 
@@ -912,6 +978,8 @@ void LRoomManager::_bind_methods()
 {
 	// main functions
 	ClassDB::bind_method(D_METHOD("rooms_convert"), &LRoomManager::rooms_convert);
+	ClassDB::bind_method(D_METHOD("rooms_release"), &LRoomManager::rooms_release);
+
 	ClassDB::bind_method(D_METHOD("rooms_set_camera"), &LRoomManager::rooms_set_camera);
 	ClassDB::bind_method(D_METHOD("rooms_get_room"), &LRoomManager::rooms_get_room);
 
@@ -934,6 +1002,8 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("dob_register_hint"), &LRoomManager::dob_register_hint);
 	ClassDB::bind_method(D_METHOD("dob_teleport_hint"), &LRoomManager::dob_teleport_hint);
 
-
 	ClassDB::bind_method(D_METHOD("dob_get_room_id"), &LRoomManager::dob_get_room_id);
+
+	ClassDB::bind_method(D_METHOD("light_register"), &LRoomManager::light_register);
+
 }

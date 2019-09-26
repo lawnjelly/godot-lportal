@@ -38,6 +38,8 @@ class LLight
 {
 public:
 	Vector3 m_ptDir;
+	Vector3 m_ptPos;
+	ObjectID m_GodotID;
 };
 
 
@@ -60,6 +62,7 @@ public:
 
 	LPortal::eClipResult ClipWithPlane(const Plane &p) const;
 	void AddPlanes(LRoomManager &manager, const Vector3 &ptCam, LVector<Plane> &planes) const;
+	void AddLightPlanes(const LLight &light, LVector<Plane> &planes) const;
 
 	// normal determined by winding order
 	Vector<Vector3> m_ptsWorld;

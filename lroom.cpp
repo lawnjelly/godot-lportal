@@ -172,8 +172,29 @@ void LRoom::SoftShow(VisualInstance * pVI, bool bShow)
 // naive version, adds all the non visible objects in visible rooms as shadow casters
 void LRoom::AddShadowCasters(LRoomManager &manager)
 {
-//	return;
+	LPRINT(2, "ADDSHADOWCASTERS room " + get_name() + ", " + itos(m_iNumShadowCasters_SOB) + " shadow casters");
 
+	// new!! use precalced list of shadow casters
+	int last = m_iFirstShadowCaster_SOB + m_iNumShadowCasters_SOB;
+	for (int n=m_iFirstShadowCaster_SOB; n<last; n++)
+	{
+		int sobID = manager.m_ShadowCasters_SOB[n];
+
+		// only add to the caster list if not in it already
+		if (!manager.m_BF_caster_SOBs.GetBit(sobID))
+		{
+			LPRINT(2, "\t" + itos(sobID) + ", " + manager.m_SOBs[sobID].GetSpatial()->get_name());
+			manager.m_BF_caster_SOBs.SetBit(sobID, true);
+			manager.m_CasterList_SOBs.push_back(sobID);
+		}
+		else
+		{
+			LPRINT(2, "\t" + itos(sobID) + ", ALREADY CASTER " + manager.m_SOBs[sobID].GetSpatial()->get_name());
+		}
+	}
+
+
+/*
 	int last_sob = m_iFirstSOB + m_iNumSOBs;
 	for (int n=m_iFirstSOB; n<last_sob; n++)
 	{
@@ -186,7 +207,7 @@ void LRoom::AddShadowCasters(LRoomManager &manager)
 		manager.m_BF_caster_SOBs.SetBit(n, true);
 		manager.m_CasterList_SOBs.push_back(n);
 	}
-
+*/
 }
 
 
@@ -194,19 +215,19 @@ void LRoom::AddShadowCasters(LRoomManager &manager)
 // (it might be expensive)
 void LRoom::FinalizeVisibility(LRoomManager &manager)
 {
-	int last_sob = m_iFirstSOB + m_iNumSOBs;
-	for (int n=m_iFirstSOB; n<last_sob; n++)
-	{
-		LSob &sob = manager.m_SOBs[n];
-		Spatial * pS = sob.GetSpatial();
-		if (!pS)
-			continue;
+//	int last_sob = m_iFirstSOB + m_iNumSOBs;
+//	for (int n=m_iFirstSOB; n<last_sob; n++)
+//	{
+//		LSob &sob = manager.m_SOBs[n];
+//		Spatial * pS = sob.GetSpatial();
+//		if (!pS)
+//			continue;
 
-		if (manager.m_BF_master_SOBs.GetBit(n))
-			pS->show();
-		else
-			pS->hide();
-	}
+//		if (manager.m_BF_master_SOBs.GetBit(n))
+//			pS->show();
+//		else
+//			pS->hide();
+//	}
 
 
 	//print_line("FinalizeVisibility room " + get_name() + " NumSOBs " + itos(m_SOBs.size()) + ", NumDOBs " + itos(m_DOBs.size()));
@@ -253,7 +274,7 @@ void LRoom::Room_MakeVisible(bool bVisible)
 	if (m_bVisible)
 	{
 		// show room
-		GetGodotRoom()->show();
+//		GetGodotRoom()->show();
 
 		// show all dobs
 		for (int n=0; n<m_DOBs.size(); n++)
@@ -267,7 +288,7 @@ void LRoom::Room_MakeVisible(bool bVisible)
 	else
 	{
 		// hide room
-		GetGodotRoom()->hide();
+//		GetGodotRoom()->hide();
 
 		// hide all dobs
 		for (int n=0; n<m_DOBs.size(); n++)
@@ -405,7 +426,6 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 
 		if (bShow)
 		{
-			//sob.m_bSOBVisible = true;
 			// sob is renderable and visible (not shadow only)
 			manager.m_BF_visible_SOBs.SetBit(n, true);
 			//manager.m_BF_render_SOBs.SetBit(n, true);
