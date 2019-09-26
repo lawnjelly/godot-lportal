@@ -602,9 +602,13 @@ void LRoomManager::FrameUpdate_Prepare()
 		m_DebugPlanes.clear();
 	// clear the visible room list to write to each frame
 	m_pCurr_VisibleRoomList->clear();
-	m_RenderList_SOBs.clear();
-	m_BF_render_SOBs.Blank();
+
+	m_VisibleList_SOBs.clear();
+	m_CasterList_SOBs.clear();
+
+	m_BF_caster_SOBs.Blank();
 	m_BF_visible_SOBs.Blank();
+	m_BF_master_SOBs.Blank();
 
 	// as we hit visible rooms we will mark them in a bitset, so we can hide any rooms
 	// that are showing that haven't been hit this frame
@@ -695,10 +699,12 @@ void LRoomManager::FrameUpdate()
 	// finally hide all the rooms that are currently visible but not in the visible bitfield as having been hit
 	FrameUpdate_FinalizeRooms();
 
+	FrameUpdate_AddShadowCasters();
+
+	FrameUpdate_CreateMasterList();
+
 	// set soft visibility of objects within visible rooms
 	FrameUpdate_FinalizeVisibility_WithinRooms();
-
-	FrameUpdate_AddShadowCasters();
 
 	FrameUpdate_FinalizeVisibility_SoftShow();
 
@@ -745,6 +751,32 @@ void LRoomManager::FrameUpdate_FinalizeRooms()
 	}
 }
 
+// to optimize just 1 call to the visual server, we want a list of all sobs that are either visible or casters
+// this allows 1 call to show / hide, and 1 call to layer flags
+void LRoomManager::FrameUpdate_CreateMasterList()
+{
+	for (int n=0; n<m_VisibleList_SOBs.size(); n++)
+	{
+		int sob_id = m_VisibleList_SOBs[n];
+		m_MasterList_SOBs.push_back(sob_id);
+		m_BF_master_SOBs.SetBit(sob_id, true);
+	}
+
+	for (int n=0; n<m_CasterList_SOBs.size(); n++)
+	{
+		int sob_id = m_CasterList_SOBs[n];
+
+		// if not already on master list
+		if (m_BF_master_SOBs.GetBit(sob_id) == 0)
+		{
+			m_MasterList_SOBs.push_back(sob_id);
+			m_BF_master_SOBs.SetBit(sob_id, true);
+		}
+	}
+
+}
+
+
 void LRoomManager::FrameUpdate_AddShadowCasters()
 {
 	// simple for the moment, add all objects in visible rooms as casters if they are not already visible
@@ -759,11 +791,11 @@ void LRoomManager::FrameUpdate_AddShadowCasters()
 void LRoomManager::FrameUpdate_FinalizeVisibility_SoftShow()
 {
 	// apply the appropriate soft show for each sob in the render list
-	int nSOBs = m_RenderList_SOBs.size();
+	int nSOBs = m_MasterList_SOBs.size();
 
 	for (int n=0; n<nSOBs; n++)
 	{
-		int ID = m_RenderList_SOBs[n];
+		int ID = m_MasterList_SOBs[n];
 		const LSob &sob	 = m_SOBs[ID];
 
 		VisualInstance * pVI = sob.GetVI();

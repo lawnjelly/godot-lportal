@@ -42,6 +42,8 @@ void LRoomConverter::Convert(LRoomManager &manager)
 	int count = CountRooms();
 
 	LMAN->m_SOBs.clear();
+	LMAN->m_ShadowCasters_SOB.clear();
+	LMAN->m_Lights.clear();
 
 	// make sure bitfield is right size for number of rooms
 	LMAN->m_BF_visible_rooms.Create(count);
@@ -57,19 +59,24 @@ void LRoomConverter::Convert(LRoomManager &manager)
 	Convert_Rooms();
 	Convert_Portals();
 	Convert_Bounds();
+	Convert_ShadowCasters();
 
 	// make sure manager bitfields are the correct size for number of objects
 	int num_sobs = LMAN->m_SOBs.size();
 	LPRINT(5,"Total SOBs " + itos(num_sobs));
-	LMAN->m_BF_render_SOBs.Create(num_sobs);
+	LMAN->m_BF_caster_SOBs.Create(num_sobs);
 	LMAN->m_BF_visible_SOBs.Create(num_sobs);
+	LMAN->m_BF_master_SOBs.Create(num_sobs);
 
 
 	// temp rooms no longer needed
 	m_TempRooms.clear(true);
 
+
 	Lawn::LDebug::m_bRunning = true;
 }
+
+
 
 
 void LRoomConverter::Convert_Rooms()
@@ -286,6 +293,18 @@ bool LRoomConverter::Convert_Bound(LRoom &lroom, MeshInstance * pMI)
 	return false;
 }
 
+void LRoomConverter::Convert_ShadowCasters()
+{
+	LPRINT(5,"Convert_ShadowCasters");
+
+	for (int n=0; n<LMAN->m_Rooms.size(); n++)
+	{
+		LRoom &lroom = LMAN->m_Rooms[n];
+		LRoom_FindShadowCasters(lroom);
+	}
+}
+
+
 void LRoomConverter::Convert_Bounds()
 {
 	for (int n=0; n<LMAN->m_Rooms.size(); n++)
@@ -361,6 +380,94 @@ int LRoomConverter::CountRooms()
 	}
 
 	return count;
+}
+
+
+// find all objects that cast shadows onto the objects in this room
+void LRoomConverter::LRoom_FindShadowCasters(LRoom &lroom)
+{
+	return;
+
+	// first add all objects in this room as casters
+	for (int n=0; n<lroom.m_iNumSOBs; n++)
+	{
+
+
+	}
+
+	// just a constant light direction for now
+	LLight light;
+	light.m_ptDir = Vector3(1.0f, -1.0f, 0.0f);
+	light.m_ptDir.normalize();
+
+	// reset the planes pool for each render out from the source room
+	LMAN->m_Pool.Reset();
+
+
+	// the first set of planes are blank
+	unsigned int pool_member = LMAN->m_Pool.Request();
+	assert (pool_member != -1);
+
+	LVector<Plane> &planes = LMAN->m_Pool.Get(pool_member);
+	planes.clear();
+
+	LRoom_FindShadowCasters_Recursive(lroom, light, planes);
+
+
+}
+
+void LRoomConverter::LRoom_FindShadowCasters_Recursive(LRoom &lroom, const LLight &light, const LVector<Plane> &planes)
+{
+	// look through every portal out
+	for (int n=0; n<lroom.m_iNumPortals; n++)
+	{
+		int portalID = lroom.m_iFirstPortal + n;
+
+		const LPortal &port = LMAN->m_Portals[portalID];
+
+
+		// cull with light direction
+		float dot = port.m_Plane.normal.dot(light.m_ptDir);
+		if (dot <= 0.0f)
+			continue;
+
+		LRoom &linked_room = LMAN->Portal_GetLinkedRoom(port);
+
+
+		// recurse into that portal
+		unsigned int uiPoolMem = LMAN->m_Pool.Request();
+		if (uiPoolMem != -1)
+		{
+			// get a vector of planes from the pool
+			LVector<Plane> &new_planes = LMAN->m_Pool.Get(uiPoolMem);
+
+			// copy the existing planes
+			new_planes.copy_from(planes);
+
+			// add the planes for the portal
+//			port.AddPlanes(manager, cam.m_ptPos, new_planes);
+
+
+			LRoom_FindShadowCasters_Recursive(linked_room, light, new_planes);
+			// for debugging need to reset tab depth
+			//Lawn::LDebug::m_iTabDepth = depth;
+
+			// we no longer need these planes
+			LMAN->m_Pool.Free(uiPoolMem);
+		}
+		else
+		{
+			// planes pool is empty!
+			// This will happen if the view goes through shedloads of portals
+			// The solution is either to increase the plane pool size, or build levels
+			// with views through multiple portals. Looking through multiple portals is likely to be
+			// slow anyway because of the number of planes to test.
+			WARN_PRINT_ONCE("LRoom_FindShadowCasters_Recursive : Planes pool is empty");
+		}
+
+
+	}
+
 }
 
 

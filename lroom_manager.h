@@ -52,11 +52,15 @@ class LRoomManager : public Spatial {
 
 	// the render list is all objects that are in view,
 	// and also objects out of view but casting shadows INTO the view
-	LVector<int> m_RenderList_SOBs;
-	Lawn::LBitField_Dynamic m_BF_render_SOBs;
+	LVector<int> m_VisibleList_SOBs;
+	LVector<int> m_CasterList_SOBs;
+	LVector<int> m_MasterList_SOBs;
 
-	// visible bit marks in view, if not set, it is a shadow caster only
+
 	Lawn::LBitField_Dynamic m_BF_visible_SOBs;
+	Lawn::LBitField_Dynamic m_BF_caster_SOBs;
+	Lawn::LBitField_Dynamic m_BF_master_SOBs;
+
 
 	LVector<int> m_VisibleRoomList_A;
 	LVector<int> m_VisibleRoomList_B;
@@ -81,6 +85,10 @@ private:
 
 	// static objects
 	LVector<LSob> m_SOBs;
+	LVector<LLight> m_Lights;
+
+	// master list of shadow casters for each room
+	LVector<uint32_t> m_ShadowCasters_SOB;
 
 protected:
 	static void _bind_methods();
@@ -98,6 +106,7 @@ private:
 	void FrameUpdate_Prepare();
 	void FrameUpdate_FinalizeRooms();
 	void FrameUpdate_AddShadowCasters();
+	void FrameUpdate_CreateMasterList();
 	void FrameUpdate_FinalizeVisibility_WithinRooms();
 	void FrameUpdate_FinalizeVisibility_SoftShow();
 

@@ -36,6 +36,9 @@ LRoom::LRoom() {
 
 	m_iFirstSOB = 0;
 	m_iNumSOBs = 0;
+
+	m_iFirstShadowCaster_SOB = 0;
+	m_iNumShadowCasters_SOB = 0;
 }
 
 
@@ -169,17 +172,19 @@ void LRoom::SoftShow(VisualInstance * pVI, bool bShow)
 // naive version, adds all the non visible objects in visible rooms as shadow casters
 void LRoom::AddShadowCasters(LRoomManager &manager)
 {
+//	return;
+
 	int last_sob = m_iFirstSOB + m_iNumSOBs;
 	for (int n=m_iFirstSOB; n<last_sob; n++)
 	{
-		bool bVisible = manager.m_BF_visible_SOBs.GetBit(n) != 0;
+//		bool bVisible = manager.m_BF_visible_SOBs.GetBit(n) != 0;
 
-		// already in list
-		if (bVisible)
-			continue;
+//		// already in list
+//		if (bVisible)
+//			continue;
 
-		manager.m_BF_render_SOBs.SetBit(n, true);
-		manager.m_RenderList_SOBs.push_back(n);
+		manager.m_BF_caster_SOBs.SetBit(n, true);
+		manager.m_CasterList_SOBs.push_back(n);
 	}
 
 }
@@ -189,21 +194,22 @@ void LRoom::AddShadowCasters(LRoomManager &manager)
 // (it might be expensive)
 void LRoom::FinalizeVisibility(LRoomManager &manager)
 {
+	int last_sob = m_iFirstSOB + m_iNumSOBs;
+	for (int n=m_iFirstSOB; n<last_sob; n++)
+	{
+		LSob &sob = manager.m_SOBs[n];
+		Spatial * pS = sob.GetSpatial();
+		if (!pS)
+			continue;
+
+		if (manager.m_BF_master_SOBs.GetBit(n))
+			pS->show();
+		else
+			pS->hide();
+	}
+
+
 	//print_line("FinalizeVisibility room " + get_name() + " NumSOBs " + itos(m_SOBs.size()) + ", NumDOBs " + itos(m_DOBs.size()));
-
-//	int last_sob = m_iFirstSOB + m_iNumSOBs;
-//	for (int n=m_iFirstSOB; n<last_sob; n++)
-//	{
-//		const LSob &sob = manager.m_SOBs[n];
-//		VisualInstance * pVI = sob.GetVI();
-
-//		if (pVI)
-//		{
-//			//SoftShow(pVI, sob.m_bSOBVisible);
-//			bool bVisible = manager.m_BF_visible_SOBs.GetBit(n) != 0;
-//			SoftShow(pVI, bVisible);
-//		}
-//	}
 
 	for (int n=0; n<m_DOBs.size(); n++)
 	{
@@ -402,8 +408,8 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 			//sob.m_bSOBVisible = true;
 			// sob is renderable and visible (not shadow only)
 			manager.m_BF_visible_SOBs.SetBit(n, true);
-			manager.m_BF_render_SOBs.SetBit(n, true);
-			manager.m_RenderList_SOBs.push_back(n);
+			//manager.m_BF_render_SOBs.SetBit(n, true);
+			manager.m_VisibleList_SOBs.push_back(n);
 		}
 
 	} // for through sobs

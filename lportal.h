@@ -33,6 +33,14 @@
 class LRoom;
 class LRoomManager;
 
+
+class LLight
+{
+public:
+	Vector3 m_ptDir;
+};
+
+
 class LPortal {
 public:
 

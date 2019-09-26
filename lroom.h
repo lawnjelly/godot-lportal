@@ -68,6 +68,9 @@ public:
 	int m_iFirstPortal;
 	int m_iNumPortals;
 
+	int m_iFirstShadowCaster_SOB;
+	int m_iNumShadowCasters_SOB;
+
 	// Just very rough, room centre for determining start rooms of dobs
 	Vector3 m_ptCentre;
 	AABB m_AABB; // world bound
