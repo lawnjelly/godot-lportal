@@ -10,8 +10,7 @@ Video of initial testing:\
 https://www.youtube.com/watch?v=xF_3Fe2HRdk \
 https://www.youtube.com/watch?v=NmlWkkhGoJA
 
-_Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._\
-_If you are interested in integrating LPortal into your game, feel free to get in touch, e.g. in the issue tracker, and I will endeavour to help._
+_Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._
 
 ## Current status
 The basic system is mostly working. I am now testing / polishing the interface and adding debugging. I will leave PVS and closable portals until after the first release.

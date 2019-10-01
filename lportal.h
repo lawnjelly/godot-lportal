@@ -32,14 +32,31 @@
 
 class LRoom;
 class LRoomManager;
+class Light;
 
 
 class LLight
 {
 public:
+	enum eLightType
+	{
+		LT_DIRECTIONAL,
+		LT_SPOTLIGHT,
+		LT_OMNI,
+	};
+	void SetDefaults();
+	Light * GetGodotLight();
+	bool IsGlobal() const {return m_RoomID == -1;}
+
 	Vector3 m_ptDir;
 	Vector3 m_ptPos;
 	ObjectID m_GodotID;
+	eLightType m_eType;
+	float m_fSpread; // for spotlight
+	float m_fMaxDist; // shadow distance not light distance
+
+	// source room
+	int m_RoomID; // or -1 for global lights
 };
 
 
@@ -62,7 +79,10 @@ public:
 
 	LPortal::eClipResult ClipWithPlane(const Plane &p) const;
 	void AddPlanes(LRoomManager &manager, const Vector3 &ptCam, LVector<Plane> &planes) const;
-	void AddLightPlanes(const LLight &light, LVector<Plane> &planes) const;
+
+	// reverse direction if we are going back through portals TOWARDS the light rather than away from it
+	// (the planes will need reversing because the portal winding will be opposite)
+	void AddLightPlanes(LRoomManager &manager, const LLight &light, LVector<Plane> &planes, bool bReverse) const;
 
 	// normal determined by winding order
 	Vector<Vector3> m_ptsWorld;
@@ -87,6 +107,9 @@ public:
 	// useful funcs
 	static bool NameStartsWith(Node * pNode, String szSearch);
 	static String FindNameAfter(Node * pNode, String szStart);
+
+private:
+	void Debug_CheckPlaneValidity(const Plane &p) const;
 };
 
 

@@ -132,29 +132,48 @@ LRoom * LRoom::DOB_Update(LRoomManager &manager, Spatial * pDOB)
 // objects can still be rendered outside immediate view for casting shadows.
 // All objects in view (that are set to cast shadows) should cast shadows, so the actual
 // shown objects are a superset of the softshown.
-void LRoom::SoftShow(VisualInstance * pVI, bool bShow)
+void LRoom::SoftShow(VisualInstance * pVI, uint32_t show_flags)
 {
+
 	// hijack this layer number
 	uint32_t mask = pVI->get_layer_mask();
 	uint32_t orig_mask = mask;
 
-	const int SOFT_SHOW_MASK = 1 << SOFT_SHOW_BIT;
-	const int SOFT_HIDE_MASK = 1 << SOFT_HIDE_BIT;
 
+	// debug, to check shadow casters are correct for different light types
+//#define DEBUG_SHOW_CASTERS_ONLY
+#ifdef DEBUG_SHOW_CASTERS_ONLY
+	bShow = true;
 	if (bShow)
 	{
-		// set
-		mask |= SOFT_SHOW_MASK;
-		// clear
-		mask &= ~(1 | SOFT_HIDE_MASK);
+
 	}
+#else
+	if (show_flags & LAYER_MASK_CAMERA)
+		mask |= LAYER_MASK_CAMERA; // set
 	else
-	{
-		// set
-		mask |= SOFT_HIDE_MASK;
-		// clear
-		mask &= ~(1 | SOFT_SHOW_MASK);
-	}
+		mask &= ~LAYER_MASK_CAMERA; // clear
+
+	if (show_flags & LAYER_MASK_LIGHT)
+		mask |= LAYER_MASK_LIGHT;
+	else
+		mask &= ~LAYER_MASK_LIGHT;
+
+//	if (bShow)
+//	{
+//		// set
+//		mask |= SOFT_SHOW_MASK;
+//		// clear
+//		mask &= ~(1 | SOFT_HIDE_MASK);
+//	}
+//	else
+//	{
+//		// set
+//		mask |= SOFT_HIDE_MASK;
+//		// clear
+//		mask &= ~(1 | SOFT_SHOW_MASK);
+//	}
+#endif
 
 
 	// noop? don't touch the visual server if no change to mask
@@ -163,9 +182,7 @@ void LRoom::SoftShow(VisualInstance * pVI, bool bShow)
 
 	pVI->set_layer_mask(mask);
 
-//	pVI->set_layer_mask_bit(0, false);
-//	pVI->set_layer_mask_bit(SOFT_HIDE_BIT, bShow == false);
-//	pVI->set_layer_mask_bit(SOFT_SHOW_BIT, bShow);
+	// test the visual server - NOT A BOTTLENECK. set_layer_mask is cheap
 }
 
 
@@ -173,6 +190,18 @@ void LRoom::SoftShow(VisualInstance * pVI, bool bShow)
 void LRoom::AddShadowCasters(LRoomManager &manager)
 {
 	LPRINT(2, "ADDSHADOWCASTERS room " + get_name() + ", " + itos(m_iNumShadowCasters_SOB) + " shadow casters");
+
+	// add all the active lights in this room
+	for (int n=0; n<m_LocalLights.size(); n++)
+	{
+		int lightID = m_LocalLights[n];
+		if (!manager.m_BF_ActiveLights.GetBit(lightID))
+		{
+			manager.m_BF_ActiveLights.SetBit(lightID, true);
+			manager.m_ActiveLights.push_back(lightID);
+		}
+	}
+
 
 	// new!! use precalced list of shadow casters
 	int last = m_iFirstShadowCaster_SOB + m_iNumShadowCasters_SOB;
@@ -189,7 +218,7 @@ void LRoom::AddShadowCasters(LRoomManager &manager)
 		}
 		else
 		{
-			LPRINT(2, "\t" + itos(sobID) + ", ALREADY CASTER " + manager.m_SOBs[sobID].GetSpatial()->get_name());
+			//LPRINT(2, "\t" + itos(sobID) + ", ALREADY CASTER " + manager.m_SOBs[sobID].GetSpatial()->get_name());
 		}
 	}
 
@@ -215,6 +244,8 @@ void LRoom::AddShadowCasters(LRoomManager &manager)
 // (it might be expensive)
 void LRoom::FinalizeVisibility(LRoomManager &manager)
 {
+	// make sure all lights needed are turned on
+
 //	int last_sob = m_iFirstSOB + m_iNumSOBs;
 //	for (int n=m_iFirstSOB; n<last_sob; n++)
 //	{

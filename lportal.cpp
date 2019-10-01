@@ -23,6 +23,25 @@
 #include "lroom.h"
 #include "ldebug.h"
 #include "lroom_manager.h"
+#include "scene/3d/light.h"
+
+void LLight::SetDefaults()
+{
+	m_GodotID = 0;
+	m_eType = LT_DIRECTIONAL;
+	m_fSpread = 0.0f; // for spotlight
+	m_fMaxDist = 100.0f;
+	m_RoomID = -1;
+}
+
+
+Light * LLight::GetGodotLight()
+{
+	Object * pObj = ObjectDB::get_instance(m_GodotID);
+	Light * p = Object::cast_to<Light>(pObj);
+	return p;
+}
+
 
 
 bool LPortal::NameStartsWith(Node * pNode, String szSearch)
@@ -71,38 +90,91 @@ String LPortal::FindNameAfter(Node * pNode, String szStart)
 
 //////////////////////////////////////////////////////////
 
+void LPortal::Debug_CheckPlaneValidity(const Plane &p) const
+{
+	assert (p.distance_to(m_ptCentre) < 0.0f);
+}
+
+
 // preprocess
-void LPortal::AddLightPlanes(const LLight &light, LVector<Plane> &planes) const
+void LPortal::AddLightPlanes(LRoomManager &manager, const LLight &light, LVector<Plane> &planes, bool bReverse) const
 {
 	const Vector<Vector3> &pts = m_ptsWorld;
 
-	// assuming ortho light
 	int nPoints = pts.size();
 	ERR_FAIL_COND(nPoints < 3);
 
-	const int max_points = 32;
-	Vector3 pushed_pts[max_points];
-
-	if (nPoints > max_points)
-		nPoints = max_points;
-
-	// transform pushed points
-	for (int n=0; n<nPoints; n++)
+	if (light.m_eType == LLight::LT_DIRECTIONAL)
 	{
-		pushed_pts[n] = pts[n] + light.m_ptDir;
+		// assuming ortho light
+		const int max_points = 32;
+		Vector3 pushed_pts[max_points];
+
+		if (nPoints > max_points)
+			nPoints = max_points;
+
+		// transform pushed points
+		Vector3 ptPush = light.m_ptDir * 2.0;
+
+		for (int n=0; n<nPoints; n++)
+		{
+			pushed_pts[n] = pts[n] + ptPush;
+		}
+
+		Plane p;
+
+		for (int n=0; n<nPoints; n++)
+		{
+			int nPLUS = (n + 1) % nPoints;
+			p = Plane(pts[n], pts[nPLUS], pushed_pts[n]);
+			if (bReverse) p = -p;
+			planes.push_back(p);
+			Debug_CheckPlaneValidity(p);
+		}
+
+		// first and last
+//		p = Plane(pts[nPoints-1], pts[0], pushed_pts[0]);
+//		if (bReverse) p = -p;
+//		planes.push_back(p);
+//		Debug_CheckPlaneValidity(p);
+
+		// debug
+		if (manager.m_bDebugLights)
+		{
+			for (int n=1; n<nPoints; n++)
+			{
+				if (n == 2)
+					continue;
+
+				manager.m_DebugPortalLightPlanes.push_back(pts[n-1]);
+				manager.m_DebugPortalLightPlanes.push_back(pts[n]);
+				manager.m_DebugPortalLightPlanes.push_back(pushed_pts[n]);
+				manager.m_DebugPortalLightPlanes.push_back(pushed_pts[n]);
+				manager.m_DebugPortalLightPlanes.push_back(pushed_pts[n-1]);
+				manager.m_DebugPortalLightPlanes.push_back(pts[n-1]);
+			}
+		}
+
+		return;
 	}
 
+	// use a point for the light for omni and spotlight
 	Plane p;
 
-	for (int n=1; n<nPoints; n++)
+	for (int n=0; n<nPoints; n++)
 	{
-		p = Plane(pts[n-1], pts[n], pushed_pts[n]);
+		int nPLUS = (n + 1) % nPoints;
+		p = Plane(pts[nPLUS], pts[n], light.m_ptPos);
+		if (bReverse) p = -p;
 		planes.push_back(p);
+		Debug_CheckPlaneValidity(p);
 	}
 
 	// first and last
-	p = Plane(pts[nPoints-1], pts[0], pushed_pts[0]);
-	planes.push_back(p);
+//	p = Plane(pts[0], pts[nPoints-1], light.m_ptPos);
+//	if (bReverse) p = -p;
+//	planes.push_back(p);
+//	Debug_CheckPlaneValidity(p);
 
 }
 
@@ -129,11 +201,13 @@ void LPortal::AddPlanes(LRoomManager &manager, const Vector3 &ptCam, LVector<Pla
 //			print(ptCam + pts[n] + pts[n-1]);
 //		}
 		planes.push_back(p);
+		Debug_CheckPlaneValidity(p);
 	}
 
 	// first and last
 	p = Plane(ptCam, pts[0], pts[nPoints-1]);
 	planes.push_back(p);
+	Debug_CheckPlaneValidity(p);
 
 	// debug
 	if (!manager.m_bDebugPlanes)

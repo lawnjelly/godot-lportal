@@ -54,8 +54,12 @@ class LRoom
 private:
 
 public:
-	static const int SOFT_SHOW_BIT = 18;
-	static const int SOFT_HIDE_BIT = 19;
+	// using flags we can determine which the object is visible to - the camera, or the lights (i.e. shadow caster), or both
+	static const int LAYER_LIGHT_BIT = 18;
+	static const int LAYER_CAMERA_BIT = 19;
+
+	static const int LAYER_MASK_LIGHT = 1 << LAYER_LIGHT_BIT;
+	static const int LAYER_MASK_CAMERA = 1 << LAYER_CAMERA_BIT;
 
 	// static objects are stored in the manager in a contiguous list
 	int m_iFirstSOB;
@@ -63,6 +67,9 @@ public:
 
 	// dynamic objects
 	LVector<LDob> m_DOBs;
+
+	// local lights affecting this room
+	LVector<int> m_LocalLights;
 
 	// portals are stored in the manager in a contiguous list
 	int m_iFirstPortal;
@@ -130,7 +137,7 @@ public:
 	// instead of directly showing and hiding objects we now set their layer,
 	// and the camera will hide them with a cull mask. This is so that
 	// objects can still be rendered outside immediate view for casting shadows.
-	static void SoftShow(VisualInstance * pVI, bool bShow);
+	static void SoftShow(VisualInstance * pVI, uint32_t show_flags);
 
 private:
 	// whether lportal thinks this room is currently visible

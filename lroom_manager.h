@@ -90,7 +90,14 @@ private:
 
 	// static objects
 	LVector<LSob> m_SOBs;
+
+	// lights
 	LVector<LLight> m_Lights;
+	// active lights
+	LVector<int> m_ActiveLights;
+	LVector<int> m_ActiveLights_prev;
+	Lawn::LBitField_Dynamic m_BF_ActiveLights;
+	Lawn::LBitField_Dynamic m_BF_ActiveLights_prev;
 
 	// master list of shadow casters for each room
 	LVector<uint32_t> m_ShadowCasters_SOB;
@@ -127,8 +134,10 @@ private:
 	bool DobRegister(Spatial * pDOB, float radius, int iRoom);
 	ObjectID DobRegister_FindVIRecursive(Node * pNode) const;
 	bool DobTeleport(Spatial * pDOB, int iNewRoomID);
+	bool LightCreate(Light * pLight, int roomID);
 	void CreateDebug();
 	void DobChangeVisibility(Spatial * pDOB, const LRoom * pOld, const LRoom * pNew);
+	void ReleaseResources(bool bPrepareConvert);
 
 
 	// helper funcs
@@ -147,12 +156,16 @@ public:
 	// whether debug planes is switched on
 	bool m_bDebugPlanes;
 	bool m_bDebugBounds;
+	bool m_bDebugLights;
 
 	// the planes are shown as a list of lines from the camera to the portal verts
 	LVector<Vector3> m_DebugPlanes;
+	LVector<Vector3> m_DebugPortalLightPlanes;
+
 private:
 	ObjectID m_ID_DebugPlanes;
 	ObjectID m_ID_DebugBounds;
+	ObjectID m_ID_DebugLights;
 	Ref<SpatialMaterial> m_mat_Debug_Planes;
 	Ref<SpatialMaterial> m_mat_Debug_Bounds;
 
@@ -179,6 +192,7 @@ public:
 	void rooms_set_active(bool bActive);
 	void rooms_set_debug_planes(bool bActive);
 	void rooms_set_debug_bounds(bool bActive);
+	void rooms_set_debug_lights(bool bActive);
 
 	// 0 to 6 .. defaults to 4 which is (2) in our priorities (i.e. 6 - level)
 	void rooms_set_logging(int level);

@@ -25,6 +25,7 @@
 #include "scene/3d/mesh_instance.h"
 #include "core/math/quick_hull.h"
 #include "ldebug.h"
+#include "scene/3d/light.h"
 
 // save typing, I am lazy
 #define LMAN m_pManager
@@ -39,17 +40,21 @@ void LRoomConverter::Convert(LRoomManager &manager)
 	LPRINT(5, "running convert");
 
 	LMAN = &manager;
+
+	// force clear all arrays
+	manager.ReleaseResources(true);
+
 	int count = CountRooms();
 
-	LMAN->m_SOBs.clear();
-	LMAN->m_ShadowCasters_SOB.clear();
+	//LMAN->m_SOBs.clear();
+	//LMAN->m_ShadowCasters_SOB.clear();
 	int num_global_lights = LMAN->m_Lights.size();
 
 	// make sure bitfield is right size for number of rooms
 	LMAN->m_BF_visible_rooms.Create(count);
 
 
-	LMAN->m_Rooms.clear(true);
+//	LMAN->m_Rooms.clear(true);
 	LMAN->m_Rooms.resize(count);
 
 	m_TempRooms.clear(true);
@@ -68,7 +73,11 @@ void LRoomConverter::Convert(LRoomManager &manager)
 	LMAN->m_BF_master_SOBs.Create(num_sobs);
 	LMAN->m_BF_master_SOBs_prev.Create(num_sobs);
 
+	LMAN->m_BF_ActiveLights.Create(LMAN->m_Lights.size());
+	LMAN->m_BF_ActiveLights_prev.Create(LMAN->m_Lights.size());
+
 	// must be done after the bitfields
+	Convert_Lights();
 	Convert_ShadowCasters();
 
 	// hide all in preparation for first frame
@@ -78,7 +87,7 @@ void LRoomConverter::Convert(LRoomManager &manager)
 	m_TempRooms.clear(true);
 
 	// clear out the local room lights, leave only global lights
-	LMAN->m_Lights.resize(num_global_lights);
+	//LMAN->m_Lights.resize(num_global_lights);
 	Lawn::LDebug::m_bRunning = true;
 }
 
@@ -118,6 +127,25 @@ int LRoomConverter::FindRoom_ByName(String szName) const
 	return -1;
 }
 
+void LRoomConverter::Convert_Room_SetDefaultCullMask_Recursive(Node * pParent)
+{
+	int nChildren = pParent->get_child_count();
+	for (int n=0; n<nChildren; n++)
+	{
+		Node * pChild = pParent->get_child(n);
+
+		// default cull mask should always be visible to camera and lights
+		VisualInstance * pVI = Object::cast_to<VisualInstance>(pChild);
+		if (pVI)
+		{
+//			LRoom::SoftShow(pVI, LRoom::LAYER_MASK_CAMERA | LRoom::LAYER_MASK_LIGHT);
+		}
+
+		Convert_Room_SetDefaultCullMask_Recursive(pChild);
+	}
+}
+
+
 void LRoomConverter::Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &lroom, LAABB &bb_room)
 {
 	int nChildren = pParent->get_child_count();
@@ -135,10 +163,18 @@ void LRoomConverter::Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &l
 		if (Node_IsBound(pChild))
 			continue;
 
+		// lights
+		if (Node_IsLight(pChild))
+		{
+			LRoom_DetectedLight(lroom, pChild);
+			continue;
+		}
 
 		VisualInstance * pVI = Object::cast_to<VisualInstance>(pChild);
 		if (pVI)
 		{
+
+
 			LPRINT(2, "\t\tFound VI : " + pVI->get_name());
 
 
@@ -153,6 +189,9 @@ void LRoomConverter::Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &l
 
 			//lroom.m_SOBs.push_back(sob);
 			LRoom_PushBackSOB(lroom, sob);
+
+			// take away layer 0 from the sob, so it can be culled effectively
+			pVI->set_layer_mask(0);
 		}
 		else
 		{
@@ -192,6 +231,9 @@ bool LRoomConverter::Convert_Room(Spatial * pNode, int lroomID)
 	// to determine the overall bound of the room
 	LAABB bb_room;
 	bb_room.SetToMaxOpposite();
+
+	// set default cull masks
+	Convert_Room_SetDefaultCullMask_Recursive(pNode);
 
 	// recursively find statics
 	Convert_Room_FindObjects_Recursive(pNode, lroom, bb_room);
@@ -309,15 +351,209 @@ void LRoomConverter::Convert_HideAll()
 	}
 }
 
+void LRoomConverter::Convert_Lights()
+{
+	// trace local lights out from rooms and add to each room the light affects
+	for (int n=0; n<LMAN->m_Lights.size(); n++)
+	{
+		LLight &l = LMAN->m_Lights[n];
+		if (l.IsGlobal())
+			continue; // ignore globals .. affect all rooms
+
+		Light_Trace(n);
+	}
+}
+
+void LRoomConverter::Light_Trace(int iLightID)
+{
+
+	LLight &l = LMAN->m_Lights[iLightID];
+
+	LPRINT(5,"\nLight_Trace " + itos (iLightID) + " direction " + l.m_ptDir);
+
+	// reset the planes pool for each render out from the source room
+	LMAN->m_Pool.Reset();
+
+
+	// the first set of planes are blank
+	unsigned int pool_member = LMAN->m_Pool.Request();
+	assert (pool_member != -1);
+
+	LVector<Plane> &planes = LMAN->m_Pool.Get(pool_member);
+	planes.clear();
+
+	Lawn::LDebug::m_iTabDepth = 0;
+
+	Light_TraceRecursive(0, LMAN->m_Rooms[l.m_RoomID], l, iLightID, planes);
+}
+
+
+void LRoomConverter::Light_TraceRecursive(int depth, LRoom &lroom, const LLight &light,  int iLightID, const LVector<Plane> &planes)
+{
+	// prevent too much depth
+	if (depth > 8)
+	{
+		LPRINT_RUN(2, "\t\t\tLight_TraceRecursive DEPTH LIMIT REACHED");
+		return;
+	}
+
+	Lawn::LDebug::m_iTabDepth = depth;
+	LPRINT_RUN(2, "ROOM " + lroom.get_name() + " affected by local light");
+
+
+	// add to the local lights affecting this room
+	// already in list?
+	bool bAlreadyInList = false;
+	for (int n=0; n<lroom.m_LocalLights.size(); n++)
+	{
+		if (lroom.m_LocalLights[n] == iLightID)
+		{
+			bAlreadyInList = true;
+			break;
+		}
+	}
+	// add to local lights if not already in list
+	if (!bAlreadyInList)
+	{
+		lroom.m_LocalLights.push_back(iLightID);
+	}
+
+
+	// look through every portal out
+	for (int n=0; n<lroom.m_iNumPortals; n++)
+	{
+		int portalID = lroom.m_iFirstPortal + n;
+
+		const LPortal &port = LMAN->m_Portals[portalID];
+
+		LPRINT_RUN(2, "\tPORTAL " + itos (n) + " (" + itos(portalID) + ") " + port.get_name() + " normal " + port.m_Plane.normal);
+
+		float dot = port.m_Plane.normal.dot(light.m_ptDir);
+
+		if (dot <= 0.0f)
+		{
+			LPRINT_RUN(2, "\t\tCULLED (wrong direction)");
+			continue;
+		}
+
+		// is it culled by the planes?
+		LPortal::eClipResult overall_res = LPortal::eClipResult::CLIP_INSIDE;
+
+		// cull portal with planes
+		for (int l=0; l<planes.size(); l++)
+		{
+			LPortal::eClipResult res = port.ClipWithPlane(planes[l]);
+
+			switch (res)
+			{
+			case LPortal::eClipResult::CLIP_OUTSIDE:
+				overall_res = res;
+				break;
+			case LPortal::eClipResult::CLIP_PARTIAL:
+				overall_res = res;
+				break;
+			default: // suppress warning
+				break;
+			}
+
+			if (overall_res == LPortal::eClipResult::CLIP_OUTSIDE)
+				break;
+		}
+
+		// this portal is culled
+		if (overall_res == LPortal::eClipResult::CLIP_OUTSIDE)
+		{
+			LPRINT_RUN(2, "\t\tCULLED (outside planes)");
+			continue;
+		}
+
+
+		LRoom &linked_room = LMAN->Portal_GetLinkedRoom(port);
+
+
+		// recurse into that portal
+		unsigned int uiPoolMem = LMAN->m_Pool.Request();
+		if (uiPoolMem != -1)
+		{
+			// get a vector of planes from the pool
+			LVector<Plane> &new_planes = LMAN->m_Pool.Get(uiPoolMem);
+
+			// copy the existing planes
+			new_planes.copy_from(planes);
+
+			// add the planes for the portal
+			port.AddLightPlanes(*LMAN, light, new_planes, false);
+
+			Light_TraceRecursive(depth + 1, linked_room, light, iLightID, new_planes);
+			// for debugging need to reset tab depth
+			Lawn::LDebug::m_iTabDepth = depth;
+
+			// we no longer need these planes
+			LMAN->m_Pool.Free(uiPoolMem);
+		}
+		else
+		{
+			// planes pool is empty!
+			// This will happen if the view goes through shedloads of portals
+			// The solution is either to increase the plane pool size, or build levels
+			// with views through multiple portals. Looking through multiple portals is likely to be
+			// slow anyway because of the number of planes to test.
+			WARN_PRINT_ONCE("LRoom_FindShadowCasters_Recursive : Planes pool is empty");
+		}
+
+
+	}
+
+}
+
+
 void LRoomConverter::Convert_ShadowCasters()
 {
-	LPRINT(5,"Convert_ShadowCasters ... numlights " + itos (LMAN->m_Lights.size()));
+	int nLights = LMAN->m_Lights.size();
+	LPRINT(5,"\nConvert_ShadowCasters ... numlights " + itos (nLights));
 
-	for (int n=0; n<LMAN->m_Rooms.size(); n++)
+
+	for (int l=0; l<nLights; l++)
 	{
-		LPRINT(2,"\tRoom " + itos(n));
-		LRoom &lroom = LMAN->m_Rooms[n];
-		LRoom_FindShadowCasters(lroom);
+		const LLight &light = LMAN->m_Lights[l];
+		String sz = "Light " + itos (l);
+		if (light.IsGlobal())
+			sz += " GLOBAL";
+		else
+			sz += " LOCAL from room " + itos(light.m_RoomID);
+
+		LPRINT(5, sz + " direction " + light.m_ptDir);
+
+		for (int n=0; n<LMAN->m_Rooms.size(); n++)
+		{
+			LRoom &lroom = LMAN->m_Rooms[n];
+
+			// global lights affect every room
+			bool bAffectsRoom = true;
+
+			// if the light is local, does it affect this room?
+			if (!light.IsGlobal())
+			{
+				// a local light .. does it affect this room?
+				bAffectsRoom = false;
+				for (int i=0; i<lroom.m_LocalLights.size(); i++)
+				{
+					// if the light id is found among the local lights for this room
+					if (lroom.m_LocalLights[i] == l)
+					{
+						bAffectsRoom = true;
+						break;
+					}
+				}
+			}
+
+			if (bAffectsRoom)
+			{
+				LPRINT(2,"\n\tAFFECTS room " + itos(n) + ", " + lroom.get_name());
+				LRoom_FindShadowCasters_FromLight(lroom, light);
+				//LRoom_FindShadowCasters(lroom, l, light);
+			}
+		}
 	}
 }
 
@@ -401,17 +637,37 @@ int LRoomConverter::CountRooms()
 
 
 // find all objects that cast shadows onto the objects in this room
-void LRoomConverter::LRoom_FindShadowCasters(LRoom &lroom)
-{
-	// each global light, and each light affecting this room
-	for (int n=0; n<LMAN->m_Lights.size(); n++)
-	{
-			LRoom_FindShadowCasters_FromLight(lroom, LMAN->m_Lights[n]);
-	}
+//void LRoomConverter::LRoom_FindShadowCasters(LRoom &lroom, int lightID, const LLight &light)
+//{
+//	// each global light, and each light affecting this room
+//	for (int n=0; n<LMAN->m_Lights.size(); n++)
+//	{
+//		// if the light is not a global light, we are only interested if it emits from this room
+//		const LLight &l = LMAN->m_Lights[n];
+
+//		bool bAffectsRoom = true;
+//		if (l.m_RoomID != -1)
+//		{
+//			// a local light .. does it affect this room?
+//			bAffectsRoom = false;
+//			for (int i=0; i<lroom.m_LocalLights.size(); i++)
+//			{
+//				// if the light id is found among the local lights for this room
+//				if (lroom.m_LocalLights[i] == n)
+//				{
+//					bAffectsRoom = true;
+//					break;
+//				}
+//			}
+//		}
+
+//		if (bAffectsRoom)
+//			LRoom_FindShadowCasters_FromLight(lroom, l);
+//	}
 
 
-	return;
-}
+//	return;
+//}
 
 void LRoomConverter::LRoom_AddShadowCaster_SOB(LRoom &lroom, int sobID)
 {
@@ -461,7 +717,7 @@ void LRoomConverter::LRoom_FindShadowCasters_FromLight(LRoom &lroom, const LLigh
 	planes.clear();
 
 	Lawn::LDebug::m_iTabDepth = 0;
-	LRoom_FindShadowCasters_Recursive(lroom, 0, lroom, light, planes);
+	LRoom_FindShadowCasters_Recursive(lroom, 1, lroom, light, planes);
 
 }
 
@@ -507,7 +763,10 @@ void LRoomConverter::LRoom_FindShadowCasters_Recursive(LRoom &source_lroom, int 
 
 
 			if (r_min > 0.0f)
+//			if (r_max < 0.0f)
 			{
+				//LPRINT_RUN(2, "\tR_MIN is " + String(Variant(r_min)) + " R_MAX is " + String(Variant(r_max))+ ", for plane " + itos(p));
+
 				bShow = false;
 				break;
 			}
@@ -517,6 +776,10 @@ void LRoomConverter::LRoom_FindShadowCasters_Recursive(LRoom &source_lroom, int 
 		{
 			LPRINT_RUN(2, "\tcaster " + itos(n) + ", " + sob.GetSpatial()->get_name());
 			LRoom_AddShadowCaster_SOB(source_lroom, n);
+		}
+		else
+		{
+			//LPRINT_RUN(2, "\tculled " + itos(n) + ", " + sob.GetSpatial()->get_name());
 		}
 	}
 
@@ -530,8 +793,21 @@ void LRoomConverter::LRoom_FindShadowCasters_Recursive(LRoom &source_lroom, int 
 		LPRINT_RUN(2, "\tPORTAL " + itos (n) + " (" + itos(portalID) + ") " + port.get_name() + " normal " + port.m_Plane.normal);
 
 		// cull with light direction
-		float dot = port.m_Plane.normal.dot(light.m_ptDir);
-		if (dot <= 0.0f)
+		float dot;
+		if (light.m_eType == LLight::LT_DIRECTIONAL)
+		{
+			dot = port.m_Plane.normal.dot(light.m_ptDir);
+		}
+		else
+		{
+			// cull with light direction to portal
+			Vector3 ptLightToPort = port.m_ptCentre - light.m_ptPos;
+			dot = port.m_Plane.normal.dot(ptLightToPort);
+		}
+
+
+//		float dot = port.m_Plane.normal.dot(light.m_ptDir);
+		if (dot >= 0.0f)
 		{
 			LPRINT_RUN(2, "\t\tCULLED (wrong direction)");
 			continue;
@@ -583,7 +859,7 @@ void LRoomConverter::LRoom_FindShadowCasters_Recursive(LRoom &source_lroom, int 
 			new_planes.copy_from(planes);
 
 			// add the planes for the portal
-			port.AddLightPlanes(light, new_planes);
+			port.AddLightPlanes(*LMAN, light, new_planes, true);
 
 			LRoom_FindShadowCasters_Recursive(source_lroom, depth + 1, linked_room, light, new_planes);
 			// for debugging need to reset tab depth
@@ -696,6 +972,71 @@ void LRoomConverter::LRoom_MakePortalFinalList(LRoom &lroom, LTempRoom &troom)
 	}
 }
 
+
+void LRoomConverter::LRoom_DetectedLight(LRoom &lroom, Node * pNode)
+{
+	Light * pLight = Object::cast_to<Light>(pNode);
+	assert (pLight);
+
+	LMAN->LightCreate(pLight, lroom.m_RoomID);
+	/*
+	// create new light
+	LLight l;
+	l.SetDefaults();
+	l.m_GodotID = pLight->get_instance_id();
+	// direction
+	Transform tr = pLight->get_global_transform();
+	l.m_ptPos = tr.origin;
+	l.m_ptDir = -tr.basis.get_axis(2); // or possibly get_axis .. z is what we want
+	l.m_fMaxDist = pLight->get_param(Light::PARAM_SHADOW_MAX_DISTANCE);
+
+	// source room ID
+	l.m_RoomID = lroom.m_RoomID;
+
+	bool bOK = false;
+
+	// what kind of light?
+	SpotLight * pSL = Object::cast_to<SpotLight>(pNode);
+	if (pSL)
+	{
+		LPRINT(2, "\tSPOTLIGHT detected " + pNode->get_name());
+		l.m_eType = LLight::LT_SPOTLIGHT;
+		l.m_fSpread = pSL->get_param(Light::PARAM_SPOT_ANGLE);
+
+		bOK = true;
+	}
+
+	OmniLight * pOL = Object::cast_to<OmniLight>(pNode);
+	if (pOL)
+	{
+		LPRINT(2, "\tOMNILIGHT detected " + pNode->get_name());
+		l.m_eType = LLight::LT_OMNI;
+		bOK = true;
+	}
+
+	DirectionalLight * pDL = Object::cast_to<DirectionalLight>(pNode);
+	if (pDL)
+	{
+		LPRINT(2, "\tDIRECTIONALLIGHT detected " + pNode->get_name());
+		l.m_eType = LLight::LT_DIRECTIONAL;
+		bOK = true;
+	}
+
+	// don't add if not recognised
+	if (!bOK)
+	{
+		LPRINT(2, "\tLIGHT type unrecognised " + pNode->get_name());
+		return;
+	}
+
+
+	// turn the local light off to start with
+	pLight->hide();
+
+	LMAN->m_Lights.push_back(l);
+	*/
+}
+
 // found a portal mesh! create a matching LPortal
 void LRoomConverter::LRoom_DetectedPortalMesh(LRoom &lroom, LTempRoom &troom, MeshInstance * pMeshInstance, String szLinkRoom)
 {
@@ -792,6 +1133,16 @@ void LRoomConverter::TRoom_MakeOppositePortal(const LPortal &port, int iRoomOrig
 ///////////////////////////////////////////////////
 
 // helper
+bool LRoomConverter::Node_IsLight(Node * pNode) const
+{
+	Light * pLight = Object::cast_to<Light>(pNode);
+	if (!pLight)
+		return false;
+
+	return true;
+}
+
+
 bool LRoomConverter::Node_IsRoom(Node * pNode) const
 {
 	Spatial * pSpat = Object::cast_to<Spatial>(pNode);

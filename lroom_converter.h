@@ -89,11 +89,13 @@ private:
 	void Convert_Rooms();
 	bool Convert_Room(Spatial * pNode, int lroomID);
 	void Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &lroom, LAABB &bb_room);
+	void Convert_Room_SetDefaultCullMask_Recursive(Node * pParent);
 
 	void Convert_Portals();
 	void Convert_Bounds();
 	bool Convert_Bound(LRoom &lroom, MeshInstance * pMI);
 	void Convert_ShadowCasters();
+	void Convert_Lights();
 	void Convert_HideAll();
 
 
@@ -104,8 +106,13 @@ private:
 	LPortal * LRoom_RequestNewPortal(LRoom &lroom);
 	void LRoom_PushBackSOB(LRoom &lroom, const LSob &sob);
 
+	// lights
+	void LRoom_DetectedLight(LRoom &lroom, Node * pNode);
+	void Light_Trace(int iLightID);
+	void Light_TraceRecursive(int depth, LRoom &lroom, const LLight &light, int iLightID, const LVector<Plane> &planes);
+
 	// shadows
-	void LRoom_FindShadowCasters(LRoom &lroom);
+//	void LRoom_FindShadowCasters(LRoom &lroom, int lightID, const LLight &light);
 	void LRoom_FindShadowCasters_FromLight(LRoom &lroom, const LLight &light);
 	void LRoom_FindShadowCasters_Recursive(LRoom &source_lroom, int depth, LRoom &lroom, const LLight &light, const LVector<Plane> &planes);
 	void LRoom_AddShadowCaster_SOB(LRoom &lroom, int sobID);
@@ -118,6 +125,7 @@ private:
 	bool Node_IsPortal(Node * pNode) const;
 	bool Node_IsBound(Node * pNode) const;
 	bool Node_IsIgnore(Node * pNode) const;
+	bool Node_IsLight(Node * pNode) const;
 
 	int FindRoom_ByName(String szName) const;
 
