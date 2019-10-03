@@ -36,11 +36,10 @@ which I'm finding the best fix for to help with the showing / hiding of shadow c
 * Optional convex hull bound for rooms DONE
 * Add debug graphical view of portal planes DONE
 * Add debug graphical view of room bounds DONE
-* Dealing with shadows from objects outside of view
+* Dealing with shadows from objects outside of view ONGOING
 * Bug fixing / testing ONGOING
 * Closable portals
 * PVS (primary and secondary)
-* Investigate multiple passes (shadows, lights)
 
 ## Instructions
 See [INSTRUCTIONS.md](INSTRUCTIONS.md)  and [TUTORIAL.md](TUTORIAL.md)
