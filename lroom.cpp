@@ -182,6 +182,15 @@ void LRoom::SoftShow(VisualInstance * pVI, uint32_t show_flags)
 
 	pVI->set_layer_mask(mask);
 
+	// test godot bug
+//	GeometryInstance * pGI = Object::cast_to<GeometryInstance>(pVI);
+//	if (pGI)
+//	{
+//		// godot visible bug workaround
+//		pGI->set_extra_cull_margin(0.0f);
+//	}
+
+
 	// test the visual server - NOT A BOTTLENECK. set_layer_mask is cheap
 }
 

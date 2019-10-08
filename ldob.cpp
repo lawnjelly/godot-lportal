@@ -59,16 +59,29 @@ VisualInstance * LSob::GetVI() const
 	return pVI;
 }
 
+
 void LSob::Show(bool bShow)
 {
 	Spatial * pS = GetSpatial();
 	if (!pS)
 		return;
 
+	// noop
+	if (pS->is_visible() == bShow)
+		return;
+
 	if (bShow)
 		pS->show();
 	else
 		pS->hide();
+
+	GeometryInstance * pGI = Object::cast_to<GeometryInstance>(pS);
+	if (pGI)
+	{
+		// godot visible bug workaround
+		pGI->set_extra_cull_margin(0.0f);
+	}
+
 }
 
 
