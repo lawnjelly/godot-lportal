@@ -109,13 +109,15 @@ private:
 	// lights
 	void LRoom_DetectedLight(LRoom &lroom, Node * pNode);
 	void Light_Trace(int iLightID);
-	void Light_TraceRecursive(int depth, LRoom &lroom, const LLight &light, int iLightID, const LVector<Plane> &planes);
+	void Light_TraceRecursive(int depth, LRoom &lroom, LLight &light, int iLightID, const LVector<Plane> &planes);
+	void Light_AddCaster_SOB(LLight &light, int sobID);
 
 	// shadows
 //	void LRoom_FindShadowCasters(LRoom &lroom, int lightID, const LLight &light);
 	void LRoom_FindShadowCasters_FromLight(LRoom &lroom, const LLight &light);
 	void LRoom_FindShadowCasters_Recursive(LRoom &source_lroom, int depth, LRoom &lroom, const LLight &light, const LVector<Plane> &planes);
 	void LRoom_AddShadowCaster_SOB(LRoom &lroom, int sobID);
+
 
 	void TRoom_MakeOppositePortal(const LPortal &port, int iRoomOrig);
 

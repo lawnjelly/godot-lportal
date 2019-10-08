@@ -208,44 +208,50 @@ void LRoom::AddShadowCasters(LRoomManager &manager)
 		{
 			manager.m_BF_ActiveLights.SetBit(lightID, true);
 			manager.m_ActiveLights.push_back(lightID);
+
+			// add all shadow casters for this light (new method)
+			const LLight &light = manager.m_Lights[lightID];
+			int last_caster = light.m_FirstCaster + light.m_NumCasters;
+			for (int c=light.m_FirstCaster; c<last_caster; c++)
+			{
+				int sobID = manager.m_LightCasters_SOB[c];
+
+				// only add to the caster list if not in it already (does this check need to happen, can this ever occur?)
+				if (!manager.m_BF_caster_SOBs.GetBit(sobID))
+				{
+					//LPRINT(2, "\t" + itos(sobID) + ", " + manager.m_SOBs[sobID].GetSpatial()->get_name());
+					manager.m_BF_caster_SOBs.SetBit(sobID, true);
+					manager.m_CasterList_SOBs.push_back(sobID);
+				}
+				else
+				{
+					//LPRINT(2, "\t" + itos(sobID) + ", ALREADY CASTER " + manager.m_SOBs[sobID].GetSpatial()->get_name());
+				}
+
+			}
 		}
 	}
 
 
 	// new!! use precalced list of shadow casters
-	int last = m_iFirstShadowCaster_SOB + m_iNumShadowCasters_SOB;
-	for (int n=m_iFirstShadowCaster_SOB; n<last; n++)
-	{
-		int sobID = manager.m_ShadowCasters_SOB[n];
+//	int last = m_iFirstShadowCaster_SOB + m_iNumShadowCasters_SOB;
+//	for (int n=m_iFirstShadowCaster_SOB; n<last; n++)
+//	{
+//		int sobID = manager.m_ShadowCasters_SOB[n];
 
-		// only add to the caster list if not in it already
-		if (!manager.m_BF_caster_SOBs.GetBit(sobID))
-		{
-			LPRINT(2, "\t" + itos(sobID) + ", " + manager.m_SOBs[sobID].GetSpatial()->get_name());
-			manager.m_BF_caster_SOBs.SetBit(sobID, true);
-			manager.m_CasterList_SOBs.push_back(sobID);
-		}
-		else
-		{
-			//LPRINT(2, "\t" + itos(sobID) + ", ALREADY CASTER " + manager.m_SOBs[sobID].GetSpatial()->get_name());
-		}
-	}
+//		// only add to the caster list if not in it already
+//		if (!manager.m_BF_caster_SOBs.GetBit(sobID))
+//		{
+//			LPRINT(2, "\t" + itos(sobID) + ", " + manager.m_SOBs[sobID].GetSpatial()->get_name());
+//			manager.m_BF_caster_SOBs.SetBit(sobID, true);
+//			manager.m_CasterList_SOBs.push_back(sobID);
+//		}
+//		else
+//		{
+//			//LPRINT(2, "\t" + itos(sobID) + ", ALREADY CASTER " + manager.m_SOBs[sobID].GetSpatial()->get_name());
+//		}
+//	}
 
-
-/*
-	int last_sob = m_iFirstSOB + m_iNumSOBs;
-	for (int n=m_iFirstSOB; n<last_sob; n++)
-	{
-//		bool bVisible = manager.m_BF_visible_SOBs.GetBit(n) != 0;
-
-//		// already in list
-//		if (bVisible)
-//			continue;
-
-		manager.m_BF_caster_SOBs.SetBit(n, true);
-		manager.m_CasterList_SOBs.push_back(n);
-	}
-*/
 }
 
 

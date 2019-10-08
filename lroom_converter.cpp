@@ -46,15 +46,11 @@ void LRoomConverter::Convert(LRoomManager &manager)
 
 	int count = CountRooms();
 
-	//LMAN->m_SOBs.clear();
-	//LMAN->m_ShadowCasters_SOB.clear();
 	int num_global_lights = LMAN->m_Lights.size();
 
 	// make sure bitfield is right size for number of rooms
 	LMAN->m_BF_visible_rooms.Create(count);
 
-
-//	LMAN->m_Rooms.clear(true);
 	LMAN->m_Rooms.resize(count);
 
 	m_TempRooms.clear(true);
@@ -366,7 +362,10 @@ void LRoomConverter::Convert_Lights()
 
 void LRoomConverter::Light_Trace(int iLightID)
 {
+	// blank this each time as it is used to create the list of casters
+	LMAN->m_BF_caster_SOBs.Blank();
 
+	// get the light
 	LLight &l = LMAN->m_Lights[iLightID];
 
 	LPRINT(5,"\nLight_Trace " + itos (iLightID) + " direction " + l.m_ptDir);
@@ -388,7 +387,7 @@ void LRoomConverter::Light_Trace(int iLightID)
 }
 
 
-void LRoomConverter::Light_TraceRecursive(int depth, LRoom &lroom, const LLight &light,  int iLightID, const LVector<Plane> &planes)
+void LRoomConverter::Light_TraceRecursive(int depth, LRoom &lroom, LLight &light,  int iLightID, const LVector<Plane> &planes)
 {
 	// prevent too much depth
 	if (depth > 8)
@@ -417,6 +416,55 @@ void LRoomConverter::Light_TraceRecursive(int depth, LRoom &lroom, const LLight 
 	{
 		lroom.m_LocalLights.push_back(iLightID);
 	}
+
+	// add each light caster that is within the planes to the light caster list
+	// clip all objects in this room to the clipping planes
+	int last_sob = lroom.m_iFirstSOB + lroom.m_iNumSOBs;
+	for (int n=lroom.m_iFirstSOB; n<last_sob; n++)
+	{
+		LSob &sob = LMAN->m_SOBs[n];
+
+		//LPRINT_RUN(2, "sob " + itos(n) + " " + sob.GetSpatial()->get_name());
+		// already determined to be visible through another portal
+//		if (LMAN->m_BF_caster_SOBs.GetBit(n))
+//		{
+//			//LPRINT_RUN(2, "\talready visible");
+//			continue;
+//		}
+
+		bool bShow = true;
+
+
+		// estimate the radius .. for now
+		const AABB &bb = sob.m_aabb;
+
+//		print("\t\t\tculling object " + pObj->get_name());
+
+		for (int p=0; p<planes.size(); p++)
+		{
+//				float dist = planes[p].distance_to(pt);
+//				print("\t\t\t\t" + itos(p) + " : dist " + String(Variant(dist)));
+
+			float r_min, r_max;
+			bb.project_range_in_plane(planes[p], r_min, r_max);
+
+	//		print("\t\t\t\t" + itos(p) + " : r_min " + String(Variant(r_min)) + ", r_max " + String(Variant(r_max)));
+
+
+			if (r_min > 0.0f)
+			{
+				bShow = false;
+				break;
+			}
+		}
+
+		if (bShow)
+		{
+			Light_AddCaster_SOB(light, n);
+		}
+
+	} // for through sobs
+
 
 
 	// look through every portal out
@@ -668,6 +716,27 @@ int LRoomConverter::CountRooms()
 
 //	return;
 //}
+
+void LRoomConverter::Light_AddCaster_SOB(LLight &light, int sobID)
+{
+	// we will reuse the rendering bitflags for shadow casters for this ... to check for double entries (fnaa fnaa)
+	if (LMAN->m_BF_caster_SOBs.GetBit(sobID))
+		return;
+
+
+	LPRINT_RUN(2, "\t\t\tLightCaster " + itos(sobID));
+
+	LMAN->m_BF_caster_SOBs.SetBit(sobID, true);
+
+
+	// first?
+	if (!light.m_NumCasters)
+		light.m_FirstCaster = LMAN->m_LightCasters_SOB.size();
+
+	LMAN->m_LightCasters_SOB.push_back(sobID);
+	light.m_NumCasters++;
+}
+
 
 void LRoomConverter::LRoom_AddShadowCaster_SOB(LRoom &lroom, int sobID)
 {

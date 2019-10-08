@@ -57,6 +57,10 @@ public:
 
 	// source room
 	int m_RoomID; // or -1 for global lights
+
+	// shadow casters
+	int m_FirstCaster;
+	int m_NumCasters;
 };
 
 

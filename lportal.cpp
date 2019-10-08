@@ -32,6 +32,9 @@ void LLight::SetDefaults()
 	m_fSpread = 0.0f; // for spotlight
 	m_fMaxDist = 100.0f;
 	m_RoomID = -1;
+
+	m_FirstCaster = 0;
+	m_NumCasters = 0;
 }
 
 

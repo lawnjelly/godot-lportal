@@ -747,6 +747,7 @@ void LRoomManager::rooms_release()
 void LRoomManager::ReleaseResources(bool bPrepareConvert)
 {
 	m_ShadowCasters_SOB.clear();
+	m_LightCasters_SOB.clear();
 	m_Rooms.clear(true);
 	m_Portals.clear(true);
 	m_SOBs.clear();
@@ -977,6 +978,7 @@ void LRoomManager::FrameUpdate_AddShadowCasters()
 		m_Rooms[r].AddShadowCasters(*this);
 	}
 
+	LPRINT(2, "TOTAL shadow casters " + itos(m_CasterList_SOBs.size()));
 }
 
 void LRoomManager::FrameUpdate_FinalizeVisibility_SoftShow()

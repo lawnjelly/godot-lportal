@@ -102,6 +102,9 @@ private:
 	// master list of shadow casters for each room
 	LVector<uint32_t> m_ShadowCasters_SOB;
 
+	// master list of casters for each light
+	LVector<uint32_t> m_LightCasters_SOB;
+
 protected:
 	static void _bind_methods();
 	void _notification(int p_what);
