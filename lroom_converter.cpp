@@ -182,6 +182,7 @@ void LRoomConverter::Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &l
 			LSob sob;
 			sob.m_ID = pVI->get_instance_id();
 			sob.m_aabb = bb;
+			sob.Hidable_Create(pChild);
 
 			//lroom.m_SOBs.push_back(sob);
 			LRoom_PushBackSOB(lroom, sob);
@@ -345,6 +346,15 @@ void LRoomConverter::Convert_HideAll()
 		LSob &sob = LMAN->m_SOBs[n];
 		sob.Show(false);
 	}
+
+	// hide all lights that are non global
+	for (int n=0; n<LMAN->m_Lights.size(); n++)
+	{
+		LLight &light = LMAN->m_Lights[n];
+		if (!light.IsGlobal())
+			light.Show(false);
+	}
+
 }
 
 void LRoomConverter::Convert_Lights()

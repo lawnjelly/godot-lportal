@@ -112,7 +112,7 @@ public:
 //	void Hide_All();
 
 	// show godot room and all linked dobs and all sobs
-	void Debug_ShowAll();
+	void Debug_ShowAll(bool bActive);
 
 	// hide all the objects not hit on this frame .. instead of calling godot hide without need
 	// (it might be expensive)

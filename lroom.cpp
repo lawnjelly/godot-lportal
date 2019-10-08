@@ -198,7 +198,7 @@ void LRoom::SoftShow(VisualInstance * pVI, uint32_t show_flags)
 // naive version, adds all the non visible objects in visible rooms as shadow casters
 void LRoom::AddShadowCasters(LRoomManager &manager)
 {
-	LPRINT(2, "ADDSHADOWCASTERS room " + get_name() + ", " + itos(m_iNumShadowCasters_SOB) + " shadow casters");
+	LPRINT_RUN(2, "ADDSHADOWCASTERS room " + get_name() + ", " + itos(m_iNumShadowCasters_SOB) + " shadow casters");
 
 	// add all the active lights in this room
 	for (int n=0; n<m_LocalLights.size(); n++)
@@ -219,7 +219,7 @@ void LRoom::AddShadowCasters(LRoomManager &manager)
 				// only add to the caster list if not in it already (does this check need to happen, can this ever occur?)
 				if (!manager.m_BF_caster_SOBs.GetBit(sobID))
 				{
-					//LPRINT(2, "\t" + itos(sobID) + ", " + manager.m_SOBs[sobID].GetSpatial()->get_name());
+					LPRINT_RUN(2, "\t" + itos(sobID) + ", " + manager.m_SOBs[sobID].GetSpatial()->get_name());
 					manager.m_BF_caster_SOBs.SetBit(sobID, true);
 					manager.m_CasterList_SOBs.push_back(sobID);
 				}
@@ -363,7 +363,7 @@ void LRoom::Room_MakeVisible(bool bVisible)
 //}
 
 // show godot room and all linked dobs and all sobs
-void LRoom::Debug_ShowAll()
+void LRoom::Debug_ShowAll(bool bActive)
 {
 	Room_MakeVisible(true);
 
@@ -374,6 +374,12 @@ void LRoom::Debug_ShowAll()
 //		Spatial * pS = sob.GetSpatial();
 //		if (pS)
 //			pS->show();
+
+//		VisualInstance * pVI = sob.GetVI();
+//		if (pVI)
+//		{
+//			SoftShow(pVI, LRoom::LAYER_MASK_CAMERA | LRoom::LAYER_MASK_LIGHT);
+//		}
 //	}
 
 }

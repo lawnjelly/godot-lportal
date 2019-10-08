@@ -35,33 +35,6 @@ class LRoomManager;
 class Light;
 
 
-class LLight
-{
-public:
-	enum eLightType
-	{
-		LT_DIRECTIONAL,
-		LT_SPOTLIGHT,
-		LT_OMNI,
-	};
-	void SetDefaults();
-	Light * GetGodotLight();
-	bool IsGlobal() const {return m_RoomID == -1;}
-
-	Vector3 m_ptDir;
-	Vector3 m_ptPos;
-	ObjectID m_GodotID;
-	eLightType m_eType;
-	float m_fSpread; // for spotlight
-	float m_fMaxDist; // shadow distance not light distance
-
-	// source room
-	int m_RoomID; // or -1 for global lights
-
-	// shadow casters
-	int m_FirstCaster;
-	int m_NumCasters;
-};
 
 
 class LPortal {

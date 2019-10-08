@@ -24,7 +24,66 @@
 
 #include "ldob.h"
 #include "scene/3d/mesh_instance.h"
+#include "scene/3d/light.h"
 
+
+void LHidable::Hidable_Create(Node * pNode)
+{
+//	m_pNode = 0; m_pParent = 0; m_bShow = true;
+	m_pNode = pNode;
+	m_pParent = m_pNode->get_parent();
+	m_bShow = true;
+}
+
+
+void LHidable::Show(bool bShow)
+{
+	// noop
+	if (bShow == m_bShow)
+		return;
+
+	// new state
+	m_bShow = bShow;
+
+	assert (m_pParent);
+
+	if (bShow)
+	{
+		// add to tree
+		m_pParent->add_child(m_pNode);
+	}
+	else
+	{
+		// remove from tree
+		m_pParent->remove_child(m_pNode);
+	}
+
+}
+
+/////////////////////////////////////////////////////////////////////
+
+void LLight::SetDefaults()
+{
+	m_GodotID = 0;
+	m_eType = LT_DIRECTIONAL;
+	m_fSpread = 0.0f; // for spotlight
+	m_fMaxDist = 100.0f;
+	m_RoomID = -1;
+
+	m_FirstCaster = 0;
+	m_NumCasters = 0;
+}
+
+
+Light * LLight::GetGodotLight()
+{
+	Object * pObj = ObjectDB::get_instance(m_GodotID);
+	Light * p = Object::cast_to<Light>(pObj);
+	return p;
+}
+
+
+/////////////////////////////////////////////////////////////////////
 
 Spatial * LSob::GetSpatial() const
 {
@@ -60,30 +119,52 @@ VisualInstance * LSob::GetVI() const
 }
 
 
+
+/*
 void LSob::Show(bool bShow)
 {
+	// noop
+	if (bShow == m_bShow)
+		return;
+
+	// new state
+	m_bShow = bShow;
+
 	Spatial * pS = GetSpatial();
 	if (!pS)
 		return;
 
-	// noop
-	if (pS->is_visible() == bShow)
-		return;
+	assert (m_pParent);
 
 	if (bShow)
-		pS->show();
-	else
-		pS->hide();
-
-	GeometryInstance * pGI = Object::cast_to<GeometryInstance>(pS);
-	if (pGI)
 	{
-		// godot visible bug workaround
-		pGI->set_extra_cull_margin(0.0f);
+		// add to tree
+		m_pParent->add_child(m_pNode);
+	}
+	else
+	{
+		// remove from tree
+		m_pParent->remove_child(m_pNode);
 	}
 
-}
+	// noop
+//	if (pS->is_visible() == bShow)
+//		return;
 
+//	if (bShow)
+//		pS->show();
+//	else
+//		pS->hide();
+
+//	GeometryInstance * pGI = Object::cast_to<GeometryInstance>(pS);
+//	if (pGI)
+//	{
+//		// godot visible bug workaround
+//		pGI->set_extra_cull_margin(0.0f);
+//	}
+
+}
+*/
 
 
 Spatial * LDob::GetSpatial() const

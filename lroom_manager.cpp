@@ -480,6 +480,7 @@ bool LRoomManager::LightCreate(Light * pLight, int roomID)
 	// create new light
 	LLight l;
 	l.SetDefaults();
+	l.Hidable_Create(pLight);
 	l.m_GodotID = pLight->get_instance_id();
 
 	// direction
@@ -535,7 +536,10 @@ bool LRoomManager::LightCreate(Light * pLight, int roomID)
 
 	// turn the local light off to start with
 	if (!l.IsGlobal())
-		pLight->hide();
+	{
+//		l.Show(false);
+		//pLight->hide();
+	}
 
 	m_Lights.push_back(l);
 
@@ -688,9 +692,32 @@ void LRoomManager::rooms_set_active(bool bActive)
 	for (int n=0; n<m_Rooms.size(); n++)
 	{
 		LRoom &lroom = m_Rooms[n];
-		lroom.Debug_ShowAll();
+		lroom.Debug_ShowAll(bActive);
 	}
 
+
+	for (int n=0; n<m_SOBs.size(); n++)
+	{
+		LSob &sob = m_SOBs[n];
+		Spatial * pS = sob.GetSpatial();
+		if (pS)
+			if (!bActive)
+				pS->show();
+		else
+				pS->hide();
+
+		VisualInstance * pVI = sob.GetVI();
+		if (pVI)
+		{
+			uint32_t mask = 0;
+			if (!bActive)
+			{
+				mask = LRoom::LAYER_MASK_CAMERA | LRoom::LAYER_MASK_LIGHT;
+			}
+			LRoom::SoftShow(pVI, mask);
+		}
+
+	}
 
 }
 
@@ -1015,11 +1042,13 @@ void LRoomManager::FrameUpdate_FinalizeVisibility_SoftShow()
 		if (!m_BF_ActiveLights_prev.GetBit(lid))
 		{
 			LLight &light = m_Lights[lid];
+			light.Show(true);
+
 			Light * pLight = light.GetGodotLight();
 			if (pLight)
 			{
 				//Lawn::LDebug::print("Showing light " + itos (n));
-				pLight->show();
+				//pLight->show();
 
 				// FIX GODOT BUG - light cull mask is not preserved when hiding and showing
 				// set culling flag for light
@@ -1038,12 +1067,13 @@ void LRoomManager::FrameUpdate_FinalizeVisibility_SoftShow()
 		if (!m_BF_ActiveLights.GetBit(lid))
 		{
 			LLight &light = m_Lights[lid];
-			Light * pLight = light.GetGodotLight();
-			if (pLight)
-			{
-				//Lawn::LDebug::print("Hiding light " + itos (n));
-				pLight->hide();
-			}
+			light.Show(false);
+//			Light * pLight = light.GetGodotLight();
+//			if (pLight)
+//			{
+//				//Lawn::LDebug::print("Hiding light " + itos (n));
+//				pLight->hide();
+//			}
 		}
 	}
 

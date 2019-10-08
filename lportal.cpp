@@ -23,27 +23,6 @@
 #include "lroom.h"
 #include "ldebug.h"
 #include "lroom_manager.h"
-#include "scene/3d/light.h"
-
-void LLight::SetDefaults()
-{
-	m_GodotID = 0;
-	m_eType = LT_DIRECTIONAL;
-	m_fSpread = 0.0f; // for spotlight
-	m_fMaxDist = 100.0f;
-	m_RoomID = -1;
-
-	m_FirstCaster = 0;
-	m_NumCasters = 0;
-}
-
-
-Light * LLight::GetGodotLight()
-{
-	Object * pObj = ObjectDB::get_instance(m_GodotID);
-	Light * p = Object::cast_to<Light>(pObj);
-	return p;
-}
 
 
 
