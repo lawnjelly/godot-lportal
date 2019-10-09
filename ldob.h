@@ -28,19 +28,33 @@
 #include "scene/3d/spatial.h"
 
 class VisualInstance;
+class Light;
+
+class LHidable
+{
+public:
+	void Hidable_Create(Node * pNode);
+	void Show(bool bShow);
+
+	// new .. can be separated from the scene tree to cull
+	Node * m_pNode;
+	Node * m_pParent;
+
+	// separate flag so we don't have to touch the godot lookup
+	bool m_bShow;
+};
 
 // static object
-class LSob
+class LSob : public LHidable
 {
 public:
 	Spatial * GetSpatial() const;
 	VisualInstance * GetVI() const;
-	void Show(bool bShow);
+	//void Show(bool bShow);
 	bool IsShadowCaster() const;
 
 	ObjectID m_ID; // godot object
 	AABB m_aabb; // world space
-	//bool m_bSOBVisible;
 };
 
 // dynamic object
@@ -54,4 +68,33 @@ public:
 	ObjectID m_ID_VI;
 	bool m_bVisible;
 	float m_fRadius;
+};
+
+
+class LLight : public LHidable
+{
+public:
+	enum eLightType
+	{
+		LT_DIRECTIONAL,
+		LT_SPOTLIGHT,
+		LT_OMNI,
+	};
+	void SetDefaults();
+	Light * GetGodotLight();
+	bool IsGlobal() const {return m_RoomID == -1;}
+
+	Vector3 m_ptDir;
+	Vector3 m_ptPos;
+	ObjectID m_GodotID;
+	eLightType m_eType;
+	float m_fSpread; // for spotlight
+	float m_fMaxDist; // shadow distance not light distance
+
+	// source room
+	int m_RoomID; // or -1 for global lights
+
+	// shadow casters
+	int m_FirstCaster;
+	int m_NumCasters;
 };

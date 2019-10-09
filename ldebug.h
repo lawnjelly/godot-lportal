@@ -1,11 +1,11 @@
 #pragma once
 
-//#define LPRINT_RUN(a, b) ;
+#define LPRINT_RUN(a, b) ;
 
-#define LPRINT_RUN(a, b) {String sz;\
-for (int n=0; n<Lawn::LDebug::m_iTabDepth; n++)\
-sz += "\t";\
-LPRINT(a, sz + b);}
+//#define LPRINT_RUN(a, b) {String sz;\
+//for (int n=0; n<Lawn::LDebug::m_iTabDepth; n++)\
+//sz += "\t";\
+//LPRINT(a, sz + b);}
 
 #define LPRINT(a, b) if (!Lawn::LDebug::m_bRunning) {\
 if (a >= Lawn::LDebug::m_iLoggingLevel)\
