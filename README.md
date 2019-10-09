@@ -4,7 +4,7 @@ _Work in progress_
 
 ![plane_lines](images/plane_lines.png)
 
-Although not yet released, I am trying to make sure that committed versions are runnable, so if you want to test out the system, simply follow the installation instructions. Note that the function definitions are still subject to change, but any rooms you build should be compatible with later versions.
+Although not yet released, I am trying to make sure that committed versions are runnable (especially stable branch), so if you want to test out the system, simply follow the installation instructions. Note that the function definitions are still subject to change, but any rooms you build should be compatible with later versions.
 
 Video of initial testing:\
 https://www.youtube.com/watch?v=xF_3Fe2HRdk \
