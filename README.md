@@ -13,13 +13,18 @@ https://www.youtube.com/watch?v=NmlWkkhGoJA
 _Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._
 
 ## Current status
-I am currently diverted from the main work on LPortal, trying to get some kind of lightmapping working in Godot for a demo. It turns out the current lightmap workflow is quite broken. I've spent several days trying to work around bugs in the version of xatlas godot is using, but with no luck, so I'm now going to resort to exporting a mesh from godot, unwrapping in blender, then reimporting back into godot.
+I am currently working on the lightmapping workflow. While this isn't strictly speaking a core part of LPortal, many users will want to use baked lighting with the system because it will offer the best performance, particularly on mobile.
 
-This means a slightly more complex workflow, but it does potentially allow baking lightmaps in blender which should lead to a nicer result. The downside is that I won't have a bake for dynamic shadowing as objects move through the level.
+The current Godot standard workflow for lightmapping needs a bit of work, and I wanted to improve it for LPortal. The Godot standard workflow is based around creating a lightmap per object, and the uv mapping (via xatlas) can produce dodgy results sometimes. Instead I've tried to create a more streamlined and optimal lightmapping workflow for use with LPortal.
 
-It may seem strange to be spending so long getting a demo working, but getting a usable workflow is imperative both for testing, and for tutorials.
+For rendering efficiency on older hardware I decided to have several (or all) objects share the same lightmap. I have at long last managed to get this working. The system currently merges together all the static objects in each room to form one mesh. The user will have two options:
 
-The standard non-baked dynamic lighting workflow is mostly working (if not perfectly optimized), and that may be preferable for most people on desktop, but it is my intention to create a highly optimized system that will run very fast on mobiles as well, allowing fast action 1st person shooters etc.
+1) UV map the merged mesh within Godot using the inbuilt xatlas system, and lightmap using Godot's BakedLightmap node. This should be a fast workflow, suitable for low budget games / testing.
+2) For higher production quality, LPortal can export the merged mesh as an .obj file, where it can be loaded into blender or your modelling package of choice, uv unwrapped, and lightmapped.
+
+This allows far more extensive and accurate lighting, and ambient occlusion etc than would be possible within Godot. The uv mapped mesh can be re-exported from blender as an .obj ready for reloading by LPortal.
+
+In both workflows, LPortal will disassemble the lightmapped UV mapped mesh back to the original geometry and objects with their original materials. This was not easy to get working! :)
 
 ## Roadmap
 * Auto conversion of named room spatials and portal mesh instances to LRoom and LPortal DONE
