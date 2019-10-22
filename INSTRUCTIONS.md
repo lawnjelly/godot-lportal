@@ -81,14 +81,14 @@ The bound should be stored as a MeshInstance child of the room, with a specific 
 Although the bound will be treated as a convex hull at runtime, you don't have to be perfect when creating it because the geometry will be run through the quickhull algorithm.
 
 ### Ignore objects
-You can optionally prevent objects being added to LPortal internal room system (so they will not be culled to the planes). To do this, their name should begin with 'ignore_'. Note this is only relevant for objects derived from VisualInstance, LPortal ignores all non-visual instance objects. However note that these objects will still be culled when entire rooms are hidden by LPortal.
+You can optionally prevent objects being added to LPortal internal room system (so they will not be culled to the planes). To do this, their name should begin with 'ignore_'. Note this is only relevant for objects derived from VisualInstance, LPortal ignores all non-visual instance objects. However note that these objects will still be culled when entire rooms are hidden by LPortal (_?is this still true?_).
 
 ### DOBs (Dynamic objects)
 While most of the world in the room portal is assumed to be static (non-moving), you will inevitably want some objects to move around in the scene. These objects that can move _between_ rooms are special, the visibility system has to keep track of which room they are in in order to render them correctly.
 
 Players, boxes, props, physics objects are all examples of candidates for DOBs, as well as the most crucial example, the camera itself. Unless the visibility system knows which room the camera is in, the system will not know what to render! We will use the camera as an example as you will need to register this as a DOB.
 
-Somewhat counter-intuitively, all DOBs should be maintained in your game __OUTSIDE__ the LRoomManager subtree. I.e., __NOT__ in a room. This is because the relationship between the DOB and the room is a soft one, the DOB can move between rooms. This is also handy because it makes it easier to use things like pools for your dynamic objects, because you don't have to worry about them being in different rooms in different places in the scene graph.
+Somewhat counter-intuitively, all DOBs should be maintained in your game __OUTSIDE__ the room list subtree. I.e., __NOT__ in a room. This is because the relationship between the DOB and the room is a soft one, the DOB can move between rooms. This is also handy because it makes it easier to use things like pools for your dynamic objects, because you don't have to worry about them being in different rooms in different places in the scene graph.
 
 All the following functions should be called on the LRoomManager node.
 
@@ -102,9 +102,9 @@ If a DOB is being culled (popping out of view) when it should not, it is normall
 
 If the DOB is not moving, or you want to deactivate it to save processing, simply don't call update again until you want to reactivate it.
 
-* When you have finished with a DOB you should call `dob_unregister(cam)` to remove the soft link from the system. This is more important when you are creating and deleting DOBs (say with multiple game levels). If you are using a DOB throughout (say a camera) which gets deleted at the end of the app, it is not necessary to call unregister.
+* When you have finished with a DOB you should call `dob_unregister(cam)` to remove the soft link from the system. This is more important when you are creating and deleting DOBs (say with multiple game levels). If you call rooms_release when unloading a level and want to keep DOBs in between levels, it is crucial that you do not update them until you have re-registered them after calling rooms_convert to create the new level (you will get an error message otherwise).
 
-* If you are suddenly moving a DOB a large distance (rather than into a neighbouring room), you should call `dob_teleport(cam)`. This uses a different system to estimate the new room that the DOB is in.
+* If you are suddenly moving a DOB a large distance (rather than into a neighbouring room), you should call `dob_teleport(cam)`. This uses a different system to estimate the new room that the DOB is in. If you know in advance what room the dob will teleport to, there is a hint version of the function.
 
 * DOBs should only move between rooms via the portals. In fact that is how their movement between rooms is defined. This is why a room's portals should form a convex space, never concave. In order to limit movement between rooms to the portals, you should use e.g. physics, or a navmesh.
 
@@ -113,7 +113,8 @@ Build your rooms and portals and placed them as children in a scene graph struct
 
 ```
 Root
-  RoomManager
+  LRoomManager
+  MyRoomList
     room_kitchen
       MeshInstance (table?)
       MeshInstance (walls?)
@@ -130,7 +131,7 @@ Root
     Box
   AnythingElse
 ```
-* Change the RoomManager node type from a spatial to an LRoomManager in the Godot IDE
+* Ensure that you have assigned the roomlist to the rooms property in the LRoomManager (either in the IDE or in script)
 
 * At startup / when you load the level, call `rooms_convert()`
 
@@ -140,7 +141,9 @@ This will provide some output to indicate the building of the optimized internal
 
 * Register the camera as a DOB (see above section on DOBs) and update each frame.
 
-* If you load a new game level, simply call `rooms_convert()` again (which clears the old data), and repeat each step.
+* If you want to unload a level and load a new one, call `rooms_release()`, free the old level, load the new one, and call `rooms_convert()` again (which clears the old data), and repeat each step.
+
+_Be aware that if you unload (using queue_free) and load levels with the same name then Godot can rename them to avoid name conflicts. The nodepath to the rooms assigned to the LRoomManager must be correct!_
 
 ### Notes
 * The most involved step is building your original rooms and portals, and getting the names right. Watch the debug output in the console when converting the rooms, it will let you know or give indications where it is having trouble converting.
