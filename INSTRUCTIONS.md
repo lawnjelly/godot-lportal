@@ -290,27 +290,30 @@ Visibility starts from the room the camera is in, checks the objects within agai
 You can show the portal culling graphically by calling `rooms_set_debug_planes(true)`, and show the room bounds (if defined) by calling `rooms_set_debug_bounds(true)`.
 
 #### Getting maximum performance
-LPortal is very efficient, and the culling process itself is only likely to be a bottleneck if you are creating too high a density of portals. On each frame, every portal the camera 'sees' through creates a new set of clipping planes for each edge of the portal, which can be a lot to check when you are seeing an object through a door, through a window, through another window etc. So bear this in mind when building levels.
+LPortal is very efficient, and the culling process itself is only likely to be a bottleneck if you are creating too high a density of portals.
 
 Portal polygons with fewer edges are also faster to cull against. So usually an axis aligned quad will make a lot of sense, even when covering an irregular opening (say a cave).
 
-Level design is thus a balancing act between creating a higher density of rooms / portals (with greater occlusion culling accuracy), and a greater number of clipping planes. In practice there is also the issue of drawcalls, often hardware is limited by how many objects it can draw performantly in a frame - often it is faster to merge a bunch of small objects together than to cull them.
+Level design is a balancing act:
+
+1) More objects cull more effectively
+2) Fewer objects result in fewer draw calls (which can be a bottleneck)
 
 ### Command reference
-* `void rooms_convert()` - prepare lportal for rendering
-* `void rooms_set_camera(Node * pCam)` - set which camera visibility is calculated from
-* `Node * rooms_get_rooms(int room_id)` - returns godot room node from lportal room id
-* `void rooms_set_active(bool bActive)` - turns on and off lportal
-* `void rooms_log_frame()` - output debug logs for the next frame
-* `void rooms_set_logging(int level)` - set debug logging level, 0 - 6 (0 is none, 6 is most)
-* `void rooms_set_debug_planes(bool bActive)` - turns on and off graphic debugging of portal planes
-* `void rooms_set_debug_bounds(bool bActive)` - turns on and off graphic debugging of room bounds
+* `rooms_convert()` - prepare lportal for rendering
+* `rooms_set_camera()` - set which camera visibility is calculated from
+* `Node * rooms_get_room()` - returns godot room node from lportal room id
+* `rooms_set_active()` - turns on and off lportal
+* `rooms_log_frame()` - output debug logs for the next frame
+* `rooms_set_logging()` - set debug logging level, 0 - 6 (0 is none, 6 is most)
+* `rooms_set_debug_planes()` - turns on and off graphic debugging of portal planes
+* `rooms_set_debug_bounds()` - turns on and off graphic debugging of room bounds
 
-* `bool dob_register(Node * pDOB, float radius)` - have lportal find start room
-* `bool dob_register_hint(Node * pDOB, float radius, Node * pRoom)` - user provides start room
-* `bool dob_unregister(Node * pDOB)`
-* `int dob_update(Node * pDOB)` - returns room ID within
-* `bool dob_teleport(Node * pDOB)` - have lportal find start room
-* `bool dob_teleport_hint(Node * pDOB, Node * pRoom)` - user provides start room
-* `int dob_get_room_id(Node * pDOB)` - return room ID the dob is currently within
+* `dob_register()` - have lportal find start room
+* `dob_register_hint()` - user provides start room
+* `dob_unregister()`
+* `int dob_update()` - returns room ID within
+* `dob_teleport()` - have lportal find start room
+* `dob_teleport_hint()` - user provides start room
+* `int dob_get_room_id()` - return room ID the dob is currently within
 
