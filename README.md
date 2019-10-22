@@ -7,24 +7,19 @@ _Work in progress_
 Although not yet released, I am trying to make sure that committed versions are runnable (especially stable branch), so if you want to test out the system, simply follow the installation instructions. Note that the function definitions are still subject to change, but any rooms you build should be compatible with later versions.
 
 Video of initial testing:\
+https://www.youtube.com/watch?v=uVwLltiouBs \
 https://www.youtube.com/watch?v=xF_3Fe2HRdk \
 https://www.youtube.com/watch?v=NmlWkkhGoJA
+
+### Demos / Tutorials
+https://github.com/lawnjelly/lportal-demos
 
 _Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._
 
 ## Current status
-I am currently working on the lightmapping workflow. While this isn't strictly speaking a core part of LPortal, many users will want to use baked lighting with the system because it will offer the best performance, particularly on mobile.
+The first demo tutorial (see above) is now working with the internal godot baked lightmap workflow. It shows registering dynamic objects (DOBs), loading and unloading levels.
 
-The current Godot standard workflow for lightmapping needs a bit of work, and I wanted to improve it for LPortal. The Godot standard workflow is based around creating a lightmap per object, and the uv mapping (via xatlas) can produce dodgy results sometimes. Instead I've tried to create a more streamlined and optimal lightmapping workflow for use with LPortal.
-
-For rendering efficiency on older hardware I decided to have several (or all) objects share the same lightmap. I have at long last managed to get this working. The system currently merges together all the static objects in each room to form one mesh. The user will have two options:
-
-1) UV map the merged mesh within Godot using the inbuilt xatlas system, and lightmap using Godot's BakedLightmap node. This should be a fast workflow, suitable for low budget games / testing.
-2) For higher production quality, LPortal can export the merged mesh as an .obj file, where it can be loaded into blender or your modelling package of choice, uv unwrapped, and lightmapped.
-
-This allows far more extensive and accurate lighting, and ambient occlusion etc than would be possible within Godot. The uv mapped mesh can be re-exported from blender as an .obj ready for reloading by LPortal.
-
-In both workflows, LPortal will disassemble the lightmapped UV mapped mesh back to the original geometry and objects with their original materials. This was not easy to get working! :)
+I will be polishing this and getting the external lightmap workflow working.
 
 ## Roadmap
 * Auto conversion of named room spatials and portal mesh instances to LRoom and LPortal DONE
