@@ -58,9 +58,6 @@ Spatial * LRoom::GetGodotRoom() const
 
 void LRoom::DOB_Add(const LDob &dob)
 {
-//	LDob dob;
-//	dob.m_ID = pDOB->get_instance_id();
-
 	m_DOBs.push_back(dob);
 }
 
@@ -314,6 +311,23 @@ void LRoom::FinalizeVisibility(LRoomManager &manager)
 	}
 }
 
+// call when releasing a level, this should unregister all dobs within all rooms
+void LRoom::Release(LRoomManager &manager)
+{
+	for (int n=0; n<m_DOBs.size(); n++)
+	{
+		LDob &dob = m_DOBs[n];
+
+		Spatial * pS = dob.GetSpatial();
+		if (pS)
+		{
+			// signifies released or unregistered
+			manager.Obj_SetRoomNum(pS, -2);
+		}
+	}
+
+}
+
 // allows us to show / hide all dobs as the room visibility changes
 void LRoom::Room_MakeVisible(bool bVisible)
 {
@@ -418,7 +432,7 @@ void LRoom::FirstTouch(LRoomManager &manager)
 }
 
 
-void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, int portalID_from)
+void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, int first_portal_plane)
 {
 	// prevent too much depth
 	if (depth > 8)
@@ -567,12 +581,19 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 		// is it culled by the planes?
 		LPortal::eClipResult overall_res = LPortal::eClipResult::CLIP_INSIDE;
 
+		// while clipping to the planes we maintain a list of partial planes, so we can add them to the
+		// recursive next iteration of planes to check
+		static LVector<int> partial_planes;
+		partial_planes.clear();
+
 		// for portals, we want to ignore the near clipping plane, as we might be right on the edge of a doorway
 		// and still want to look through the portal.
 		// So we are starting this loop from 1, ASSUMING that plane zero is the near clipping plane.
 		// If it isn't we would need a different strategy
-
-		for (int l=1; l<planes.size(); l++)
+		// Note that now this only occurs for the first portal out of the current room. After that,
+		// 0 is passed as first_portal_plane, because the near plane will probably be irrelevant,
+		// and we are now not necessarily copying the camera planes.
+		for (int l=first_portal_plane; l<planes.size(); l++)
 		{
 			LPortal::eClipResult res = port.ClipWithPlane(planes[l]);
 
@@ -583,6 +604,7 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 				break;
 			case LPortal::eClipResult::CLIP_PARTIAL:
 				overall_res = res;
+				partial_planes.push_back(l);
 				break;
 			default: // suppress warning
 				break;
@@ -605,17 +627,28 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 		{
 			// get a vector of planes from the pool
 			LVector<Plane> &new_planes = manager.m_Pool.Get(uiPoolMem);
+			new_planes.clear();
 
-			// copy the existing planes
-			new_planes.copy_from(planes);
+			// NEW!! if portal is totally inside the planes, don't copy the old planes
+			if (overall_res != LPortal::eClipResult::CLIP_INSIDE)
+			{
+				// copy the existing planes
+				//new_planes.copy_from(planes);
+
+				// new .. only copy the partial planes that the portal cuts through
+				for (int n=0; n<partial_planes.size(); n++)
+					new_planes.push_back(planes[partial_planes[n]]);
+			}
 
 			// add the planes for the portal
+			// NOTE that we can also optimize by not adding portal planes for edges that
+			// were behind a partial plane. NYI
 			port.AddPlanes(manager, cam.m_ptPos, new_planes);
 
 
 			if (pLinkedRoom)
 			{
-				pLinkedRoom->DetermineVisibility_Recursive(manager, depth + 1, cam, new_planes, port_id);
+				pLinkedRoom->DetermineVisibility_Recursive(manager, depth + 1, cam, new_planes, 0);
 				// for debugging need to reset tab depth
 				Lawn::LDebug::m_iTabDepth = depth;
 			}

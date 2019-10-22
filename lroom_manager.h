@@ -41,6 +41,7 @@ class LRoomManager : public Spatial {
 
 	friend class LRoom;
 	friend class LRoomConverter;
+	friend class LHelper;
 
 
 	// godot ID of the camera (which should be registered as a DOB to allow moving between rooms)
@@ -117,7 +118,7 @@ protected:
 	int m_iLoggingLevel;
 private:
 	// this is where we do all the culling
-	void FrameUpdate();
+	bool FrameUpdate();
 	void FrameUpdate_Prepare();
 	void FrameUpdate_FinalizeRooms();
 	void FrameUpdate_AddShadowCasters();
@@ -141,6 +142,7 @@ private:
 	void CreateDebug();
 	void DobChangeVisibility(Spatial * pDOB, const LRoom * pOld, const LRoom * pNew);
 	void ReleaseResources(bool bPrepareConvert);
+	void ShowAll(bool bShow);
 
 
 	// helper funcs
@@ -165,6 +167,11 @@ public:
 	LVector<Vector3> m_DebugPlanes;
 	LVector<Vector3> m_DebugPortalLightPlanes;
 
+	// we are now referencing the rooms indirectly via a nodepath rather than directly being children
+	// of the LRoomManager node
+	NodePath m_path_RoomList;
+	ObjectID m_ID_RoomList;
+
 private:
 	ObjectID m_ID_DebugPlanes;
 	ObjectID m_ID_DebugBounds;
@@ -172,24 +179,60 @@ private:
 	Ref<SpatialMaterial> m_mat_Debug_Planes;
 	Ref<SpatialMaterial> m_mat_Debug_Bounds;
 
+	// unchecked
+	Spatial * m_pRoomList;
 
+	void ResolveRoomListPath();
+
+public:
+	// makes sure m_pRoomList is up to date and valid
+	bool CheckRoomList() {return GetRoomList_Checked() != 0;}
+
+	Spatial * GetRoomList_Checked();
+	// unchecked, be sure to call checked version first which will set m_pRoomList
+	Spatial * GetRoomList() const {return m_pRoomList;}
 public:
 	LRoomManager();
 
 	// PUBLIC INTERFACE TO GDSCRIPT
+	void set_rooms(const Object *p_rooms);
+	void _set_rooms(Object *p_rooms);
+	void set_rooms_path(const NodePath &p_path);
+	NodePath get_rooms_path() const;
+	void remove_rooms_path();
+
+
 	// convert empties and meshes to rooms and portals
-	void rooms_convert();
+	bool rooms_convert(bool bVerbose, bool bDeleteLights);
 
 	// free memory for current set of rooms, prepare for converting a new game level
 	void rooms_release();
 
 	// choose which camera you want to use to determine visibility.
 	// normally this will be your main camera, but you can choose another for debugging
-	void rooms_set_camera(Node * pCam);
+	bool rooms_set_camera(Node * pCam);
 
 	// get the Godot room that is associated with an LPortal room
 	// (can be used to find the name etc of a room ID returned by dob_update)
 	Node * rooms_get_room(int room_id);
+
+	// helpers to enable the client to manage switching on and off physics and AI
+	int rooms_get_num_rooms() const;
+	bool rooms_is_room_visible(int room_id) const;
+	Array rooms_get_visible_rooms() const;
+
+
+	// helper function to merge SOB meshes for producing lightmaps VIA external blender workflow
+	bool rooms_merge_sobs(Node * pMergeMeshInstance);
+	bool rooms_unmerge_sobs(Node * pMergeMeshInstance);
+	bool rooms_transfer_uv2s(Node * pMeshInstance_From, Node * pMeshInstance_To);
+
+	// one function to do all the uv mapping and lightmap creation in one
+	// (for godot lightmap workflow)
+	MeshInstance * rooms_convert_lightmap_internal(String szProxyFilename, String szLevelFilename);
+
+	// helper function for general use .. LPortal has the functionality, why not...
+	bool rooms_save_scene(Node * pNode, String szFilename);
 
 	// turn on and off culling for debugging
 	void rooms_set_active(bool bActive);

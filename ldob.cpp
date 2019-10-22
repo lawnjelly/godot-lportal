@@ -111,6 +111,13 @@ bool LSob::IsShadowCaster() const
 }
 
 
+GeometryInstance * LSob::GetGI() const
+{
+	Object * pObj = ObjectDB::get_instance(m_ID);
+	GeometryInstance * pGI = Object::cast_to<GeometryInstance>(pObj);
+	return pGI;
+}
+
 VisualInstance * LSob::GetVI() const
 {
 	Object * pObj = ObjectDB::get_instance(m_ID);

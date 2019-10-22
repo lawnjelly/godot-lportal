@@ -100,16 +100,15 @@ public:
 	const String &get_name() const {return m_szName;}
 
 	// main function
-	void DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, int portalID_from = -1);
+	void DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, int first_portal_plane = 1);
 	void FirstTouch(LRoomManager &manager);
 
 
 	// allows us to show / hide all dobs as the room visibility changes
 	void Room_MakeVisible(bool bVisible);
 
-	// hide godot room and all linked dobs
-	// USED AT RUNTIME
-//	void Hide_All();
+	// call when releasing a level, this should unregister all dobs within all rooms
+	void Release(LRoomManager &manager);
 
 	// show godot room and all linked dobs and all sobs
 	void Debug_ShowAll(bool bActive);

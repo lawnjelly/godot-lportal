@@ -28,6 +28,7 @@
 #include "scene/3d/spatial.h"
 
 class VisualInstance;
+class GeometryInstance;
 class Light;
 
 class LHidable
@@ -50,6 +51,7 @@ class LSob : public LHidable
 public:
 	Spatial * GetSpatial() const;
 	VisualInstance * GetVI() const;
+	GeometryInstance * GetGI() const;
 	//void Show(bool bShow);
 	bool IsShadowCaster() const;
 
