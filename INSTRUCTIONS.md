@@ -29,7 +29,7 @@ The reason for not creating bespoke editing within Godot is twofold:
 *_Note that although the whole game level can be created in the modelling package, this is optional, you can also create it in the Godot editor._
 
 ### The room manager
-Within your scene graph, you will be building all your rooms as children of the same spatial, which you can convert to an LRoomManager in the Godot IDE. To avoid problems it is best to make sure you only have rooms as children of the room manager.
+Within your scene graph, to use LPortal you should add an LRoomManager node to the scene, e.g. as a child of the root node. You can reuse the same room manager as you load multiple game levels. The rooms themselves should all be created as children of a spatial (you can use any name), this I will refer to as the room list (node). To avoid problems the room list should only have rooms as children. There is one more step, in the IDE you should assign the roomlist to the 'rooms' property of the LRoomManager, to tell it where the rooms are.
 
 ### Rooms
 Rooms are simply spatials, whose children should contain the mesh instances that are static (non-moving) within the room. The naming of the room spatial is crucial in order for it to be recognised. All rooms should start with 'room_'.
