@@ -145,6 +145,27 @@ This will provide some output to indicate the building of the optimized internal
 
 _Be aware that if you unload (using queue_free) and load levels with the same name then Godot can rename them to avoid name conflicts. The nodepath to the rooms assigned to the LRoomManager must be correct!_
 
+## Lighting
+#### Introduction
+Although deciding what is in view of the camera is relatively straightforward, what complicates matters is that objects in view may be lit by lights that are not in view. Even worse, objects in view may be shadowed by objects that are NOT in view!
+
+### Realtime lighting
+Godot's realtime lighting works using shadow mapping, that is, before rendering the view from the camera, it first renders the view from each light affecting the scene, drawing each object to a _shadow map_. During the camera render it then uses the shadow map (or maps) to determine which pixels are in shadow.
+
+It should be obvious that this is potentially very expensive, both the extra steps to render from each light, and the lookup at runtime to determine whether pixels are in shadow. As a result, realtime shadows are not a good option on some low powered devices.
+
+If we cull our visible objects using LPortal but still render all objects when rendering the shadow maps from each light, we would be missing out on a lot of the benefits of our rooms / portal system. Due to this, I have made considerable effort to allow LPortal to cull not only the objects in view of the camera, but also to cull objects that are in view of the lights, and ONLY those lights that are relevant to the visible scene (a game level may contain 100 lights, but if only 2 are lighting the current view, those are the only 2 that are needed).
+
+This is still a work in progress and there are some limitations. There are 3 light types in Godot :
+1) Directional Lights (global)
+2) Spotlights (local)
+3) Omni lights (local)
+
+Directional lights such as the sun are great for lighting an entire level, but naively, they cast shadows from EVERY object in the level. Rendering the shadow map can be very expensive. Of far more interest in LPortal (for now) are the local lights, because they offer good opportunities for culling, both of the light itself, and of the shadow casters.
+
+For now, if you place static spotlights within the rooms, they will be used for realtime lighting with culling. Omni lights will be available soon via the same method. Directional lights I haven't come up with a good solution yet, I am working on this. You should place directional lights outside the room list somewhere else in the scene graph and register the light with LPortal by calling `register_light`, and it will do its best to cull shadow casters but this is still a work in progress.
+
+
 ### Notes
 * The most involved step is building your original rooms and portals, and getting the names right. Watch the debug output in the console when converting the rooms, it will let you know or give indications where it is having trouble converting.
 * You can use hierarchies of nodes to place your static MeshInstances within a room, so it is easier to place groups e.g.:
