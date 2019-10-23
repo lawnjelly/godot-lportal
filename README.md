@@ -42,7 +42,7 @@ I will be polishing this and getting the external lightmap workflow working.
 * PVS (primary and secondary)
 
 ## Instructions
-See [INSTRUCTIONS.md](INSTRUCTIONS.md)  and [TUTORIAL.md](TUTORIAL.md)
+See [INSTRUCTIONS.md](INSTRUCTIONS.md)  and [TUTORIAL](https://github.com/lawnjelly/lportal-demos/tree/master/Tutorial-Simple)
 
 ## Installation
 You will need to compile Godot from source (for now). See:
