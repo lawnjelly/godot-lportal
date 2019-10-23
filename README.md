@@ -1,5 +1,5 @@
 # godot-lportal
-Portal rendering module for Godot 3.2\
+Portal rendering / Occlusion culling module for Godot 3.2\
 _Work in progress_
 
 ![plane_lines](images/lportal_boxrooms3.jpg)
