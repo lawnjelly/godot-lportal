@@ -343,7 +343,7 @@ The first workflow is fast to use but the end results are not as high quality as
 
 #### Internal workflow
 
-I am still polishing the external workflow, so will only describe the internal workflow here. It can be a good idea to examine the BoxRooms demo, which shows the process in detail.
+I am still polishing the external workflow, so will only describe the internal workflow here. It can be a good idea to examine the BoxRooms demo, which shows the process in detail. Note that all this can be done manually, or with your own code (it is not even a core part of LPortal, more convenience functionality), the workflow is just a way of simplifying this for most people.
 
 1) Create your level as normal with rooms and portals.
 2) Add spotlights as desired within the rooms (omnis may also work but I am still working on them).
