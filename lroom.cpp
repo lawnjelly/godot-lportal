@@ -280,15 +280,8 @@ void LRoom::FinalizeVisibility(LRoomManager &manager)
 		const LDob &dob = m_DOBs[n];
 
 		// don't cull the main camera
-		if (dob.m_ID_Spatial == manager.m_ID_camera)
-			continue;
-
-//		Spatial * pSpat = dob.GetSpatial();
-//		if (pSpat)
-//		{
-//			// all should be showing .. this is mostly a no op
-//			pSpat->show();
-//		}
+		//if (dob.m_ID_Spatial == manager.m_ID_camera)
+		//	continue;
 
 		VisualInstance * pVI = dob.GetVI();
 		if (pVI)
@@ -297,6 +290,13 @@ void LRoom::FinalizeVisibility(LRoomManager &manager)
 			if (dob.m_bVisible)
 			{
 				mask = LRoom::LAYER_MASK_CAMERA | LRoom::LAYER_MASK_LIGHT;
+			}
+			else
+			{
+				// special case
+				// don't cull the main camera
+				if (dob.m_ID_Spatial == manager.m_ID_camera)
+					mask = LRoom::LAYER_MASK_CAMERA | LRoom::LAYER_MASK_LIGHT;
 			}
 
 			SoftShow(pVI, mask);
