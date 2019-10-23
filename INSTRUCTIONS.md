@@ -333,13 +333,15 @@ Often a far better fit for lighting with occlusion culling systems is the use of
 
 This may mean using lightmapping in combination with traditional realtime lighting, but for example, only rendering dynamic objects to the shadow maps. You can also render the realtime lighting as normal for all objects, but only put indirect lighting into the lightmaps. This gives some increase in visual quality compared to fully realtime lighting but does not help performance wise.
 
-#### Using Baked Lighting with LPortal
+### Using Baked Lighting with LPortal
 I have been preparing two workflows to simplify lightmapping a level with LPortal.
 
 1) Internal workflow - Uses Godot to UV map the objects and the BakedLightmap node to create the lightmaps
 2) External workflow - Allows UV mapping and rendering lightmaps in an external 3d modelling program such as Blender
 
 The first workflow is fast to use but the end results are not as high quality as using an external program. There are also currently (as of 3.2 alpha) bugs in the Godot uvmapper and lightmapper, which can result in visual anomalies.
+
+#### Internal workflow
 
 I am still polishing the external workflow, so will only describe the internal workflow here. It can be a good idea to examine the BoxRooms demo, which shows the process in detail.
 
