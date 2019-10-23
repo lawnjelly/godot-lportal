@@ -4,7 +4,7 @@ _Work in progress_
 
 ![plane_lines](images/lportal_boxrooms3.jpg)
 
-Although not yet released, I am trying to make sure that committed versions are runnable (especially stable branch), so if you want to test out the system, simply follow the installation instructions. Note that the function definitions are still subject to change, but any rooms you build should be compatible with later versions.
+Although not yet released, I am trying to make sure that committed versions are runnable, so if you want to test out the system, simply follow the installation instructions. Note that the function definitions are still subject to change, but any rooms you build should be compatible with later versions.
 
 Video of initial testing:\
 https://www.youtube.com/watch?v=uVwLltiouBs \
@@ -19,7 +19,9 @@ _Feel free to leave suggestions / feature requests on the issue tracker, especia
 ## Current status
 The first demo tutorial (see above) is now working with the internal godot baked lightmap workflow. It shows registering dynamic objects (DOBs), loading and unloading levels.
 
-I will be polishing this and getting the external lightmap workflow working.
+I will be polishing this and getting the external lightmap workflow working, then working some more on realtime lighting. While baked lighting relies on most of the objects being static, with realtime I could allow almost any of the objects within a room to move around ... thus the distinction would be between DOBs (that move between rooms), SOBs (that move within rooms) and truly static SOBs that don't move at all.
+
+I plan to make the render_view function generic so I can use it both for camera and to allow dynamic lights. I'll probably add a flag so a light can be static and the static shadow casters for that light can be merged into one optimized mesh.
 
 ## Roadmap
 * Auto conversion of named room spatials and portal mesh instances to LRoom and LPortal DONE
@@ -37,6 +39,7 @@ I will be polishing this and getting the external lightmap workflow working.
 * Dealing with shadows from objects outside of view PARTIALLY DONE
 * Building baked lightmap workflow ONGOING
 * Bug fixing / testing ONGOING
+* Universal visibility query for camera and dynamic lights
 * Shadow caster optimization
 * Closable portals
 * PVS (primary and secondary)
