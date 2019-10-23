@@ -378,6 +378,7 @@ void fragment() {
 ```
 
 ### Command reference
+_(There is a full reference available from the help section in the IDE under 'LRoomManager')_
 * `rooms_convert()` - prepare lportal for rendering
 * `rooms_set_camera()` - set which camera visibility is calculated from
 * `Node * rooms_get_room()` - returns godot room node from lportal room id
