@@ -163,7 +163,24 @@ This is still a work in progress and there are some limitations. There are 3 lig
 
 Directional lights such as the sun are great for lighting an entire level, but naively, they cast shadows from EVERY object in the level. Rendering the shadow map can be very expensive. Of far more interest in LPortal (for now) are the local lights, because they offer good opportunities for culling, both of the light itself, and of the shadow casters.
 
-For now, if you place static spotlights within the rooms, they will be used for realtime lighting with culling. Omni lights will be available soon via the same method. Directional lights I haven't come up with a good solution yet, I am working on this. You should place directional lights outside the room list somewhere else in the scene graph and register the light with LPortal by calling `register_light`, and it will do its best to cull shadow casters but this is still a work in progress.
+For now, if you place static spotlights within the rooms, they will be detected during conversion and used for realtime lighting with culling. Omni lights will be available soon via the same method. Directional lights I haven't come up with a good solution yet, I am working on this. You should place directional lights outside the room list somewhere else in the scene graph and register the light with LPortal by calling `register_light`, and it will do its best to cull shadow casters but this is still a work in progress.
+
+### Baked Lighting
+Often a far better fit for lighting with occlusion culling systems is the use of baked lighting, such as lightmaps. Lightmaps can store the entire static lighting for a level in precalculated form, as one or more textures, called lightmaps. This has pros and cons.
+
+#### Pros
+* Lightmaps are pre-calculated ahead of time, so can use far more complex and realistic models of lighting than would be possible in realtime. Techniques such as radiosity, and multiple bounces of light rays are possible.
+* Lightmaps are very fast at runtime. There is no need to render a shadow map for each light, and when rendering from the camera, instead of an expensive lookup into shadow maps, simple texture mapping can be used to lookup the lightmap texture. As such they can produce fantastic lighting even on low powered machines such as mobile phones. This is the reason many of the first action 3d games used lightmaps, such as early quake and unreal.
+
+#### Cons
+* Lightmaps are limited in what kind of lighting information they store. Classical lightmaps only store the diffuse component of the lighting, and ignore the specular component. There are some more complex types of lightmaps but only the diffuse type is directly supported in Godot so far.
+* Lightmaps only deal with static lighting. As the lighting is baked it gives a snapshot of lighting in one particular arrangement. If you want moving lights, or lights that change in brightness, you will need to either use other techniques or combine them with lightmapping. (One way of getting some simple variation is to bake more than one lightmap for a level, then blend the lightmaps on each frame prior to rendering, however this feature is not standard in Godot)
+* Another big consequence of lightmaps being static is they don't show shadows for moving objects. This can be acceptable for the best performance on low end machines, but in practice, many games combine lightmaps with other techniques to get some kind of shadows on moving objects.
+
+This may mean using lightmapping in combination with traditional realtime lighting, but for example, only rendering dynamic objects to the shadow maps. You can also render the realtime lighting as normal for all objects, but only put indirect lighting into the lightmaps. This gives some increase in visual quality compared to fully realtime lighting but does not help performance wise.
+
+#### Using Baked Lighting with LPortal
+
 
 
 ### Notes
