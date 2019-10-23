@@ -2,7 +2,7 @@
 Portal rendering module for Godot 3.2\
 _Work in progress_
 
-![plane_lines](images/lportal_boxrooms.jpg)
+![plane_lines](images/lportal_boxrooms2.png)
 
 Although not yet released, I am trying to make sure that committed versions are runnable (especially stable branch), so if you want to test out the system, simply follow the installation instructions. Note that the function definitions are still subject to change, but any rooms you build should be compatible with later versions.
 
