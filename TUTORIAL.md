@@ -2,7 +2,7 @@
 _(A complete project is available in the LPortalTutorial.zip file.)_
 
 1) Create a new Godot project, and add a spatial, this will be the root of your scene graph. Name it 'Root'.
-2) Add an LRoomManager node as a child of the Root. All LPortal functionality works through the LRoomManager.
+2) Add an LRoomManager node as a child of the Root, and name it 'Manager'. All LPortal functionality works through the LRoomManager.
 
 _*If the LRoomManager node is not available in the IDE, Godot has not been compiled with the LPortal module. See INSTRUCTIONS.md._
 
@@ -44,10 +44,10 @@ extends Spatial
 # Called when the node enters the scene tree for the first time.
 func _ready():
 	
-	$RoomList.rooms_convert()
+	$Manager.rooms_convert(true, true)
 	
-	$RoomList.rooms_set_camera($Camera)
-	$RoomList.dob_register($Camera, 0)
+	$Manager.rooms_set_camera($Camera)
+	$Manager.dob_register($Camera, 0)
 	
 
 # Called every frame. 'delta' is the elapsed time since the previous frame.
