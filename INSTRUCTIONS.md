@@ -145,74 +145,6 @@ This will provide some output to indicate the building of the optimized internal
 
 _Be aware that if you unload (using queue_free) and load levels with the same name then Godot can rename them to avoid name conflicts. The nodepath to the rooms assigned to the LRoomManager must be correct!_
 
-## Lighting
-#### Introduction
-Although deciding what is in view of the camera is relatively straightforward, what complicates matters is that objects in view may be lit by lights that are not in view. Even worse, objects in view may be shadowed by objects that are NOT in view!
-
-### Realtime lighting
-Godot's realtime lighting works using shadow mapping, that is, before rendering the view from the camera, it first renders the view from each light affecting the scene, drawing each object to a _shadow map_. During the camera render it then uses the shadow map (or maps) to determine which pixels are in shadow.
-
-It should be obvious that this is potentially very expensive, both the extra steps to render from each light, and the lookup at runtime to determine whether pixels are in shadow. As a result, realtime shadows are not a good option on some low powered devices.
-
-If we cull our visible objects using LPortal but still render all objects when rendering the shadow maps from each light, we would be missing out on a lot of the benefits of our rooms / portal system. Due to this, I have made considerable effort to allow LPortal to cull not only the objects in view of the camera, but also to cull objects that are in view of the lights, and ONLY those lights that are relevant to the visible scene (a game level may contain 100 lights, but if only 2 are lighting the current view, those are the only 2 that are needed).
-
-This is still a work in progress and there are some limitations. There are 3 light types in Godot :
-1) Directional Lights (global)
-2) Spotlights (local)
-3) Omni lights (local)
-
-Directional lights such as the sun are great for lighting an entire level, but naively, they cast shadows from EVERY object in the level. Rendering the shadow map can be very expensive. Of far more interest in LPortal (for now) are the local lights, because they offer good opportunities for culling, both of the light itself, and of the shadow casters.
-
-For now, if you place static spotlights within the rooms, they will be detected during conversion and used for realtime lighting with culling. Omni lights will be available soon via the same method. Directional lights I haven't come up with a good solution yet, I am working on this. You should place directional lights outside the room list somewhere else in the scene graph and register the light with LPortal by calling `register_light`, and it will do its best to cull shadow casters but this is still a work in progress.
-
-### Baked Lighting
-Often a far better fit for lighting with occlusion culling systems is the use of baked lighting, such as lightmaps. Lightmaps can store the entire static lighting for a level in precalculated form, as one or more textures, called lightmaps. This has pros and cons.
-
-#### Pros
-* Lightmaps are pre-calculated ahead of time, so can use far more complex and realistic models of lighting than would be possible in realtime. Techniques such as radiosity, and multiple bounces of light rays are possible.
-* Lightmaps are very fast at runtime. There is no need to render a shadow map for each light, and when rendering from the camera, instead of an expensive lookup into shadow maps, simple texture mapping can be used to lookup the lightmap texture. As such they can produce fantastic lighting even on low powered machines such as mobile phones. This is the reason many of the first action 3d games used lightmaps, such as early quake and unreal.
-
-#### Cons
-* Lightmaps are limited in what kind of lighting information they store. Classical lightmaps only store the diffuse component of the lighting, and ignore the specular component. There are some more complex types of lightmaps but only the diffuse type is directly supported in Godot so far.
-* Lightmaps only deal with static lighting. As the lighting is baked it gives a snapshot of lighting in one particular arrangement. If you want moving lights, or lights that change in brightness, you will need to either use other techniques or combine them with lightmapping. (One way of getting some simple variation is to bake more than one lightmap for a level, then blend the lightmaps on each frame prior to rendering, however this feature is not standard in Godot)
-* Another big consequence of lightmaps being static is they don't show shadows for moving objects. This can be acceptable for the best performance on low end machines, but in practice, many games combine lightmaps with other techniques to get some kind of shadows on moving objects.
-
-This may mean using lightmapping in combination with traditional realtime lighting, but for example, only rendering dynamic objects to the shadow maps. You can also render the realtime lighting as normal for all objects, but only put indirect lighting into the lightmaps. This gives some increase in visual quality compared to fully realtime lighting but does not help performance wise.
-
-#### Using Baked Lighting with LPortal
-I have been preparing two workflows to simplify lightmapping a level with LPortal.
-
-1) Internal workflow - Uses Godot to UV map the objects and the BakedLightmap node to create the lightmaps
-2) External workflow - Allows UV mapping and rendering lightmaps in an external 3d modelling program such as Blender
-
-The first workflow is fast to use but the end results are not as high quality as using an external program. There are also currently (as of 3.2 alpha) bugs in the Godot uvmapper and lightmapper, which can result in visual anomalies.
-
-I am still polishing the external workflow, so will only describe the internal workflow here. It can be a good idea to examine the BoxRooms demo, which shows the process in detail.
-
-1) Create your level as normal with rooms and portals.
-2) Add spotlights as desired within the rooms (omnis may also work but I am still working on them).
-3) You can also use directional lights (outside the room list).
-4) Make sure each light has the property set 'Use In Baked Lighting'.
-
-5) The workflow allows having one shared lightmap for the entire level, instead of one per object. To do this as well as running the game as normal you must also have a 'preparation' phase where the level will be UV mapped (a second set of UV coordinates, which are used for the lightmap). The preparation phase can be a separate godot project if desired, the only output required for a game level is (1) the uv mapped level and (2) the lightmap.
-
-6) For the preparation phase instead of calling `rooms_convert` you should call:
-`MeshInstance * rooms_convert_lightmap_internal(String szProxyFilename, String szLevelFilename);`
-
-This will save 2 files, a .tscn containing a merged mesh (proxy) of the entire level, and a .tscn containing the entire level, but with a second set of UV coordinates matched to the proxy.
-
-7) You now have to create the lightmap. Make sure there is a BakedLightmap node in the scene, and add the proxy .tscn to the scene using the 'link' button in the Godot IDE. Hide any other geometry aside from the proxy. Make sure the original level roomlist is in the scene, but hidden. The original level contains the lights that are needed for baking.
-
-8) When all is set up, select the BakedLightmap node and click 'Bake'. If all is well it should bake a single lightmap, and save it in the folder specified in the BakedLightmap path.
-
-9) The only 2 things of interest at the end of the preparation phase are the final level .tscn file, and the lightmap. You should copy these to your main project (if you are using 2 separate projects, one for the game and one for preparation / baking).
-
-10) The only other thing necessary for your game to use the lightmap is to use a shader that blends the lightmap texture with the level textures. Here is a simple example:
-
-
-
-
-
 ### Notes
 * The most involved step is building your original rooms and portals, and getting the names right. Watch the debug output in the console when converting the rooms, it will let you know or give indications where it is having trouble converting.
 * You can use hierarchies of nodes to place your static MeshInstances within a room, so it is easier to place groups e.g.:
@@ -366,6 +298,82 @@ Level design is a balancing act:
 
 1) More objects cull more effectively
 2) Fewer objects result in fewer draw calls (which can be a bottleneck)
+
+# Lighting
+#### Introduction
+Although deciding what is in view of the camera is relatively straightforward, what complicates matters is that objects in view may be lit by lights that are not in view. Even worse, objects in view may be shadowed by objects that are NOT in view!
+
+### Realtime lighting
+Godot's realtime lighting works using shadow mapping, that is, before rendering the view from the camera, it first renders the view from each light affecting the scene, drawing each object to a _shadow map_. During the camera render it then uses the shadow map (or maps) to determine which pixels are in shadow.
+
+It should be obvious that this is potentially very expensive, both the extra steps to render from each light, and the lookup at runtime to determine whether pixels are in shadow. As a result, realtime shadows are not a good option on some low powered devices.
+
+If we cull our visible objects using LPortal but still render all objects when rendering the shadow maps from each light, we would be missing out on a lot of the benefits of our rooms / portal system. Due to this, I have made considerable effort to allow LPortal to cull not only the objects in view of the camera, but also to cull objects that are in view of the lights, and ONLY those lights that are relevant to the visible scene (a game level may contain 100 lights, but if only 2 are lighting the current view, those are the only 2 that are needed).
+
+This is still a work in progress and there are some limitations. There are 3 light types in Godot :
+1) Directional Lights (global)
+2) Spotlights (local)
+3) Omni lights (local)
+
+Directional lights such as the sun are great for lighting an entire level, but naively, they cast shadows from EVERY object in the level. Rendering the shadow map can be very expensive. Of far more interest in LPortal (for now) are the local lights, because they offer good opportunities for culling, both of the light itself, and of the shadow casters.
+
+For now, if you place static spotlights within the rooms, they will be detected during conversion and used for realtime lighting with culling. Omni lights will be available soon via the same method. Directional lights I haven't come up with a good solution yet, I am working on this. You should place directional lights outside the room list somewhere else in the scene graph and register the light with LPortal by calling `register_light`, and it will do its best to cull shadow casters but this is still a work in progress.
+
+### Baked Lighting
+Often a far better fit for lighting with occlusion culling systems is the use of baked lighting, such as lightmaps. Lightmaps can store the entire static lighting for a level in precalculated form, as one or more textures, called lightmaps. This has pros and cons.
+
+#### Pros
+* Lightmaps are pre-calculated ahead of time, so can use far more complex and realistic models of lighting than would be possible in realtime. Techniques such as radiosity, and multiple bounces of light rays are possible.
+* Lightmaps are very fast at runtime. There is no need to render a shadow map for each light, and when rendering from the camera, instead of an expensive lookup into shadow maps, simple texture mapping can be used to lookup the lightmap texture. As such they can produce fantastic lighting even on low powered machines such as mobile phones. This is the reason many of the first action 3d games used lightmaps, such as early quake and unreal.
+
+#### Cons
+* Lightmaps are limited in what kind of lighting information they store. Classical lightmaps only store the diffuse component of the lighting, and ignore the specular component. There are some more complex types of lightmaps but only the diffuse type is directly supported in Godot so far.
+* Lightmaps only deal with static lighting. As the lighting is baked it gives a snapshot of lighting in one particular arrangement. If you want moving lights, or lights that change in brightness, you will need to either use other techniques or combine them with lightmapping. (One way of getting some simple variation is to bake more than one lightmap for a level, then blend the lightmaps on each frame prior to rendering, however this feature is not standard in Godot)
+* Another big consequence of lightmaps being static is they don't show shadows for moving objects. This can be acceptable for the best performance on low end machines, but in practice, many games combine lightmaps with other techniques to get some kind of shadows on moving objects.
+
+This may mean using lightmapping in combination with traditional realtime lighting, but for example, only rendering dynamic objects to the shadow maps. You can also render the realtime lighting as normal for all objects, but only put indirect lighting into the lightmaps. This gives some increase in visual quality compared to fully realtime lighting but does not help performance wise.
+
+#### Using Baked Lighting with LPortal
+I have been preparing two workflows to simplify lightmapping a level with LPortal.
+
+1) Internal workflow - Uses Godot to UV map the objects and the BakedLightmap node to create the lightmaps
+2) External workflow - Allows UV mapping and rendering lightmaps in an external 3d modelling program such as Blender
+
+The first workflow is fast to use but the end results are not as high quality as using an external program. There are also currently (as of 3.2 alpha) bugs in the Godot uvmapper and lightmapper, which can result in visual anomalies.
+
+I am still polishing the external workflow, so will only describe the internal workflow here. It can be a good idea to examine the BoxRooms demo, which shows the process in detail.
+
+1) Create your level as normal with rooms and portals.
+2) Add spotlights as desired within the rooms (omnis may also work but I am still working on them).
+3) You can also use directional lights (outside the room list).
+4) Make sure each light has the property set 'Use In Baked Lighting'.
+
+5) The workflow allows having one shared lightmap for the entire level, instead of one per object. To do this as well as running the game as normal you must also have a 'preparation' phase where the level will be UV mapped (a second set of UV coordinates, which are used for the lightmap). The preparation phase can be a separate godot project if desired, the only output required for a game level is (1) the uv mapped level and (2) the lightmap.
+
+6) For the preparation phase instead of calling `rooms_convert` you should call:
+`MeshInstance * rooms_convert_lightmap_internal(String szProxyFilename, String szLevelFilename);`
+
+This will save 2 files, a .tscn containing a merged mesh (proxy) of the entire level, and a .tscn containing the entire level, but with a second set of UV coordinates matched to the proxy.
+
+7) You now have to create the lightmap. Make sure there is a BakedLightmap node in the scene, and add the proxy .tscn to the scene using the 'link' button in the Godot IDE. Hide any other geometry aside from the proxy. Make sure the original level roomlist is in the scene, but hidden. The original level contains the lights that are needed for baking.
+
+8) When all is set up, select the BakedLightmap node and click 'Bake'. If all is well it should bake a single lightmap, and save it in the folder specified in the BakedLightmap path.
+
+9) The only 2 things of interest at the end of the preparation phase are the final level .tscn file, and the lightmap. You should copy these to your main project (if you are using 2 separate projects, one for the game and one for preparation / baking).
+
+10) The only other thing necessary for your game to use the lightmap is to use a shader that blends the lightmap texture with the level textures. Here is a simple example:
+```
+shader_type spatial;
+render_mode unshaded;
+uniform sampler2D texture_albedo : hint_albedo;
+uniform sampler2D texture_lightmap : hint_albedo;
+
+void fragment() {
+	vec4 albedo_tex = texture(texture_albedo,UV);
+	vec4 lightmap_tex = texture(texture_lightmap,UV2);
+	ALBEDO = albedo_tex.rgb * lightmap_tex.rgb * 2.0;
+}
+```
 
 ### Command reference
 * `rooms_convert()` - prepare lportal for rendering
