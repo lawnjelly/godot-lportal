@@ -19,9 +19,13 @@ _Feel free to leave suggestions / feature requests on the issue tracker, especia
 ## Current status
 The first demo tutorial (see above) is now working with the internal godot baked lightmap workflow. It shows registering dynamic objects (DOBs), loading and unloading levels.
 
-I will be polishing this and getting the external lightmap workflow working, then working some more on realtime lighting. While baked lighting relies on most of the objects being static, with realtime I could allow almost any of the objects within a room to move around ... thus the distinction would be between DOBs (that move between rooms), SOBs (that move within rooms) and truly static SOBs that don't move at all.
+I'm now working again on dynamic lights and realtime lighting:
+https://www.youtube.com/watch?v=1WT5AXZlsDc
+I've got dynamic lights and culling shadow casters to camera frustum working which should speed things up quite a bit. This is not in the master branch yet, still work in progress.
 
-I plan to make the render_view function generic so I can use it both for camera and to allow dynamic lights. I'll probably add a flag so a light can be static and the static shadow casters for that light can be merged into one optimized mesh.
+With realtime I am looking at allowing almost any of the objects within a room to move around ... thus the distinction would be between DOBs (that move between rooms), SOBs (that move within rooms) and truly static SOBs that don't move at all.
+
+I'll probably add a flag so a light can be static and the static shadow casters for that light can be merged into one optimized mesh.
 
 ## Roadmap
 * Auto conversion of named room spatials and portal mesh instances to LRoom and LPortal DONE
