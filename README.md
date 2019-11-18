@@ -39,9 +39,11 @@ Am currently working on global directional lights (think the sun). Global lights
 * Add debug graphical view of portal planes DONE
 * Add debug graphical view of room bounds DONE
 * Dealing with shadows from objects outside of view PARTIALLY DONE
+* Universal visibility query for camera and dynamic lights DONE
+* Support for global directional lights (like the sun) ONGOING
 * Building baked lightmap workflow ONGOING
 * Bug fixing / testing ONGOING
-* Universal visibility query for camera and dynamic lights
+
 * Shadow caster optimization
 * Closable portals
 * PVS (primary and secondary)
