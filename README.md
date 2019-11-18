@@ -23,9 +23,7 @@ I'm now working again on dynamic lights and realtime lighting: \
 https://www.youtube.com/watch?v=1WT5AXZlsDc \
 I've got dynamic lights and culling shadow casters to camera frustum working which should speed things up quite a bit. This is not in the master branch yet, still work in progress.
 
-With realtime I am looking at allowing almost any of the objects within a room to move around ... thus the distinction would be between DOBs (that move between rooms), SOBs (that move within rooms) and truly static SOBs that don't move at all.
-
-I'll probably add a flag so a light can be static and the static shadow casters for that light can be merged into one optimized mesh.
+Am currently working on global directional lights (think the sun). Global lights don't emanate from a room, therefore they must be handled differently in order to avoid having *every* object as a shadow caster. I'm doing this by allowing the user to specify 'areas', which are groups of rooms, and the global light when registered will affect an area (e.g. 'area_outside').
 
 ## Roadmap
 * Auto conversion of named room spatials and portal mesh instances to LRoom and LPortal DONE
