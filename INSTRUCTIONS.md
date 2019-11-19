@@ -345,6 +345,34 @@ This is still a work in progress and there are some limitations. There are 3 lig
 2) Spotlights (local)
 3) Omni lights (local)
 
+#### Local Lights - Spotlights and Omni lights
+
+Spotlights and Omnis are treated in a very similar manner within LPortal. You should place them within your rooms, in a similar manner to meshes. If these lights are static (non moving), that is all that needs to be done, and they should work automatically.
+
+#### Dynamic Local Lights
+
+Making these lights dynamic (movable) is possible too. Place them in a room as normal, but make sure to give them a unique name (e.g. 'kitchen_light'). From gdscript or similar you will want to retain a reference to the light after loading the level.
+
+E.g.
+```
+var m_node_KitchenLight = get_node("/root").find_node("kitchen_light", true, false)
+```
+Then after converting the level, call
+```
+# where LRoomManager is your LRoomManager
+$LRoomManager.dynamic_light_register(m_node_KitchenLight)
+```
+Move or rotate the light as you would normally, but to keep LPortal up to date, immediately after moving the light call 'dynamic_light_update':
+```
+m_node_KitchenLight.rotate_y(0.01) # just an example
+$LRoomManager.dynamic_light_update(m_node_KitchenLight)
+```
+
+#### Global Directional lights
+
+In practice, spotlights and omni lights are treated in a similar manner within LPortal, and can be placed within rooms. For directional lights (think the sun) the exact position of the light is unimportant, only the direction. For this reason, directional lights are handled slightly differently
+
+
 Directional lights such as the sun are great for lighting an entire level, but naively, they cast shadows from EVERY object in the level. Rendering the shadow map can be very expensive. Of far more interest in LPortal (for now) are the local lights, because they offer good opportunities for culling, both of the light itself, and of the shadow casters.
 
 For now, if you place static spotlights within the rooms, they will be detected during conversion and used for realtime lighting with culling. Omni lights will be available soon via the same method. Directional lights I haven't come up with a good solution yet, I am working on this. You should place directional lights outside the room list somewhere else in the scene graph and register the light with LPortal by calling `register_light`, and it will do its best to cull shadow casters but this is still a work in progress.
