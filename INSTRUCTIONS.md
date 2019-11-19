@@ -19,7 +19,7 @@ As with most room portal systems, LPortal works better if rooms are convex. Most
 
 If you are exclusively using the hint commands, and not creating bounds, there is strictly speaking no longer a requirement for the rooms to be convex, they can be concave shapes. This allows considerable flexibility in level design. HOWEVER, the portals should be placed such that no portal is in front of the portal plane of another portal in the room. I.e. the portals themselves should form some kind of convex structure.
 
-## The details
+## Overview
 The first thing you may notice is that LPortal doesn't make much use of special features within the editor, and simply relies on careful naming of spatials (or Empties within Blender). There is one new node type, 'LRoomManager', which behaves pretty much as any spatial however it has some added functions and runs an entire visibility system under the hood.
 
 The reason for not creating bespoke editing within Godot is twofold:
@@ -27,6 +27,8 @@ The reason for not creating bespoke editing within Godot is twofold:
 2) Using the node names to denote rooms and portals allows the whole level to be edited (and more importantly re-edited) within a modelling package such as blender.*
 
 *_Note that although the whole game level can be created in the modelling package, this is optional, you can also create it in the Godot editor._
+
+# Components
 
 ### The room manager
 Within your scene graph, to use LPortal you should add an LRoomManager node to the scene, e.g. as a child of the root node. You can reuse the same room manager as you load multiple game levels.
@@ -113,7 +115,7 @@ Although the bound will be treated as a convex hull at runtime, you don't have t
 ### Ignore objects
 You can optionally prevent objects being added to LPortal internal room system (so they will not be culled to the planes). To do this, their name should begin with 'ignore_'. Note this is only relevant for objects derived from VisualInstance, LPortal ignores all non-visual instance objects. However note that these objects will still be culled when entire rooms are hidden by LPortal (_?is this still true?_).
 
-### DOBs (Dynamic objects)
+## DOBs (Dynamic objects)
 While most of the world in the room portal is assumed to be static (non-moving), you will inevitably want some objects to move around in the scene. These objects that can move _between_ rooms are special, the visibility system has to keep track of which room they are in in order to render them correctly.
 
 Players, boxes, props, physics objects are all examples of candidates for DOBs, as well as the most crucial example, the camera itself. Unless the visibility system knows which room the camera is in, the system will not know what to render! We will use the camera as an example as you will need to register this as a DOB.
@@ -138,7 +140,7 @@ If the DOB is not moving, or you want to deactivate it to save processing, simpl
 
 * DOBs should only move between rooms via the portals. In fact that is how their movement between rooms is defined. This is why a room's portals should form a convex space, never concave. In order to limit movement between rooms to the portals, you should use e.g. physics, or a navmesh.
 
-### Conversion
+## Conversion
 Build your rooms and portals and placed them as children in a scene graph structure something like this:
 
 ```
@@ -185,7 +187,7 @@ room_office
     Chair (mesh instance)
 ```
 
-#### Debugging
+## Debugging
 A significant portion of LPortal is devoted to debugging, as without feedback it is difficult to diagnose problems that are occurring. The debugging occurs in 2 stages - the initial conversion, and at runtime, it will provide the visibility tree when you request debug output for a frame with rooms_log_frame().
 
 A sample conversion is as follows:
