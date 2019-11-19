@@ -29,7 +29,13 @@ The reason for not creating bespoke editing within Godot is twofold:
 *_Note that although the whole game level can be created in the modelling package, this is optional, you can also create it in the Godot editor._
 
 ### The room manager
-Within your scene graph, to use LPortal you should add an LRoomManager node to the scene, e.g. as a child of the root node. You can reuse the same room manager as you load multiple game levels. The rooms themselves should all be created as children of a spatial (you can use any name), this I will refer to as the room list (node). To avoid problems the room list should only have rooms as children. There is one more step, in the IDE you should assign the roomlist to the 'rooms' property of the LRoomManager, to tell it where the rooms are.
+Within your scene graph, to use LPortal you should add an LRoomManager node to the scene, e.g. as a child of the root node. You can reuse the same room manager as you load multiple game levels.
+
+On another branch of the scene graph you should create a standard Spatial which will act as the root node for all the rooms and meshes, lights to be controlled by the LRoomManager. You can name this anything you like, but in the documentation I will refer to it as the 'roomlist'.
+
+In order for the room manager to know which roomlist it should operate on, in the IDE you should _assign_ the roomlist to the 'rooms' property of the LRoomManager. You can do this by clicking on 'assign' in the LRoomManager inspector, and selecting the roomlist Spatial that you created.
+
+The children of the roomlist should be rooms, or areas (which themselves contain rooms). The rooms contain the meshes, lights that you want to be shown and hidden by the room system.
 
 ### Rooms
 Rooms are simply spatials, whose children should contain the mesh instances that are static (non-moving) within the room. The naming of the room spatial is crucial in order for it to be recognised. All rooms should start with 'room_'.
@@ -40,6 +46,30 @@ e.g.:
 * room_bathroom1
 
 You can use any character within the name (except '*', that is reserved, see the portal naming).
+
+### Areas
+Areas are used to define groups of rooms, currently this is only used to determine which area global directional lights (such as the sun) should apply to. For example if your game level has an outside area and indoor where the sun cannot reach, you may want to create two areas.
+
+When using areas, you would place these between the roomlist and the rooms, like so:
+```
+roomlist
+	area_outside
+		room_outside1
+		room_kitchen
+	area_inside
+		room_cellar
+```
+Note that a room can be a member of more than one area if desired. Simply make a child of the room with the desired area, and it will also be added to that area.
+e.g.
+```
+roomlist
+	area_outside
+		room_outside1
+		room_kitchen
+			area_inside
+	area_inside
+		room_cellar
+```
 
 ### Portals
 In order to calculate the visibility between rooms (and the objects within rooms) you need to manually specify the location and shape of portals that should join the rooms. These should be thought of as doorways, or windows between rooms (and often cover exactly these features).
