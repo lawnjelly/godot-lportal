@@ -192,43 +192,67 @@ void LRoom::SoftShow(VisualInstance * pVI, uint32_t show_flags)
 }
 
 
+bool LRoom::RemoveLocalLight(int light_id)
+{
+	int found = m_LocalLights.find(light_id);
+	if (found == -1)
+		return false;
+
+	m_LocalLights.remove_unsorted(found);
+	return true;
+}
+
+
 // naive version, adds all the non visible objects in visible rooms as shadow casters
 void LRoom::AddShadowCasters(LRoomManager &manager)
 {
 	LPRINT_RUN(2, "ADDSHADOWCASTERS room " + get_name() + ", " + itos(m_iNumShadowCasters_SOB) + " shadow casters");
 
+#ifdef LDEBUG_LIGHT_AFFECTED_ROOMS
+	if (manager.m_bDebugFrameString)
+		manager.DebugString_Add("Room " + itos(m_RoomID) + " local lights : ");
+#endif
+
 	// add all the active lights in this room
 	for (int n=0; n<m_LocalLights.size(); n++)
 	{
 		int lightID = m_LocalLights[n];
-		if (!manager.m_BF_ActiveLights.GetBit(lightID))
-		{
-			manager.m_BF_ActiveLights.SetBit(lightID, true);
-			manager.m_ActiveLights.push_back(lightID);
+		manager.Light_FrameProcess(lightID);
 
-			// add all shadow casters for this light (new method)
-			const LLight &light = manager.m_Lights[lightID];
-			int last_caster = light.m_FirstCaster + light.m_NumCasters;
-			for (int c=light.m_FirstCaster; c<last_caster; c++)
-			{
-				int sobID = manager.m_LightCasters_SOB[c];
-
-				// only add to the caster list if not in it already (does this check need to happen, can this ever occur?)
-				if (!manager.m_BF_caster_SOBs.GetBit(sobID))
-				{
-					LPRINT_RUN(2, "\t" + itos(sobID) + ", " + manager.m_SOBs[sobID].GetSpatial()->get_name());
-					manager.m_BF_caster_SOBs.SetBit(sobID, true);
-					manager.m_CasterList_SOBs.push_back(sobID);
-				}
-				else
-				{
-					//LPRINT(2, "\t" + itos(sobID) + ", ALREADY CASTER " + manager.m_SOBs[sobID].GetSpatial()->get_name());
-				}
-
-			}
-		}
+		#ifdef LDEBUG_LIGHT_AFFECTED_ROOMS
+		if (manager.m_bDebugFrameString)
+			manager.DebugString_Add(itos(lightID) + ", ");
+		#endif
 	}
 
+#ifdef LDEBUG_LIGHT_AFFECTED_ROOMS
+	if (manager.m_bDebugFrameString)
+		manager.DebugString_Add("\n");
+#endif
+
+	// NEW .. global area directional lights
+	// could be done with area bitflags... more efficiently
+	for (int n=0; n<m_GlobalLights.size(); n++)
+	{
+		int lightID = m_GlobalLights[n];
+		manager.Light_FrameProcess(lightID);
+	}
+
+/*
+	for (int n=0; n<m_Areas.size(); n++)
+	{
+		int areaID = m_Areas[n];
+		const LArea &area = manager.m_Areas[areaID];
+
+		int last_light = area.m_iFirstLight + area.m_iNumLights;
+
+		for (int l=area.m_iFirstLight; l<last_light; l++)
+		{
+			int lightID = manager.m_AreaLights[l];
+			manager.Light_FrameProcess(lightID);
+		}
+	}
+*/
 
 	// new!! use precalced list of shadow casters
 //	int last = m_iFirstShadowCaster_SOB + m_iNumShadowCasters_SOB;
@@ -322,11 +346,23 @@ void LRoom::Release(LRoomManager &manager)
 		if (pS)
 		{
 			// signifies released or unregistered
-			manager.Obj_SetRoomNum(pS, -2);
+			manager.Meta_SetRoomNum(pS, -2);
 		}
 	}
 
 }
+
+bool LRoom::IsInArea(int area) const
+{
+	for (int n=0; n<m_Areas.size(); n++)
+	{
+		if (m_Areas[n] == area)
+			return true;
+	}
+
+	return false;
+}
+
 
 // allows us to show / hide all dobs as the room visibility changes
 void LRoom::Room_MakeVisible(bool bVisible)
@@ -404,7 +440,7 @@ void LRoom::Debug_ShowAll(bool bActive)
 
 }
 
-
+/*
 void LRoom::FirstTouch(LRoomManager &manager)
 {
 	// set the frame counter
@@ -430,9 +466,10 @@ void LRoom::FirstTouch(LRoomManager &manager)
 	for (int n=0; n<m_DOBs.size(); n++)
 		m_DOBs[n].m_bVisible = false;
 }
+*/
 
-
-void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LCamera &cam, const LVector<Plane> &planes, int first_portal_plane)
+/*
+void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, const LSource &cam, const LVector<Plane> &planes, int first_portal_plane)
 {
 	// prevent too much depth
 	if (depth > 8)
@@ -668,5 +705,5 @@ void LRoom::DetermineVisibility_Recursive(LRoomManager &manager, int depth, cons
 
 	} // for p through portals
 }
-
+*/
 

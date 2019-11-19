@@ -163,6 +163,23 @@ public:
 		}
 	}
 
+	void insert(int i, const T &val)
+	{
+		m_Vec.insert(m_Vec.begin() + i, val);
+		m_iSize++;
+	}
+
+	int find(const T &val)
+	{
+		for (int n=0; n<size(); n++)
+		{
+			if (m_Vec[n] == val)
+				return n;
+		}
+
+		return -1; // not found
+	}
+
 	LVector()
 	{
 		m_iSize = 0;

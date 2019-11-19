@@ -20,49 +20,19 @@
 //	OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 //	SOFTWARE.
 
-// most of the performance sensitive debug output will be compiled out in release builds
-// you won't be able to get frame debugging of the visibility tree though.
-#ifdef DEBUG_ENABLED
+#include "core/ustring.h"
 
-#define LPRINT_RUN(a, b) {String sz;\
-for (int n=0; n<Lawn::LDebug::m_iTabDepth; n++)\
-sz += "\t";\
-LPRINT(a, sz + b);}
-
-//#define LPRINT_RUN(a, b) ;
-
-#else
-#define LPRINT_RUN(a, b) ;
-#endif
-
-#define LPRINT(a, b) if (!Lawn::LDebug::m_bRunning) {\
-if (a >= Lawn::LDebug::m_iLoggingLevel)\
-{\
-Lawn::LDebug::print(b);\
-}\
-}
-
-#define LWARN(a, b) if (a >= Lawn::LDebug::m_iWarningLevel)\
-{\
-Lawn::LDebug::print(String("\tWARNING : ") + b);\
-}
-
-String ftos(float f) {return String(Variant(f));}
-
-
-namespace Lawn
-{
-
-class LDebug
+class LArea
 {
 public:
-	static void print(String sz);
-	static int m_iLoggingLevel;
-	static int m_iWarningLevel;
-	static bool m_bRunning;
+	void Create(String szName);
 
-	static int m_iTabDepth;
+	String m_szName;
+
+	int m_iFirstRoom;
+	int m_iNumRooms;
+
+	// each area contains a list of global lights that affect this area
+	int m_iFirstLight;
+	int m_iNumLights;
 };
-
-} // namespace
-

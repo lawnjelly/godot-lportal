@@ -73,30 +73,83 @@ public:
 };
 
 
-class LLight : public LHidable
+//class LCamera
+// trace source can be camera or light
+class LSource
 {
 public:
-	enum eLightType
+	enum eSourceType
 	{
-		LT_DIRECTIONAL,
-		LT_SPOTLIGHT,
-		LT_OMNI,
+		ST_CAMERA, // frustum planes will have been added
+		ST_DIRECTIONAL,
+		ST_SPOTLIGHT, // trace should add back plane and cone planes
+		ST_OMNI, // no planes, can go in any direction
 	};
-	void SetDefaults();
-	Light * GetGodotLight();
+
+	enum eSourceClass
+	{
+		SC_STATIC, // non moving light
+		SC_ROOM, // only moves within the room
+		SC_DYNAMIC, // can move between rooms (register as a DOB)
+	};
+
+
+	void Source_SetDefaults();
+	String MakeDebugString() const;
+
+	// funcs
 	bool IsGlobal() const {return m_RoomID == -1;}
 
-	Vector3 m_ptDir;
+	// all in world space, culling done in world space
 	Vector3 m_ptPos;
-	ObjectID m_GodotID;
-	eLightType m_eType;
+	Vector3 m_ptDir;
+	eSourceType m_eType;
+	eSourceClass m_eClass;
+
 	float m_fSpread; // for spotlight
-	float m_fMaxDist; // shadow distance not light distance
+	float m_fRange; // shadow distance not light distance
 
 	// source room
 	int m_RoomID; // or -1 for global lights
 
+private:
+	static const char * m_szTypes[];
+	static const char * m_szClasses[];
+};
+
+
+
+class LLight : public LHidable
+{
+public:
+	enum {MAX_AFFECTED_ROOMS=64};
+
+	LSource m_Source;
+	ObjectID m_GodotID;
 	// shadow casters
 	int m_FirstCaster;
 	int m_NumCasters;
+
+	// funcs
+
+	// for dynamic lights
+	// move them light dobs across planes
+	// and update the rooms that are affected by the light
+	void Update();
+	String MakeDebugString() const;
+
+	void Light_SetDefaults();
+	Light * GetGodotLight();
+
+
+	bool AddAffectedRoom(int room_id);
+	void ClearAffectedRooms() {m_NumAffectedRooms = 0;}
+
+	// keep a list of the rooms affected by this light
+	uint16_t m_AffectedRooms[MAX_AFFECTED_ROOMS];
+	int m_NumAffectedRooms;
+
+	// for global lights, this is the area or -1 if unset
+	int m_iArea;
+	String m_szArea; // set to the area string in the case of area lights, else ""
 };

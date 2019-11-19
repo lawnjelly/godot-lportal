@@ -24,7 +24,7 @@
 #include "ldebug.h"
 #include "lroom_manager.h"
 
-
+/////////////////////////////////////////////////////////////////////
 
 bool LPortal::NameStartsWith(Node * pNode, String szSearch)
 {
@@ -86,7 +86,7 @@ void LPortal::AddLightPlanes(LRoomManager &manager, const LLight &light, LVector
 	int nPoints = pts.size();
 	ERR_FAIL_COND(nPoints < 3);
 
-	if (light.m_eType == LLight::LT_DIRECTIONAL)
+	if (light.m_Source.m_eType == LSource::ST_DIRECTIONAL)
 	{
 		// assuming ortho light
 		const int max_points = 32;
@@ -96,7 +96,7 @@ void LPortal::AddLightPlanes(LRoomManager &manager, const LLight &light, LVector
 			nPoints = max_points;
 
 		// transform pushed points
-		Vector3 ptPush = light.m_ptDir * 2.0;
+		Vector3 ptPush = light.m_Source.m_ptDir * 2.0;
 
 		for (int n=0; n<nPoints; n++)
 		{
@@ -146,7 +146,7 @@ void LPortal::AddLightPlanes(LRoomManager &manager, const LLight &light, LVector
 	for (int n=0; n<nPoints; n++)
 	{
 		int nPLUS = (n + 1) % nPoints;
-		p = Plane(pts[nPLUS], pts[n], light.m_ptPos);
+		p = Plane(pts[nPLUS], pts[n], light.m_Source.m_ptPos);
 		if (bReverse) p = -p;
 		planes.push_back(p);
 		Debug_CheckPlaneValidity(p);

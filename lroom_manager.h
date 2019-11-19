@@ -32,9 +32,9 @@
 
 #include "lroom.h"
 #include "lportal.h"
-
-
-
+#include "larea.h"
+#include "ltrace.h"
+#include "lmain_camera.h"
 
 class LRoomManager : public Spatial {
 	GDCLASS(LRoomManager, Spatial);
@@ -42,7 +42,111 @@ class LRoomManager : public Spatial {
 	friend class LRoom;
 	friend class LRoomConverter;
 	friend class LHelper;
+	friend class LTrace;
+	friend class LMainCamera;
 
+public:
+	// PUBLIC INTERFACE TO GDSCRIPT
+	//______________________________________________________________________________________
+	// Roomlist path
+	void set_rooms(const Object *p_rooms);
+	void _set_rooms(Object *p_rooms);
+	void set_rooms_path(const NodePath &p_path);
+	NodePath get_rooms_path() const;
+	void remove_rooms_path();
+
+	//______________________________________________________________________________________
+	// MAIN
+	// convert empties and meshes to rooms and portals
+	bool rooms_convert(bool bVerbose, bool bDeleteLights);
+	// free memory for current set of rooms, prepare for converting a new game level
+	void rooms_release();
+
+	// choose which camera you want to use to determine visibility.
+	// normally this will be your main camera, but you can choose another for debugging
+	bool rooms_set_camera(Node * pCam);
+
+	// get the Godot room that is associated with an LPortal room
+	// (can be used to find the name etc of a room ID returned by dob_update)
+	Node * rooms_get_room(int room_id);
+
+	//______________________________________________________________________________________
+	// DOBS
+	// Dynamic objects .. cameras, players, boxes etc
+	// These are defined by their ability to move from room to room.
+	// You can still move static objects within the same room (e.g. elevators, moving platforms)
+	// as these don't require checks for changing rooms.
+	bool dob_register(Node * pDOB, float radius);
+	// register but let LPortal know which room the dob should start in
+	bool dob_register_hint(Node * pDOB, float radius, Node * pRoom);
+
+	bool dob_unregister(Node * pDOB);
+
+	// returns the room ID within
+	int dob_update(Node * pDOB);
+
+	// if we are moving the DOB possibly through multiple rooms, then teleport rather than detect
+	// portal crossings
+	bool dob_teleport(Node * pDOB);
+	bool dob_teleport_hint(Node * pDOB, Node * pRoom);
+
+	//______________________________________________________________________________________
+	// LIGHTS
+	// global directional lights that will apply to all rooms
+	bool light_register(Node * pLightNode, String szArea);
+
+	// dynamic lights (spot or omni within rooms)
+	bool dynamic_light_register(Node * pLightNode, float radius);
+	bool dynamic_light_register_hint(Node * pLightNode, float radius, Node * pRoom);
+	bool dynamic_light_unregister(Node * pLightNode);
+	int dynamic_light_update(Node * pLightNode); // returns room within
+
+	//______________________________________________________________________________________
+	// LIGHTMAPS
+	// helper function to merge SOB meshes for producing lightmaps VIA external blender workflow
+	bool rooms_merge_sobs(Node * pMergeMeshInstance);
+	bool rooms_unmerge_sobs(Node * pMergeMeshInstance);
+	bool rooms_transfer_uv2s(Node * pMeshInstance_From, Node * pMeshInstance_To);
+
+	// one function to do all the uv mapping and lightmap creation in one
+	// (for godot lightmap workflow)
+	MeshInstance * rooms_convert_lightmap_internal(String szProxyFilename, String szLevelFilename);
+
+	//______________________________________________________________________________________
+	// HELPERS
+	// helper function for general use .. LPortal has the functionality, why not...
+	bool rooms_save_scene(Node * pNode, String szFilename);
+	// helpers to enable the client to manage switching on and off physics and AI
+	int rooms_get_num_rooms() const;
+	bool rooms_is_room_visible(int room_id) const;
+	Array rooms_get_visible_rooms() const;
+	// helper func, not needed usually as dob_update returns the room
+	int dob_get_room_id(Node * pDOB);
+
+
+	//______________________________________________________________________________________
+	// DEBUGGING
+	// turn on and off culling for debugging
+	void rooms_set_active(bool bActive);
+	void rooms_set_debug_planes(bool bActive);
+	void rooms_set_debug_bounds(bool bActive);
+	void rooms_set_debug_lights(bool bActive);
+	void rooms_set_debug_shadows(bool bActive);
+	void rooms_set_debug_frustums(bool bActive);
+	void rooms_set_debug_frame_string(bool bActive);
+
+	// 0 to 6 .. less to more
+	// defaults to 4 which is (2) in our priorities (i.e. 6 - level)
+	void rooms_set_logging(int level);
+
+	// optionally lportal can output some debug info in a string each frame
+	String rooms_get_debug_frame_string();
+
+	// provide debugging output on the next frame
+	void rooms_log_frame();
+
+private:
+	// PER FRAME STUFF
 
 	// godot ID of the camera (which should be registered as a DOB to allow moving between rooms)
 	ObjectID m_ID_camera;
@@ -74,9 +178,104 @@ class LRoomManager : public Spatial {
 	LVector<int> * m_pCurr_VisibleRoomList;
 	LVector<int> * m_pPrev_VisibleRoomList;
 
+	// active lights
+	LVector<int> m_ActiveLights;
+	LVector<int> m_ActiveLights_prev;
+	Lawn::LBitField_Dynamic m_BF_ActiveLights;
+	Lawn::LBitField_Dynamic m_BF_ActiveLights_prev;
+
+	// some lights may be processed on a frame but found not to intersect the view frustum
+	Lawn::LBitField_Dynamic m_BF_ProcessedLights;
+
+	// keep all the light rendering stuff together
+	struct LLightRender
+	{
+		// each time we render from a light point of view, we reuse this list to store each caster ID
+		Lawn::LBitField_Dynamic m_BF_Temp_SOBs;
+		Lawn::LBitField_Dynamic m_BF_Temp_Visible_Rooms;
+		LVector<int> m_Temp_Visible_SOBs;
+		LVector<int> m_Temp_Visible_Rooms;
+	} m_LightRender;
+
+
 	// keep a frame counter, to mark when objects have been hit by the visiblity algorithm
 	// already to prevent multiple hits on rooms and objects
 	unsigned int m_uiFrameCounter;
+
+private:
+	// lists of rooms and portals, contiguous list so cache friendly
+	LVector<LRoom> m_Rooms;
+	LVector<LPortal> m_Portals;
+	LVector<LArea> m_Areas;
+
+	// static objects
+	LVector<LSob> m_SOBs;
+
+	// lights
+	LVector<LLight> m_Lights;
+
+	// SHADOWS
+	// master list of shadow casters for each room
+	LVector<uint32_t> m_ShadowCasters_SOB; // not used any more?
+
+	// master list of casters for each light (precalculated list)
+	LVector<uint32_t> m_LightCasters_SOB;
+
+	// AREAS
+	// master list of lights affecting each area
+	LVector<uint32_t> m_AreaLights;
+
+	// master list of rooms in each area
+	LVector<uint32_t> m_AreaRooms;
+
+	// The recursive visibility function needs to allocate loads of planes.
+	// We use a pool for this instead of allocating on the fly.
+	LPlanesPool m_Pool;
+
+
+public:
+	// whether debug planes is switched on
+	bool m_bDebugPlanes;
+	bool m_bDebugBounds;
+	bool m_bDebugLights;
+	bool m_bDebugLightVolumes;
+	bool m_bDebugFrustums;
+
+	// the planes are shown as a list of lines from the camera to the portal verts
+	LVector<Vector3> m_DebugPlanes;
+	LVector<Vector3> m_DebugPortalLightPlanes;
+	LVector<Vector3> m_DebugLightVolumes;
+	LVector<Vector3> m_DebugFrustums;
+
+	// we are now referencing the rooms indirectly via a nodepath rather than directly being children
+	// of the LRoomManager node
+	NodePath m_path_RoomList;
+	ObjectID m_ID_RoomList;
+
+
+private:
+	LTrace m_Trace;
+	// unchecked
+	Spatial * m_pRoomList;
+	LMainCamera m_MainCamera;
+
+	// DEBUGGING
+	// 0 to 5
+	int m_iLoggingLevel;
+
+	ObjectID m_ID_DebugPlanes;
+	ObjectID m_ID_DebugBounds;
+	ObjectID m_ID_DebugLights;
+	ObjectID m_ID_DebugLightVolumes;
+	ObjectID m_ID_DebugFrustums;
+
+	Ref<SpatialMaterial> m_mat_Debug_Planes;
+	Ref<SpatialMaterial> m_mat_Debug_Bounds;
+	Ref<SpatialMaterial> m_mat_Debug_LightVolumes;
+	Ref<SpatialMaterial> m_mat_Debug_Frustums;
+
+	String m_szDebugString;
+	bool m_bDebugFrameString;
 
 	// for debugging, can turn LPortal on and off
 	bool m_bActive;
@@ -85,38 +284,7 @@ class LRoomManager : public Spatial {
 	bool m_bFrustumOnly;
 
 private:
-	// lists of rooms and portals, contiguous list so cache friendly
-	LVector<LRoom> m_Rooms;
-	LVector<LPortal> m_Portals;
-
-	// static objects
-	LVector<LSob> m_SOBs;
-
-	// lights
-	LVector<LLight> m_Lights;
-	// active lights
-	LVector<int> m_ActiveLights;
-	LVector<int> m_ActiveLights_prev;
-	Lawn::LBitField_Dynamic m_BF_ActiveLights;
-	Lawn::LBitField_Dynamic m_BF_ActiveLights_prev;
-
-	// master list of shadow casters for each room
-	LVector<uint32_t> m_ShadowCasters_SOB;
-
-	// master list of casters for each light
-	LVector<uint32_t> m_LightCasters_SOB;
-
-protected:
-	static void _bind_methods();
-	void _notification(int p_what);
-
-	// The recursive visibility function needs to allocate loads of planes.
-	// We use a pool for this instead of allocating on the fly.
-	LPlanesPool m_Pool;
-
-	// 0 to 5
-	int m_iLoggingLevel;
-private:
+	// PRIVATE FUNCS
 	// this is where we do all the culling
 	bool FrameUpdate();
 	void FrameUpdate_Prepare();
@@ -130,19 +298,30 @@ private:
 	void FrameUpdate_FrustumOnly();
 
 	// draw planes and room hulls
-	void FrameUpdate_DrawDebug(const LCamera &cam, const LRoom &lroom);
-
+	void FrameUpdate_DrawDebug(const LSource &cam, const LRoom &lroom);
 
 	// internal
-	LRoom &Portal_GetLinkedRoom(const LPortal &port);
+	// dobs
 	bool DobRegister(Spatial * pDOB, float radius, int iRoom);
 	ObjectID DobRegister_FindVIRecursive(Node * pNode) const;
 	bool DobTeleport(Spatial * pDOB, int iNewRoomID);
-	bool LightCreate(Light * pLight, int roomID);
-	void CreateDebug();
 	void DobChangeVisibility(Spatial * pDOB, const LRoom * pOld, const LRoom * pNew);
+
+	void CreateDebug();
 	void ReleaseResources(bool bPrepareConvert);
 	void ShowAll(bool bShow);
+	void ResolveRoomListPath();
+
+	// frame debug string
+	void DebugString_Set(String sz) {m_szDebugString = sz;}
+	void DebugString_Add(String sz) {m_szDebugString += sz;}
+	void DebugString_Light_AffectedRooms(int light_id);
+
+	// now we are centralizing the tracing out from static and dynamic lights for each frame to this function
+	bool LightCreate(Light * pLight, int roomID, String szArea = "");
+	void Light_UpdateTransform(LLight &light, const Light &glight) const;
+	void Light_FrameProcess(int lightID);
+	bool Light_FindCasters(int lightID);
 
 
 	// helper funcs
@@ -152,37 +331,16 @@ private:
 	LRoom * GetRoomFromDOB(Node * pNode);
 	int FindClosestRoom(const Vector3 &pt) const;
 
+	LRoom &Portal_GetLinkedRoom(const LPortal &port);
+
 	// for DOBs, we need some way of storing the room ID on them, so we use metadata (currently)
 	// this is pretty gross but hey ho
-	int Obj_GetRoomNum(Node * pNode) const;
-	void Obj_SetRoomNum(Node * pNode, int num);
+	int Meta_GetRoomNum(Node * pNode) const;
+	void Meta_SetRoomNum(Node * pNode, int num);
 
-public:
-	// whether debug planes is switched on
-	bool m_bDebugPlanes;
-	bool m_bDebugBounds;
-	bool m_bDebugLights;
-
-	// the planes are shown as a list of lines from the camera to the portal verts
-	LVector<Vector3> m_DebugPlanes;
-	LVector<Vector3> m_DebugPortalLightPlanes;
-
-	// we are now referencing the rooms indirectly via a nodepath rather than directly being children
-	// of the LRoomManager node
-	NodePath m_path_RoomList;
-	ObjectID m_ID_RoomList;
-
-private:
-	ObjectID m_ID_DebugPlanes;
-	ObjectID m_ID_DebugBounds;
-	ObjectID m_ID_DebugLights;
-	Ref<SpatialMaterial> m_mat_Debug_Planes;
-	Ref<SpatialMaterial> m_mat_Debug_Bounds;
-
-	// unchecked
-	Spatial * m_pRoomList;
-
-	void ResolveRoomListPath();
+	// for lights we store the light ID in the metadata
+	void Meta_SetLightID(Node * pNode, int id);
+	int Meta_GetLightID(Node * pNode) const;
 
 public:
 	// makes sure m_pRoomList is up to date and valid
@@ -191,86 +349,13 @@ public:
 	Spatial * GetRoomList_Checked();
 	// unchecked, be sure to call checked version first which will set m_pRoomList
 	Spatial * GetRoomList() const {return m_pRoomList;}
+
+protected:
+	static void _bind_methods();
+	void _notification(int p_what);
+
 public:
 	LRoomManager();
-
-	// PUBLIC INTERFACE TO GDSCRIPT
-	void set_rooms(const Object *p_rooms);
-	void _set_rooms(Object *p_rooms);
-	void set_rooms_path(const NodePath &p_path);
-	NodePath get_rooms_path() const;
-	void remove_rooms_path();
-
-
-	// convert empties and meshes to rooms and portals
-	bool rooms_convert(bool bVerbose, bool bDeleteLights);
-
-	// free memory for current set of rooms, prepare for converting a new game level
-	void rooms_release();
-
-	// choose which camera you want to use to determine visibility.
-	// normally this will be your main camera, but you can choose another for debugging
-	bool rooms_set_camera(Node * pCam);
-
-	// get the Godot room that is associated with an LPortal room
-	// (can be used to find the name etc of a room ID returned by dob_update)
-	Node * rooms_get_room(int room_id);
-
-	// helpers to enable the client to manage switching on and off physics and AI
-	int rooms_get_num_rooms() const;
-	bool rooms_is_room_visible(int room_id) const;
-	Array rooms_get_visible_rooms() const;
-
-
-	// helper function to merge SOB meshes for producing lightmaps VIA external blender workflow
-	bool rooms_merge_sobs(Node * pMergeMeshInstance);
-	bool rooms_unmerge_sobs(Node * pMergeMeshInstance);
-	bool rooms_transfer_uv2s(Node * pMeshInstance_From, Node * pMeshInstance_To);
-
-	// one function to do all the uv mapping and lightmap creation in one
-	// (for godot lightmap workflow)
-	MeshInstance * rooms_convert_lightmap_internal(String szProxyFilename, String szLevelFilename);
-
-	// helper function for general use .. LPortal has the functionality, why not...
-	bool rooms_save_scene(Node * pNode, String szFilename);
-
-	// turn on and off culling for debugging
-	void rooms_set_active(bool bActive);
-	void rooms_set_debug_planes(bool bActive);
-	void rooms_set_debug_bounds(bool bActive);
-	void rooms_set_debug_lights(bool bActive);
-
-	// 0 to 6 .. defaults to 4 which is (2) in our priorities (i.e. 6 - level)
-	void rooms_set_logging(int level);
-
-	// provide debugging output on the next frame
-	void rooms_log_frame();
-
-	// Dynamic objects .. cameras, players, boxes etc
-	// These are defined by their ability to move from room to room.
-	// You can still move static objects within the same room (e.g. elevators, moving platforms)
-	// as these don't require checks for changing rooms.
-	bool dob_register(Node * pDOB, float radius);
-	// register but let LPortal know which room the dob should start in
-	bool dob_register_hint(Node * pDOB, float radius, Node * pRoom);
-
-	bool dob_unregister(Node * pDOB);
-
-	// returns the room ID within
-	int dob_update(Node * pDOB);
-
-	// if we are moving the DOB possibly through multiple rooms, then teleport rather than detect
-	// portal crossings
-	bool dob_teleport(Node * pDOB);
-	bool dob_teleport_hint(Node * pDOB, Node * pRoom);
-
-
-	// helper func, not needed usually as dob_update returns the room
-	int dob_get_room_id(Node * pDOB);
-
-	// LIGHTS
-	// global lights that will apply to all rooms
-	bool light_register(Node * pLightNode);
 };
 
 #endif

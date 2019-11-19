@@ -45,6 +45,9 @@ LRoomManager::LRoomManager()
 	m_ID_DebugPlanes = 0;
 	m_ID_DebugBounds = 0;
 	m_ID_DebugLights = 0;
+	m_ID_DebugLightVolumes = 0;
+	m_ID_DebugFrustums = 0;
+
 	m_ID_RoomList = 0;
 
 	m_uiFrameCounter = 0;
@@ -59,6 +62,9 @@ LRoomManager::LRoomManager()
 	m_bDebugPlanes = false;
 	m_bDebugBounds = false;
 	m_bDebugLights = false;
+	m_bDebugLightVolumes = false;
+	m_bDebugFrustums = false;
+	m_bDebugFrameString = false;
 
 	m_pRoomList = 0;
 
@@ -148,14 +154,31 @@ LRoom &LRoomManager::Portal_GetLinkedRoom(const LPortal &port)
 }
 
 
-void LRoomManager::Obj_SetRoomNum(Node * pNode, int num)
+// for lights we store the light ID in the metadata
+void LRoomManager::Meta_SetLightID(Node * pNode, int id)
+{
+	pNode->set_meta("_llight", id);
+}
+
+int LRoomManager::Meta_GetLightID(Node * pNode) const
+{
+	//assert (pNode->has_meta("_lroom"));
+	Variant v = pNode->get_meta("_llight");
+	if (v.get_type() == Variant::NIL)
+		return -1;
+
+	return v;
+}
+
+
+void LRoomManager::Meta_SetRoomNum(Node * pNode, int num)
 {
 	pNode->set_meta("_lroom", num);
 
-	assert (Obj_GetRoomNum(pNode) == num);
+	assert (Meta_GetRoomNum(pNode) == num);
 }
 
-int LRoomManager::Obj_GetRoomNum(Node * pNode) const
+int LRoomManager::Meta_GetRoomNum(Node * pNode) const
 {
 	//assert (pNode->has_meta("_lroom"));
 	Variant v = pNode->get_meta("_lroom");
@@ -167,7 +190,7 @@ int LRoomManager::Obj_GetRoomNum(Node * pNode) const
 
 LRoom * LRoomManager::GetRoomFromDOB(Node * pNode)
 {
-	int iRoom = Obj_GetRoomNum(pNode);
+	int iRoom = Meta_GetRoomNum(pNode);
 	if (iRoom < 0)
 	{
 		if (iRoom == -1)
@@ -211,7 +234,7 @@ bool LRoomManager::dob_register_hint(Node * pDOB, float radius, Node * pRoom)
 	}
 
 
-	int iRoom = Obj_GetRoomNum(pRoom);
+	int iRoom = Meta_GetRoomNum(pRoom);
 
 	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
 	if (!pSpat)
@@ -267,7 +290,49 @@ void LRoomManager::CreateDebug()
 	move_child(b, get_child_count()-1);
 	m_ID_DebugLights = b->get_instance_id();
 	b->set_material_override(m_mat_Debug_Bounds);
-	//b->hide();
+	b->hide();
+	}
+
+	{
+	ImmediateGeometry * p = memnew(ImmediateGeometry);
+	p->set_name("debug_lightvolumes");
+	add_child(p);
+	move_child(p, get_child_count()-1);
+
+	m_ID_DebugLightVolumes = p->get_instance_id();
+
+//	m_mat_Debug_Planes->set_as_toplevel(true);
+
+	m_mat_Debug_LightVolumes = Ref<SpatialMaterial>(memnew(SpatialMaterial));
+	m_mat_Debug_LightVolumes->set_flag(SpatialMaterial::FLAG_UNSHADED, true);
+//	m_mat_Debug_Planes->set_line_width(6.0);
+//	m_mat_Debug_Planes->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+//	m_mat_Debug_Planes->set_flag(SpatialMaterial::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+//	m_mat_Debug_Planes->set_flag(SpatialMaterial::FLAG_SRGB_VERTEX_COLOR, true);
+	m_mat_Debug_LightVolumes->set_albedo(Color(0, 1, 1, 1));
+	p->set_material_override(m_mat_Debug_LightVolumes);
+	p->hide();
+	}
+
+	{
+	ImmediateGeometry * p = memnew(ImmediateGeometry);
+	p->set_name("debug_frustums");
+	add_child(p);
+	move_child(p, get_child_count()-1);
+
+	m_ID_DebugFrustums = p->get_instance_id();
+
+//	m_mat_Debug_Planes->set_as_toplevel(true);
+
+	m_mat_Debug_Frustums = Ref<SpatialMaterial>(memnew(SpatialMaterial));
+	m_mat_Debug_Frustums->set_flag(SpatialMaterial::FLAG_UNSHADED, true);
+//	m_mat_Debug_Planes->set_line_width(6.0);
+//	m_mat_Debug_Planes->set_feature(SpatialMaterial::FEATURE_TRANSPARENT, true);
+//	m_mat_Debug_Planes->set_flag(SpatialMaterial::FLAG_ALBEDO_FROM_VERTEX_COLOR, true);
+//	m_mat_Debug_Planes->set_flag(SpatialMaterial::FLAG_SRGB_VERTEX_COLOR, true);
+	m_mat_Debug_Frustums->set_albedo(Color(1, 0, 0, 1));
+	p->set_material_override(m_mat_Debug_Frustums);
+	p->hide();
 	}
 
 }
@@ -321,7 +386,7 @@ bool LRoomManager::DobRegister(Spatial * pDOB, float radius, int iRoom)
 	pRoom->DOB_Add(dob);
 
 	// save the room ID on the dob metadata
-	Obj_SetRoomNum(pDOB, iRoom);
+	Meta_SetRoomNum(pDOB, iRoom);
 
 	// change visibility
 	DobChangeVisibility(pDOB, 0, pRoom);
@@ -396,7 +461,7 @@ int LRoomManager::dob_update(Node * pDOB)
 		DobChangeVisibility(pSpat, pRoom, pNewRoom);
 
 		// save the room ID on the dob metadata
-		Obj_SetRoomNum(pSpat, iRoomNum);
+		Meta_SetRoomNum(pSpat, iRoomNum);
 
 		// new room number
 		return iRoomNum;
@@ -425,7 +490,7 @@ bool LRoomManager::dob_teleport_hint(Node * pDOB, Node * pRoom)
 	}
 
 
-	int iRoom = Obj_GetRoomNum(pRoom);
+	int iRoom = Meta_GetRoomNum(pRoom);
 
 	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
 	if (!pSpat)
@@ -471,7 +536,7 @@ bool LRoomManager::DobTeleport(Spatial * pDOB, int iNewRoomID)
 	pOldRoom->DOB_Remove(dob_id);
 
 	// save the room ID on the dob metadata
-	Obj_SetRoomNum(pDOB, iNewRoomID);
+	Meta_SetRoomNum(pDOB, iNewRoomID);
 
 	// change visibility
 	DobChangeVisibility(pDOB, pOldRoom, pNewRoom);
@@ -509,7 +574,7 @@ bool LRoomManager::dob_unregister(Node * pDOB)
 	LRoom * pRoom = GetRoomFromDOB(pDOB);
 
 	// change the meta data on the DOB .. this will catch trying to update an unregistered DOB
-	Obj_SetRoomNum(pDOB, -2);
+	Meta_SetRoomNum(pDOB, -2);
 
 	if (pRoom)
 	{
@@ -521,8 +586,135 @@ bool LRoomManager::dob_unregister(Node * pDOB)
 }
 
 
+void LRoomManager::Light_FrameProcess(int lightID)
+{
+	if (!m_BF_ProcessedLights.GetBit(lightID))
+	{
+		m_BF_ProcessedLights.SetBit(lightID, true);
+
+		// some lights may be processed but found not to intersect the camera frustum
+		if (Light_FindCasters(lightID))
+		{
+			m_BF_ActiveLights.SetBit(lightID, true);
+			m_ActiveLights.push_back(lightID);
+		}
+	}
+}
+
+// now we are centralizing the tracing out from static and dynamic lights for each frame to this function
+// returns false if the entire light should be culled
+bool LRoomManager::Light_FindCasters(int lightID)
+{
+	// add all shadow casters for this light (new method)
+	const LLight &light = m_Lights[lightID];
+/*
+	if (light.m_eClass == LLight::LT_STATIC)
+	{
+		int last_caster = light.m_FirstCaster + light.m_NumCasters;
+		for (int c=light.m_FirstCaster; c<last_caster; c++)
+		{
+			int sobID = m_LightCasters_SOB[c];
+
+			// only add to the caster list if not in it already (does this check need to happen, can this ever occur?)
+			if (!m_BF_caster_SOBs.GetBit(sobID))
+			{
+				LPRINT_RUN(2, "\t" + itos(sobID) + ", " + m_SOBs[sobID].GetSpatial()->get_name());
+				m_BF_caster_SOBs.SetBit(sobID, true);
+				m_CasterList_SOBs.push_back(sobID);
+			}
+			else
+			{
+				//LPRINT(2, "\t" + itos(sobID) + ", ALREADY CASTER " + manager.m_SOBs[sobID].GetSpatial()->get_name());
+			}
+
+		} // for c through caster
+	} // static lights have a list of SOB casters
+*/
+
+	// special case of global area lights
+	if (light.m_iArea != -1)
+	{
+		// special trace for area light
+		if (m_Trace.Trace_Light(*this, light, LTrace::LR_ALL) == false)
+			return false;
+	}
+	else
+	{
+		// can only deal with lights in rooms for now
+		if (light.m_Source.m_RoomID == -1)
+		{
+			return true;
+		}
+
+		LRoom * pRoom = GetRoom(light.m_Source.m_RoomID);
+		if (!pRoom)
+			return true;
+
+		if (m_Trace.Trace_Light(*this, light, LTrace::LR_ALL) == false)
+			return false;
+
+	} // non-area light
+
+	/*
+	// we now need to trace either just DOBs (in the case of static lights)
+	// or SOBs and DOBs (in the case of dynamic lights)
+	m_LightRender.m_BF_Temp_SOBs.Blank();
+	m_LightRender.m_Temp_Visible_SOBs.clear();
+
+	const LSource &cam = light.m_Source;
+//	cam.Source_SetDefaults();
+//	cam.m_ptPos = light.m_ptPos;
+//	cam.m_ptDir = light.m_ptDir;
+
+	m_Trace.Trace_Prepare(*this, cam, m_LightRender.m_BF_Temp_SOBs, m_BF_visible_rooms, m_LightRender.m_Temp_Visible_SOBs, *m_pCurr_VisibleRoomList);
+
+
+	unsigned int pool_member = m_Pool.Request();
+	assert (pool_member != -1);
+
+	LVector<Plane> &planes = m_Pool.Get(pool_member);
+	planes.clear();
+
+	// create subset planes of light frustum and camera frustum
+	m_MainCamera.AddCameraLightPlanes(*this, cam, planes);
+
+	m_Trace.Trace_Begin(*pRoom, planes);
+
+	// we no longer need these planes
+	m_Pool.Free(pool_member);
+*/
+	// process the sobs that were visible
+	for (int n=0; n<m_LightRender.m_Temp_Visible_SOBs.size(); n++)
+	{
+		int sobID = m_LightRender.m_Temp_Visible_SOBs[n];
+
+		// only add to the caster list if not in it already (does this check need to happen, can this ever occur?)
+		if (!m_BF_caster_SOBs.GetBit(sobID))
+		{
+			LPRINT_RUN(2, "\t" + itos(sobID) + ", " + m_SOBs[sobID].GetSpatial()->get_name());
+			m_BF_caster_SOBs.SetBit(sobID, true);
+			m_CasterList_SOBs.push_back(sobID);
+		}
+		else
+		{
+			//LPRINT(2, "\t" + itos(sobID) + ", ALREADY CASTER " + manager.m_SOBs[sobID].GetSpatial()->get_name());
+		}
+
+	}
+
+	return true;
+}
+
+void LRoomManager::Light_UpdateTransform(LLight &light, const Light &glight) const
+{
+//	assert (glight.is_in_tree());
+	Transform tr = glight.get_global_transform();
+	light.m_Source.m_ptPos = tr.origin;
+	light.m_Source.m_ptDir = -tr.basis.get_axis(2); // or possibly get_axis .. z is what we want
+}
+
 // common stuff for global and local light creation
-bool LRoomManager::LightCreate(Light * pLight, int roomID)
+bool LRoomManager::LightCreate(Light * pLight, int roomID, String szArea)
 {
 	// set culling flag for light
 	// 1 is for lighting objects outside the room system
@@ -530,23 +722,21 @@ bool LRoomManager::LightCreate(Light * pLight, int roomID)
 
 	// create new light
 	LLight l;
-	l.SetDefaults();
+	l.Light_SetDefaults();
 	l.Hidable_Create(pLight);
 	l.m_GodotID = pLight->get_instance_id();
+	//l.m_iArea = areaID;
+
+	// store the area name as a string if an area light
+	// as the areas aren't actually created until calling convert
+	if (szArea != "")
+		l.m_szArea = szArea;
+
+	LSource &lsource = l.m_Source;
 
 	// direction
-	Transform tr = pLight->get_global_transform();
-	l.m_ptPos = tr.origin;
-	l.m_ptDir = -tr.basis.get_axis(2); // or possibly get_axis .. z is what we want
-	l.m_RoomID = roomID;
-
-	l.m_fMaxDist = pLight->get_param(Light::PARAM_SHADOW_MAX_DISTANCE);
-
-
-	//l.m_eType = LLight::LT_DIRECTIONAL;
-
-	//m_Lights.push_back(l);
-
+	Light_UpdateTransform(l, *pLight);
+	lsource.m_RoomID = roomID;
 
 	bool bOK = false;
 
@@ -555,8 +745,9 @@ bool LRoomManager::LightCreate(Light * pLight, int roomID)
 	if (pSL)
 	{
 		LPRINT(2, "\tSPOTLIGHT detected " + pLight->get_name());
-		l.m_eType = LLight::LT_SPOTLIGHT;
-		l.m_fSpread = pSL->get_param(Light::PARAM_SPOT_ANGLE);
+		lsource.m_eType = LSource::ST_SPOTLIGHT;
+		lsource.m_fSpread = pSL->get_param(Light::PARAM_SPOT_ANGLE);
+		lsource.m_fRange = pLight->get_param(Light::PARAM_RANGE);
 
 		bOK = true;
 	}
@@ -565,7 +756,8 @@ bool LRoomManager::LightCreate(Light * pLight, int roomID)
 	if (pOL)
 	{
 		LPRINT(2, "\tOMNILIGHT detected " + pLight->get_name());
-		l.m_eType = LLight::LT_OMNI;
+		lsource.m_eType = LSource::ST_OMNI;
+		lsource.m_fRange = pLight->get_param(Light::PARAM_RANGE);
 		bOK = true;
 	}
 
@@ -573,7 +765,10 @@ bool LRoomManager::LightCreate(Light * pLight, int roomID)
 	if (pDL)
 	{
 		LPRINT(2, "\tDIRECTIONALLIGHT detected " + pLight->get_name());
-		l.m_eType = LLight::LT_DIRECTIONAL;
+		lsource.m_eType = LSource::ST_DIRECTIONAL;
+
+		// no range but max distance? NYI
+
 		bOK = true;
 	}
 
@@ -586,7 +781,7 @@ bool LRoomManager::LightCreate(Light * pLight, int roomID)
 
 
 	// turn the local light off to start with
-	if (!l.IsGlobal())
+	if (!lsource.IsGlobal())
 	{
 //		l.Show(false);
 		//pLight->hide();
@@ -598,9 +793,167 @@ bool LRoomManager::LightCreate(Light * pLight, int roomID)
 }
 
 
-bool LRoomManager::light_register(Node * pLightNode)
+bool LRoomManager::dynamic_light_register(Node * pLightNode, float radius)
 {
 	CHECK_ROOM_LIST
+
+	if (!pLightNode)
+	{
+		WARN_PRINT_ONCE("dynamic_light_register : pLightNode is NULL");
+		return false;
+	}
+
+	ObjectID light_id = pLightNode->get_instance_id();
+
+	// does the light already exist in the light list? I.e. was it imported as part of the roomlist?
+	for (int n=0; n<m_Lights.size(); n++)
+	{
+		if (m_Lights[n].m_GodotID == light_id)
+		{
+			m_Lights[n].m_Source.m_eClass = LSource::SC_DYNAMIC;
+
+			// store the light ID in the metadata for the node
+			Meta_SetLightID(pLightNode, n);
+			return true;
+		}
+	}
+
+	return false;
+}
+
+bool LRoomManager::dynamic_light_register_hint(Node * pLightNode, float radius, Node * pRoom)
+{
+	// NYI
+
+	return true;
+}
+
+
+bool LRoomManager::dynamic_light_unregister(Node * pLightNode)
+{
+	// NYI
+	return true;
+}
+
+int LRoomManager::dynamic_light_update(Node * pLightNode) // returns room within
+{
+	if (!pLightNode)
+	{
+		WARN_PRINT_ONCE("dynamic_light_update : pLightNode is NULL");
+		return -1;
+	}
+
+	if (pLightNode->is_inside_tree() == false)
+	{
+#ifdef LDEBUG_LIGHT_AFFECTED_ROOMS
+		if (m_bDebugFrameString)
+			DebugString_Add("DynamicLight not in tree\n");
+#endif
+		return -1;
+	}
+
+	// find the light ID from meta data
+	int light_id = Meta_GetLightID(pLightNode);
+
+	if ((unsigned int) light_id >= (unsigned int) m_Lights.size())
+	{
+		WARN_PRINT_ONCE("dynamic_light_update : meta light ID out of range");
+		return -1;
+	}
+
+	LLight &light = m_Lights[light_id];
+
+	// update the llight transform from the node
+	Light * pGLight = light.GetGodotLight();
+	Light_UpdateTransform(light, *pGLight);
+
+	Spatial * pSpat = Object::cast_to<Spatial>(pGLight);
+	if (!pSpat)
+		return -1;
+
+	int iRoom = light.m_Source.m_RoomID;
+	if (iRoom == -1)
+	{
+		WARN_PRINT_ONCE("dynamic_light_update : can't update global light");
+		return -1;
+	}
+
+
+	LRoom * pRoom = GetRoom(iRoom);
+	if (pRoom == 0)
+	{
+		WARN_PRINT_ONCE("dynamic_light_update : pRoom is NULL");
+		return -1;
+	}
+
+	LRoom * pNewRoom = pRoom->DOB_Update(*this, pSpat);
+
+	if (pNewRoom)
+	{
+		// remove from the list in old room and add to list in new room, and change the metadata
+		int iNewRoomID = pNewRoom->m_RoomID;
+		light.m_Source.m_RoomID = iNewRoomID;
+
+		// change visibility
+		//DobChangeVisibility(pSpat, pRoom, pNewRoom);
+	}
+
+
+	// update with a new Trace (we are assuming update is only called if the light has moved)
+	// remove the old local lights
+	for (int n=0; n<light.m_NumAffectedRooms; n++)
+	{
+		int r = light.m_AffectedRooms[n];
+		GetRoom(r)->RemoveLocalLight(light_id);
+	}
+	light.ClearAffectedRooms();
+
+
+	// now do a new trace, and add all the rooms that are hit
+	m_Trace.Trace_Light(*this, light, LTrace::LR_ROOMS);
+
+	// we should now have a list of the rooms hit in m_LightRender.m_Temp_Visible_Rooms
+	for (int n=0; n<m_LightRender.m_Temp_Visible_Rooms.size(); n++)
+	{
+		int r = m_LightRender.m_Temp_Visible_Rooms[n];
+
+		// add to the list on the light
+		light.AddAffectedRoom(r);
+
+		// add to the list of local lights in the room
+		GetRoom(r)->AddLocalLight(light_id);
+
+	}
+
+	// this may or may not have changed
+	return light.m_Source.m_RoomID;
+}
+
+void LRoomManager::DebugString_Light_AffectedRooms(int light_id)
+{
+#ifdef LDEBUG_LIGHT_AFFECTED_ROOMS
+	if (m_bDebugFrameString)
+	{
+		const LLight &light = m_Lights[light_id];
+		if (!light.m_bShow)
+			return;
+
+		DebugString_Add("Light " + itos(light_id) + " affect room ");
+		// affected rooms
+		for (int n=0; n<light.m_NumAffectedRooms; n++)
+		{
+			int room_id = light.m_AffectedRooms[n];
+			DebugString_Add(itos(room_id) + ", ");
+		}
+		DebugString_Add("\n");
+	}
+#endif
+}
+
+
+bool LRoomManager::light_register(Node * pLightNode, String szArea)
+{
+	//CHECK_ROOM_LIST
 
 	if (!pLightNode)
 	{
@@ -617,7 +970,14 @@ bool LRoomManager::light_register(Node * pLightNode)
 		return false;
 	}
 
-	return LightCreate(pLight, -1);
+	DirectionalLight * pDLight = 	Object::cast_to<DirectionalLight>(pLightNode);
+	if (!pDLight)
+	{
+		WARN_PRINT_ONCE("light_register : only DirectionalLights are supported, place spotlights and omnis within rooms");
+		return false;
+	}
+
+	return LightCreate(pLight, -1, szArea);
 }
 
 
@@ -646,7 +1006,7 @@ void LRoomManager::DobChangeVisibility(Spatial * pDOB, const LRoom * pOld, const
 
 int LRoomManager::dob_get_room_id(Node * pDOB)
 {
-	return Obj_GetRoomNum(pDOB);
+	return Meta_GetRoomNum(pDOB);
 }
 
 // helpers to enable the client to manage switching on and off physics and AI
@@ -688,51 +1048,6 @@ Node * LRoomManager::rooms_get_room(int room_id)
 	return pRoom->GetGodotRoom();
 }
 
-void LRoomManager::rooms_set_debug_lights(bool bActive)
-{
-	m_bDebugLights = bActive;
-	Object * pObj = ObjectDB::get_instance(m_ID_DebugLights);
-	ImmediateGeometry * im = Object::cast_to<ImmediateGeometry>(pObj);
-	if (!im)
-		return;
-
-	if (bActive)
-		im->show();
-	else
-		im->hide();
-}
-
-
-void LRoomManager::rooms_set_debug_bounds(bool bActive)
-{
-	m_bDebugBounds = bActive;
-
-	Object * pObj = ObjectDB::get_instance(m_ID_DebugBounds);
-	ImmediateGeometry * im = Object::cast_to<ImmediateGeometry>(pObj);
-	if (!im)
-		return;
-
-	if (bActive)
-		im->show();
-	else
-		im->hide();
-}
-
-
-void LRoomManager::rooms_set_debug_planes(bool bActive)
-{
-	m_bDebugPlanes = bActive;
-
-	Object * pObj = ObjectDB::get_instance(m_ID_DebugPlanes);
-	ImmediateGeometry * im = Object::cast_to<ImmediateGeometry>(pObj);
-	if (!im)
-		return;
-
-	if (bActive)
-		im->show();
-	else
-		im->hide();
-}
 
 
 // move the initial hiding to where the camera is set, so we can save the scene etc
@@ -748,7 +1063,7 @@ void LRoomManager::ShowAll(bool bShow)
 	for (int n=0; n<m_Lights.size(); n++)
 	{
 		LLight &light = m_Lights[n];
-		if (!light.IsGlobal())
+		if (!light.m_Source.IsGlobal())
 			light.Show(bShow);
 	}
 
@@ -787,12 +1102,6 @@ void LRoomManager::rooms_set_active(bool bActive)
 	{
 		LSob &sob = m_SOBs[n];
 		sob.Show(!bActive);
-//		Spatial * pS = sob.GetSpatial();
-//		if (pS)
-//			if (!bActive)
-//				pS->show();
-//		else
-//				pS->hide();
 
 		VisualInstance * pVI = sob.GetVI();
 		if (pVI)
@@ -808,6 +1117,12 @@ void LRoomManager::rooms_set_active(bool bActive)
 	}
 
 }
+
+String LRoomManager::rooms_get_debug_frame_string()
+{
+	return m_szDebugString;
+}
+
 
 void LRoomManager::rooms_set_logging(int level)
 {
@@ -989,7 +1304,11 @@ void LRoomManager::ReleaseResources(bool bPrepareConvert)
 	m_LightCasters_SOB.clear();
 	m_Rooms.clear(true);
 	m_Portals.clear(true);
+	m_Areas.clear(true);
 	m_SOBs.clear();
+
+	m_AreaLights.clear(true);
+	m_AreaRooms.clear(true);
 
 	if (!bPrepareConvert)
 		m_Lights.clear();
@@ -1018,6 +1337,13 @@ void LRoomManager::FrameUpdate_Prepare()
 {
 	if (m_bDebugPlanes)
 		m_DebugPlanes.clear();
+
+	if (m_bDebugLightVolumes)
+		m_DebugLightVolumes.clear();
+
+	if (m_bDebugFrustums)
+		m_DebugFrustums.clear();
+
 	// clear the visible room list to write to each frame
 	m_pCurr_VisibleRoomList->clear();
 
@@ -1040,6 +1366,7 @@ void LRoomManager::FrameUpdate_Prepare()
 	m_ActiveLights_prev.copy_from(m_ActiveLights);
 	m_ActiveLights.clear();
 	m_BF_ActiveLights.Blank();
+	m_BF_ProcessedLights.Blank();
 
 	// as we hit visible rooms we will mark them in a bitset, so we can hide any rooms
 	// that are showing that haven't been hit this frame
@@ -1056,6 +1383,8 @@ bool LRoomManager::FrameUpdate()
 		WARN_PRINT_ONCE("LRoomManager::FrameUpdate should not be called in editor");
 		return false;
 	}
+
+	DebugString_Set("");
 
 	// could turn off internal processing? not that important
 	if (!m_bActive)
@@ -1101,11 +1430,26 @@ bool LRoomManager::FrameUpdate()
 		return false;
 	}
 
-	// lcamera contains the info needed for culling
-	LCamera cam;
+#ifdef LDEBUG_CAMERA
+	if (m_bDebugFrameString)
+		DebugString_Add("Camera in room " + itos(pRoom->m_RoomID) + "\n");
+#endif
+
+
+	// lcamera contains the info needed for running the recursive trace using the main camera
+	LSource cam; cam.Source_SetDefaults();
 	cam.m_ptPos = Vector3(0, 0, 0);
 	cam.m_ptDir = Vector3 (-1, 0, 0);
 
+	// get the camera desired and make into lcamera
+	assert (pCamera);
+	Transform tr = pCamera->get_global_transform();
+	cam.m_ptPos = tr.origin;
+	cam.m_ptDir = -tr.basis.get_axis(2); // or possibly get_axis .. z is what we want
+
+	// if we can't prepare the frustum is invalid
+	if (!m_MainCamera.Prepare(*this, pCamera))
+		return false;
 
 	// the first set of planes are allocated and filled with the view frustum planes
 	// Note that the visual server doesn't actually need to do view frustum culling as a result...
@@ -1116,18 +1460,16 @@ bool LRoomManager::FrameUpdate()
 	LVector<Plane> &planes = m_Pool.Get(pool_member);
 	planes.clear();
 
-	// get the camera desired and make into lcamera
-	assert (pCamera);
-	Transform tr = pCamera->get_global_transform();
-	cam.m_ptPos = tr.origin;
-	cam.m_ptDir = -tr.basis.get_axis(2); // or possibly get_axis .. z is what we want
-
 	// luckily godot already has a function to return a list of the camera clipping planes
-	planes.copy_from(pCamera->get_frustum());
+	planes.copy_from(m_MainCamera.m_Planes);
 
 	// the whole visibility algorithm is recursive, spreading out from the camera room,
 	// rendering through any portals in view into other rooms, etc etc
-	pRoom->DetermineVisibility_Recursive(*this, 0, cam, planes);
+	m_Trace.Trace_Prepare(*this, cam, m_BF_visible_SOBs, m_BF_visible_rooms, m_VisibleList_SOBs, *m_pCurr_VisibleRoomList);
+	m_Trace.Trace_Begin(*pRoom, planes);
+
+	// we no longer need these planes
+	m_Pool.Free(pool_member);
 
 	// finally hide all the rooms that are currently visible but not in the visible bitfield as having been hit
 	FrameUpdate_FinalizeRooms();
@@ -1221,7 +1563,12 @@ void LRoomManager::FrameUpdate_AddShadowCasters()
 		m_Rooms[r].AddShadowCasters(*this);
 	}
 
-	LPRINT(2, "TOTAL shadow casters " + itos(m_CasterList_SOBs.size()));
+#ifdef LDEBUG_LIGHTS
+	if (m_bDebugFrameString)
+		DebugString_Add("TOTAL shadow casters " + itos(m_CasterList_SOBs.size()) + "\n");
+#endif
+
+	LPRINT_RUN(2, "TOTAL shadow casters " + itos(m_CasterList_SOBs.size()));
 }
 
 void LRoomManager::FrameUpdate_FinalizeVisibility_SoftShow()
@@ -1250,6 +1597,12 @@ void LRoomManager::FrameUpdate_FinalizeVisibility_SoftShow()
 		}
 	}
 
+
+#ifdef LDEBUG_LIGHTS
+	if (m_bDebugFrameString)
+		DebugString_Add("nActiveLights " + itos(m_ActiveLights.size()) + "\n");
+#endif
+
 	// lights
 	for (int n=0; n<m_ActiveLights.size(); n++)
 	{
@@ -1272,10 +1625,15 @@ void LRoomManager::FrameUpdate_FinalizeVisibility_SoftShow()
 				//pLight->set_shadow(false);
 				//pLight->set_shadow(true);
 				//pLight->set_cull_mask(1 | LRoom::LAYER_MASK_LIGHT);
-				Vector3 ptBugFix = pLight->get_translation();
-				pLight->set_translation(ptBugFix);
+
+
+//				Vector3 ptBugFix = pLight->get_translation();
+//				pLight->set_translation(ptBugFix);
 			}
 		}
+
+		// debug
+		DebugString_Light_AffectedRooms(lid);
 	}
 	for (int n=0; n<m_ActiveLights_prev.size(); n++)
 	{
@@ -1333,7 +1691,7 @@ void LRoomManager::FrameUpdate_FinalizeVisibility_WithinRooms()
 }
 
 
-void LRoomManager::FrameUpdate_DrawDebug(const LCamera &cam, const LRoom &lroom)
+void LRoomManager::FrameUpdate_DrawDebug(const LSource &cam, const LRoom &lroom)
 {
 	// light portal planes
 	if (m_bDebugLights)
@@ -1380,6 +1738,47 @@ void LRoomManager::FrameUpdate_DrawDebug(const LCamera &cam, const LRoom &lroom)
 		}
 		im->end();
 	}
+
+	if (m_bDebugLightVolumes)
+	{
+		Object * pObj = ObjectDB::get_instance(m_ID_DebugLightVolumes);
+		ImmediateGeometry * im = Object::cast_to<ImmediateGeometry>(pObj);
+		if (!im)
+			return;
+
+		im->clear();
+
+		im->begin(Mesh::PRIMITIVE_LINES, NULL);
+
+		int nVerts = m_DebugLightVolumes.size();
+
+		for (int n=0; n<nVerts; n++)
+		{
+			im->add_vertex(m_DebugLightVolumes[n]);
+		}
+		im->end();
+	}
+
+	if (m_bDebugFrustums)
+	{
+		Object * pObj = ObjectDB::get_instance(m_ID_DebugFrustums);
+		ImmediateGeometry * im = Object::cast_to<ImmediateGeometry>(pObj);
+		if (!im)
+			return;
+
+		im->clear();
+
+		im->begin(Mesh::PRIMITIVE_LINES, NULL);
+
+		int nVerts = m_DebugFrustums.size();
+
+		for (int n=0; n<nVerts; n++)
+		{
+			im->add_vertex(m_DebugFrustums[n]);
+		}
+		im->end();
+	}
+
 
 	// if debug bounds are on and there is a bound for this room
 	const Geometry::MeshData &md = lroom.m_Bound_MeshData;
@@ -1461,6 +1860,11 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("rooms_set_debug_planes", "active"), &LRoomManager::rooms_set_debug_planes);
 	ClassDB::bind_method(D_METHOD("rooms_set_debug_bounds", "active"), &LRoomManager::rooms_set_debug_bounds);
 	ClassDB::bind_method(D_METHOD("rooms_set_debug_lights", "active"), &LRoomManager::rooms_set_debug_lights);
+	ClassDB::bind_method(D_METHOD("rooms_set_debug_shadows", "active"), &LRoomManager::rooms_set_debug_shadows);
+	ClassDB::bind_method(D_METHOD("rooms_set_debug_frustums", "active"), &LRoomManager::rooms_set_debug_frustums);
+
+	ClassDB::bind_method(D_METHOD("rooms_set_debug_frame_string", "active"), &LRoomManager::rooms_set_debug_frame_string);
+	ClassDB::bind_method(D_METHOD("rooms_get_debug_frame_string"), &LRoomManager::rooms_get_debug_frame_string);
 
 	// lightmapping
 	ClassDB::bind_method(D_METHOD("rooms_convert_lightmap_internal", "proxy filename", "level filename"), &LRoomManager::rooms_convert_lightmap_internal);
@@ -1479,7 +1883,12 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("dob_get_room_id", "dob"), &LRoomManager::dob_get_room_id);
 
 
-	ClassDB::bind_method(D_METHOD("light_register", "light"), &LRoomManager::light_register);
+	ClassDB::bind_method(D_METHOD("light_register", "light", "area"), &LRoomManager::light_register);
+
+	ClassDB::bind_method(D_METHOD("dynamic_light_register", "light", "radius"), &LRoomManager::dynamic_light_register);
+	ClassDB::bind_method(D_METHOD("dynamic_light_register_hint", "light", "radius", "room"), &LRoomManager::dynamic_light_register_hint);
+	ClassDB::bind_method(D_METHOD("dynamic_light_unregister", "light"), &LRoomManager::dynamic_light_unregister);
+	ClassDB::bind_method(D_METHOD("dynamic_light_update", "light"), &LRoomManager::dynamic_light_update);
 
 	// helper
 	ClassDB::bind_method(D_METHOD("rooms_get_room", "room id"), &LRoomManager::rooms_get_room);
@@ -1614,3 +2023,37 @@ void LRoomManager::ResolveRoomListPath()
 	_set_rooms(NULL);
 }
 
+/////////////////////////////////////////////////////////////////////////////////
+// rooms_set_debug commands .. done as macros to make easier to change
+
+// macros to combine to single identifier
+//#define SCU_IDENT(x) x
+#define COMB_NX(A, B) A##B
+#define COMB_IDENT(A, B) COMB_NX(A,B)
+#define IMPLEMENT_DEBUG_MESH(a, b) void LRoomManager::COMB_IDENT(rooms_set_debug_, a)(bool bActive)\
+{\
+COMB_IDENT(m_bDebug, b) = bActive;\
+Object * pObj = ObjectDB::get_instance(COMB_IDENT(m_ID_Debug, b)); \
+ImmediateGeometry * im = Object::cast_to<ImmediateGeometry>(pObj); \
+if (!im) \
+return; \
+if (bActive) \
+im->show(); \
+else \
+im->hide(); \
+}
+
+IMPLEMENT_DEBUG_MESH(shadows,LightVolumes)
+IMPLEMENT_DEBUG_MESH(frustums,Frustums)
+IMPLEMENT_DEBUG_MESH(lights,Lights)
+IMPLEMENT_DEBUG_MESH(bounds,Bounds)
+IMPLEMENT_DEBUG_MESH(planes,Planes)
+
+#undef COMB_NX
+#undef COMB_IDENT
+#undef IMPLEMENT_DEBUG_MESH
+
+void LRoomManager::rooms_set_debug_frame_string(bool bActive)
+{
+	m_bDebugFrameString = bActive;
+}

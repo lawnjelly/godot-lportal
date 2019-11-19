@@ -1,3 +1,10 @@
+// defines
+
+// frame debug strings
+#define LDEBUG_CAMERA
+#define LDEBUG_LIGHTS
+#define LDEBUG_LIGHT_AFFECTED_ROOMS
+
 // single compilation unit
 #include "register_types.cpp"
 #include "ldebug.cpp"
@@ -11,3 +18,7 @@
 #include "lbitfield_dynamic.cpp"
 #include "lhelper.cpp"
 #include "lscene_saver.cpp"
+#include "ltrace.cpp"
+#include "lmain_camera.cpp"
+#include "larea.cpp"
+
