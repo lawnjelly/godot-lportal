@@ -340,7 +340,8 @@ It should be obvious that this is potentially very expensive, both the extra ste
 
 If we cull our visible objects using LPortal but still render all objects when rendering the shadow maps from each light, we would be missing out on a lot of the benefits of our rooms / portal system. Due to this, I have made considerable effort to allow LPortal to cull not only the objects in view of the camera, but also to cull objects that are in view of the lights, and ONLY those lights that are relevant to the visible scene (a game level may contain 100 lights, but if only 2 are lighting the current view, those are the only 2 that are needed).
 
-This is still a work in progress and there are some limitations. There are 3 light types in Godot :
+There are 3 light types in Godot :
+
 1) Directional Lights (global)
 2) Spotlights (local)
 3) Omni lights (local)
@@ -370,12 +371,17 @@ $LRoomManager.dynamic_light_update(m_node_KitchenLight)
 
 #### Global Directional lights
 
-In practice, spotlights and omni lights are treated in a similar manner within LPortal, and can be placed within rooms. For directional lights (think the sun) the exact position of the light is unimportant, only the direction. For this reason, directional lights are handled slightly differently
+While spotlights and omnis can be placed within rooms, directional lights (such as the sun) are slightly different. Their position is not important (because they affect _everything_), only their direction is important. But this means they cannot be placed in any particular room, because they could affect every room. This potentially makes directional lights incredibly inefficient. You could have an entire cave system where sunlight does not reach, and yet the sun might draw shadows for all the objects, and render the shadows on every object (despite everything being in shadow from the sun).
 
+LPortal helps solve this problem by allowing you to specify areas (groups of rooms) that a global light affects. To do this, you should start by placing your rooms inside areas within the roomlist (see the _areas_ section above).
 
-Directional lights such as the sun are great for lighting an entire level, but naively, they cast shadows from EVERY object in the level. Rendering the shadow map can be very expensive. Of far more interest in LPortal (for now) are the local lights, because they offer good opportunities for culling, both of the light itself, and of the shadow casters.
-
-For now, if you place static spotlights within the rooms, they will be detected during conversion and used for realtime lighting with culling. Omni lights will be available soon via the same method. Directional lights I haven't come up with a good solution yet, I am working on this. You should place directional lights outside the room list somewhere else in the scene graph and register the light with LPortal by calling `register_light`, and it will do its best to cull shadow casters but this is still a work in progress.
+As directional lights are not associated with any particular room, you should add them to the scene graph OUTSIDE the roomlist. By default godot will draw these lights affecting everything. In order to turn them on and off according to the location of the camera (i.e. is the camera inside the cave system?) we need to register the global light with LPortal.
+```
+# where $DirectionalLight is your light node,
+# and "myarea" is the name of your area (e.g. area_myarea) that you want it to affect
+$LRoomManager.light_register($DirectionalLight, "myarea")
+```
+That's all you need to do. If any of the visible rooms (as calculated by LPortal) are part of the area affected by the light, the light will be drawn. If not, it will not. LPortal also calculates only those shadow casters that are relevant, but directional lights cannot as yet (Godot 3) take advantage of this information. This may change in Godot 4.
 
 ### Baked Lighting
 Often a far better fit for lighting with occlusion culling systems is the use of baked lighting, such as lightmaps. Lightmaps can store the entire static lighting for a level in precalculated form, as one or more textures, called lightmaps. This has pros and cons.
