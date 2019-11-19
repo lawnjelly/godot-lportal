@@ -443,6 +443,8 @@ void fragment() {
 }
 ```
 
+11) In your final running level, I currently would recommend that if you have a BakedLightmap node present, to hide it. The BakedLightmap node does allow dynamically changing the lightness of meshes as you move them around the level (as it stores a rough 3d array of voxel lighting levels) HOWEVER it may also apply this to the background meshes, which can result in considerable performance loss / visual anomalies. This recommendation may change if I find a way of getting the first effect without the second.
+
 ### Command reference
 _(There is a full reference available from the help section in the IDE under 'LRoomManager')_
 * `rooms_convert()` - prepare lportal for rendering
