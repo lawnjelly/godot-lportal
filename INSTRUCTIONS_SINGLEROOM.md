@@ -42,4 +42,28 @@ _Note that there is no need to call dob_update, as the camera cannot move betwee
 ```
 LRoomManager.rooms_set_camera($Camera)
 ```
-9) This should be enough to get started
+9) This should be enough to get started, try running the game and see if everything is working.
+
+# Lighting
+There are some extra considerations for lighting, especially moving lights. Please see the main instructions for more detail.
+
+### Omni and Spot Lights
+Omnis and Spot lights should be placed in the room. If they are non-moving, that is all that is required. If they are moving lights there is an extra step required for them to cull correctly:
+
+1) After converting the level, you should call:
+```
+# where node_my_light is your light node (use e.g. the Godot find_node function)
+$LRoomManager.dynamic_light_register(node_my_light)
+```
+2) Upon moving or rotating the light you should call:
+```
+$LRoomManager.dynamic_light_update(node_my_light)
+```
+### Directional Lights
+Directional lights are not associated with a room, so should be added to the scene graph OUTSIDE the room. To tell LPortal to use them in culling you should call:
+```
+$LRoomManager.light_register($DirectionalLight, "default")
+```
+Where $DirectionalLight is your light node. The string "default" is the name of the area this light should affect - in single room mode everything is automatically assigned to one area, named "default".
+
+This is just the basics of lighting, for more information see the main Instructions.
