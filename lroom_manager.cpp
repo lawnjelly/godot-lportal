@@ -1083,12 +1083,12 @@ void LRoomManager::rooms_set_active(bool bActive)
 
 	m_bActive = bActive;
 
-	if (m_bActive)
-	{
+//	if (m_bActive)
+//	{
 		// clear these to ensure the system is initialized
 		m_pCurr_VisibleRoomList->clear();
 		m_pPrev_VisibleRoomList->clear();
-	}
+//	}
 
 	// show all
 	for (int n=0; n<m_Rooms.size(); n++)
@@ -1098,6 +1098,7 @@ void LRoomManager::rooms_set_active(bool bActive)
 	}
 
 
+	// SOBS
 	for (int n=0; n<m_SOBs.size(); n++)
 	{
 		LSob &sob = m_SOBs[n];
@@ -1113,9 +1114,30 @@ void LRoomManager::rooms_set_active(bool bActive)
 			}
 			LRoom::SoftShow(pVI, mask);
 		}
-
 	}
 
+	// LIGHTS
+	for (int n=0; n<m_Lights.size(); n++)
+	{
+		LLight &light = m_Lights[n];
+//		if (!light.m_Source.IsGlobal())
+		light.Show(!bActive);
+	}
+
+	m_ActiveLights.clear();
+	m_ActiveLights_prev.clear();
+
+	m_VisibleRoomList_A.clear();
+	m_VisibleRoomList_B.clear();
+
+	m_MasterList_SOBs.clear();
+	m_MasterList_SOBs_prev.clear();
+
+	m_VisibleList_SOBs.clear();
+	m_CasterList_SOBs.clear();
+
+	m_BF_ActiveLights_prev.Blank();
+	m_BF_ActiveLights.Blank();
 }
 
 String LRoomManager::rooms_get_debug_frame_string()
@@ -1170,16 +1192,26 @@ bool LRoomManager::rooms_set_camera(Node * pCam)
 }
 
 
-
 // convert empties and meshes to rooms and portals
-bool LRoomManager::rooms_convert(bool bVerbose, bool bDeleteLights)
+bool LRoomManager::RoomsConvert(bool bVerbose, bool bDeleteLights, bool bSingleRoomMode)
 {
 	ResolveRoomListPath();
 	CHECK_ROOM_LIST
 
 	LRoomConverter conv;
-	conv.Convert(*this, bVerbose, false, bDeleteLights);
+	conv.Convert(*this, bVerbose, false, bDeleteLights, bSingleRoomMode);
 	return true;
+}
+
+bool LRoomManager::rooms_single_room_convert(bool bVerbose, bool bDeleteLights)
+{
+	return RoomsConvert(bVerbose, bDeleteLights, true);
+}
+
+// convert empties and meshes to rooms and portals
+bool LRoomManager::rooms_convert(bool bVerbose, bool bDeleteLights)
+{
+	return RoomsConvert(bVerbose, bDeleteLights, false);
 }
 
 bool LRoomManager::rooms_transfer_uv2s(Node * pMeshInstance_From, Node * pMeshInstance_To)
@@ -1841,6 +1873,7 @@ void LRoomManager::_bind_methods()
 {
 	// main functions
 	ClassDB::bind_method(D_METHOD("rooms_convert", "verbose", "delete lights"), &LRoomManager::rooms_convert);
+	ClassDB::bind_method(D_METHOD("rooms_single_room_convert", "verbose", "delete lights"), &LRoomManager::rooms_single_room_convert);
 	ClassDB::bind_method(D_METHOD("rooms_release"), &LRoomManager::rooms_release);
 
 	ClassDB::bind_method(D_METHOD("rooms_set_camera", "camera"), &LRoomManager::rooms_set_camera);

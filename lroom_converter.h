@@ -82,7 +82,9 @@ public:
 	};
 
 	// this function calls everything else in the converter
-	void Convert(LRoomManager &manager, bool bVerbose, bool bPreparationRun, bool bDeleteLights);
+	// single room mode enables us to emulate a room list in games that do not have rooms...
+	// this allows taking advantage of basic LPortal speedup without converting games / demos
+	void Convert(LRoomManager &manager, bool bVerbose, bool bPreparationRun, bool bDeleteLights, bool bSingleRoomMode = false);
 
 private:
 	int CountRooms();
@@ -147,4 +149,5 @@ private:
 	// in which case we should delete lights and set vis flags
 	bool m_bFinalRun;
 	bool m_bDeleteLights;
+	bool m_bSingleRoomMode;
 };

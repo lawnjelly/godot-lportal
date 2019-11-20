@@ -33,11 +33,11 @@
 
 
 
-void LRoomConverter::Convert(LRoomManager &manager, bool bVerbose, bool bPreparationRun, bool bDeleteLights)
+void LRoomConverter::Convert(LRoomManager &manager, bool bVerbose, bool bPreparationRun, bool bDeleteLights, bool bSingleRoomMode)
 {
 	m_bFinalRun = (bPreparationRun == false);
-
 	m_bDeleteLights = bDeleteLights;
+	m_bSingleRoomMode = bSingleRoomMode;
 
 	// This just is simply used to set how much debugging output .. more during conversion, less during running
 	// except when requested by explicitly clearing this flag.
@@ -141,6 +141,21 @@ int LRoomConverter::Convert_Rooms_Recursive(Node * pParent, int count, int area)
 void LRoomConverter::Convert_Rooms()
 {
 	LPRINT(5,"Convert_Rooms");
+
+	// allow faking a single room in single room mode
+	if (m_bSingleRoomMode)
+	{
+		Spatial * pSpat = Object::cast_to<Spatial>(LROOMLIST);
+		if (!pSpat)
+			return;
+
+		// add a default area
+		int area = Area_FindOrCreate("default");
+
+		Convert_Room(pSpat, 0, area);
+		return;
+	}
+
 
 	// first find all room empties and convert to LRooms
 	int count = 0;
@@ -916,6 +931,9 @@ void LRoomConverter::Convert_Portals()
 
 int LRoomConverter::CountRooms()
 {
+	if (m_bSingleRoomMode)
+		return 1; // hard coded
+
 	int nChildren = LROOMLIST->get_child_count();
 	int count = 0;
 

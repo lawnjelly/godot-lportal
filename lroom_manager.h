@@ -59,6 +59,7 @@ public:
 	// MAIN
 	// convert empties and meshes to rooms and portals
 	bool rooms_convert(bool bVerbose, bool bDeleteLights);
+	bool rooms_single_room_convert(bool bVerbose, bool bDeleteLights);
 	// free memory for current set of rooms, prepare for converting a new game level
 	void rooms_release();
 
@@ -301,6 +302,8 @@ private:
 	void FrameUpdate_DrawDebug(const LSource &cam, const LRoom &lroom);
 
 	// internal
+	bool RoomsConvert(bool bVerbose, bool bDeleteLights, bool bSingleRoomMode);
+
 	// dobs
 	bool DobRegister(Spatial * pDOB, float radius, int iRoom);
 	ObjectID DobRegister_FindVIRecursive(Node * pNode) const;
