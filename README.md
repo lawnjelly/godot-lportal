@@ -1,5 +1,6 @@
 # godot-lportal
 Portal rendering / Occlusion culling module for Godot 3.2\
+You can now also use LPortal in single room mode to speed up culling in levels that have not been divided into rooms / portals!\
 Note that this is a _Work in progress_. It is recommended to wait for a first release.
 
 ![plane_lines](images/lportal_boxrooms3.jpg)
@@ -17,11 +18,11 @@ _Feel free to leave suggestions / feature requests on the issue tracker, especia
 ## Current status
 The first demo tutorial (see above) is now working with the internal godot baked lightmap workflow. It shows registering dynamic objects (DOBs), loading and unloading levels.
 
-I'm now working again on dynamic lights and realtime lighting: \
+Dynamic lights are now working, both global (directional lights) and local (omnis and spotlights):\
 https://www.youtube.com/watch?v=1WT5AXZlsDc \
-I've got dynamic lights and culling shadow casters to camera frustum working which should speed things up quite a bit. This is not in the master branch yet, still work in progress.
 
-Am currently working on global directional lights (think the sun). Global lights don't emanate from a room, therefore they must be handled differently in order to avoid having *every* object as a shadow caster. I'm doing this by allowing the user to specify 'areas', which are groups of rooms, and the global light when registered will affect an area (e.g. 'area_outside').
+I have just added a single room mode, which allows LPortal to speed up culling in games that haven't even been designed as rooms and portals.
+
 
 ## Roadmap
 * Auto conversion of named room spatials and portal mesh instances to LRoom and LPortal DONE
@@ -47,7 +48,9 @@ Am currently working on global directional lights (think the sun). Global lights
 * PVS (primary and secondary)
 
 ## Instructions
-See [INSTRUCTIONS.md](INSTRUCTIONS.md)  and [TUTORIAL](https://github.com/lawnjelly/lportal-demos/tree/master/Tutorial-Simple)
+* [INSTRUCTIONS.md](INSTRUCTIONS.md)
+* [INSTRUCTIONS_SINGLEROOM.md](INSTRUCTIONS_SINGLEROOM.md)
+* [TUTORIAL](https://github.com/lawnjelly/lportal-demos/tree/master/Tutorial-Simple)
 
 ## Installation
 You will need to compile Godot from source (for now). See:
