@@ -37,6 +37,7 @@ LRoomManager.rooms_release()
 LRoomManager.dob_register($Camera, 0)
 ```
 _Note that there is no need to call dob_update, as the camera cannot move between rooms in single room mode._
+
 8) Next you have to select this camera as the active camera:
 ```
 LRoomManager.rooms_set_camera($Camera)
