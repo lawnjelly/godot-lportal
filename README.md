@@ -23,6 +23,10 @@ https://www.youtube.com/watch?v=1WT5AXZlsDc \
 
 I have just added a single room mode, which allows LPortal to speed up culling in games that haven't even been designed as rooms and portals.
 
+## Instructions
+* [INSTRUCTIONS.md](INSTRUCTIONS.md)
+* [INSTRUCTIONS_SINGLEROOM.md](INSTRUCTIONS_SINGLEROOM.md)
+* [TUTORIAL](https://github.com/lawnjelly/lportal-demos/tree/master/Tutorial-Simple)
 
 ## Roadmap
 * Auto conversion of named room spatials and portal mesh instances to LRoom and LPortal DONE
@@ -46,11 +50,6 @@ I have just added a single room mode, which allows LPortal to speed up culling i
 * Shadow caster optimization
 * Closable portals
 * PVS (primary and secondary)
-
-## Instructions
-* [INSTRUCTIONS.md](INSTRUCTIONS.md)
-* [INSTRUCTIONS_SINGLEROOM.md](INSTRUCTIONS_SINGLEROOM.md)
-* [TUTORIAL](https://github.com/lawnjelly/lportal-demos/tree/master/Tutorial-Simple)
 
 ## Installation
 You will need to compile Godot from source (for now). See:
