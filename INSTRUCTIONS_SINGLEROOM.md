@@ -1,4 +1,5 @@
 # LPortal SingleRoom mode
+This is a quickstart guide, please refer to [INSTRUCTIONS.md](INSTRUCTIONS.md) for full instructions.
 
 ### About
 Although LPortal is primarily designed for occlusion culling with rooms and portals, it also contains some optimizations to increase the accuracy of general culling (both for the camera and lights). While I couldn't easily integrate these into Godot 3.2 core (because of shadow map caching), they can still be used relatively simply with most 3d games via LPortal.
@@ -45,7 +46,7 @@ LRoomManager.rooms_set_camera($Camera)
 9) This should be enough to get started, try running the game and see if everything is working.
 
 # Lighting
-There are some extra considerations for lighting, especially moving lights. Please see the main instructions for more detail.
+There are some extra considerations for lighting, especially moving lights. Please see the main [INSTRUCTIONS.md](INSTRUCTIONS.md) for more detail.
 
 ### Omni and Spot Lights
 Omnis and Spot lights should be placed in the room. If they are non-moving, that is all that is required. If they are moving lights there is an extra step required for them to cull correctly:
@@ -66,4 +67,4 @@ $LRoomManager.light_register($DirectionalLight, "default")
 ```
 Where $DirectionalLight is your light node. The string "default" is the name of the area this light should affect - in single room mode everything is automatically assigned to one area, named "default".
 
-This is just the basics of lighting, for more information see the main Instructions.
+This is just the basics of lighting, for more information see the main [INSTRUCTIONS.md](INSTRUCTIONS.md).
