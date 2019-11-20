@@ -1,5 +1,6 @@
 # LPortal Instructions
-LPortal is a portal rendering system for Godot 3.2. It may compile with 3.1, but this is untested / supported.
+LPortal is a portal rendering system for Godot 3.2. It may compile with 3.1, but this is untested / supported.\
+For simplified use without creating rooms / portals, please see [INSTRUCTIONS_SINGLEROOM.md](INSTRUCTIONS_SINGLEROOM.md).
 
 ## About
 One of the most requested features for Godot 3 has been occlusion culling (in some form). It is on the roadmap to be added to the core of the engine in Godot 4.0, but until that is available, I figured that I could come up with an interrim solution that would allow the production of some of the games that need this.
