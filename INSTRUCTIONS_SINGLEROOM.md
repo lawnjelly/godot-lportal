@@ -25,13 +25,20 @@ _I will refer to the long-lived objects as 'static', and the short-lived as 'dyn
 ```
 LRoomManager.rooms_single_room_convert(true, false)
 ```
+Note that if your game has several levels, before unloading a level you should call
+```
+LRoomManager.rooms_release()
+```
+
 6) There is one further step to get started, you must setup your camera to work with LPortal. The camera should NOT be in the room.
 7) First you have to register the camera as a dynamic object (DOB) within LPortal:
 ```
 # where $Camera is your camera node
 LRoomManager.dob_register($Camera, 0)
 ```
+_Note that there is no need to call dob_update, as the camera cannot move between rooms in single room mode._
 8) Next you have to select this camera as the active camera:
 ```
 LRoomManager.rooms_set_camera($Camera)
 ```
+9) This should be enough to get started
