@@ -46,10 +46,9 @@ LRoomManager.rooms_set_camera($Camera)
 9) This should be enough to get started, try running the game and see if everything is working.
 
 # Lighting
-There are some extra considerations for lighting, especially moving lights. Please see the main [INSTRUCTIONS.md](INSTRUCTIONS.md) for more detail.
 
 ### Omni and Spot Lights
-Omnis and Spot lights should be placed in the room. They can be dynamic.
+Omnis and Spot lights should be placed in the room. They can be dynamic, there is no need to register or update them in single room mode.
 
 ### Directional Lights
 Directional lights are not associated with a room, so should be added to the scene graph OUTSIDE the room. To tell LPortal to use them in culling you should call:
