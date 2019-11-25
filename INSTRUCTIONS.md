@@ -29,6 +29,18 @@ The reason for not creating bespoke editing within Godot is twofold:
 
 *_Note that although the whole game level can be created in the modelling package, this is optional, you can also create it in the Godot editor._
 
+## Showing / Hiding Objects
+An important consideration during development of LPortal was finding that in Godot 3.x, hiding nodes via the godot hide() function does NOT actually save as much performance as you would expect. On investigation I found that these nodes are still being processed in the octree in the visual server.
+
+What does give the expected performance boost and prevent them being processed is _detaching them from the scene tree_ (but not deleting them). This is the default approach LPortal uses for culling nodes. This is not ideal because it has some wider ranging implications:
+
+1) Objects that are detached from the scene tree will not have _process or _physics_process called. 
+2) If an object is a child of a culled object (MeshInstance or Light), then it will also be removed from the scene tree when the object is culled:
+
+For instance a collision shape child may mean the physics no longer works for the object when culled. To get around this it is suggested to either create collision shapes as siblings (rather than children) of MeshInstances, or place them in another part of the scene graph.
+
+On the other hand you may actively wish to deactivate some processing (e.g. AI) rather than just rendering in areas that are not visible. For this purpose you can query LPortal to find which rooms are visible.
+
 # Components
 
 ### The room manager
