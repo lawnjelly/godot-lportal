@@ -49,17 +49,8 @@ LRoomManager.rooms_set_camera($Camera)
 There are some extra considerations for lighting, especially moving lights. Please see the main [INSTRUCTIONS.md](INSTRUCTIONS.md) for more detail.
 
 ### Omni and Spot Lights
-Omnis and Spot lights should be placed in the room. If they are non-moving, that is all that is required. If they are moving lights there is an extra step required for them to cull correctly:
+Omnis and Spot lights should be placed in the room. They can be dynamic.
 
-1) After converting the level, you should call:
-```
-# where node_my_light is your light node (use e.g. the Godot find_node function)
-$LRoomManager.dynamic_light_register(node_my_light)
-```
-2) Upon moving or rotating the light you should call:
-```
-$LRoomManager.dynamic_light_update(node_my_light)
-```
 ### Directional Lights
 Directional lights are not associated with a room, so should be added to the scene graph OUTSIDE the room. To tell LPortal to use them in culling you should call:
 ```
