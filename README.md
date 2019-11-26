@@ -28,9 +28,9 @@ https://www.youtube.com/watch?v=1WT5AXZlsDc \
 I have just added a single room mode, which allows LPortal to speed up culling in games that haven't even been designed as rooms and portals.
 
 ## Instructions
+* [OVERVIEW](OCCLUSION_CULLING.md)
 * [INSTRUCTIONS](INSTRUCTIONS.md)
 * [INSTRUCTIONS for single room mode](INSTRUCTIONS_SINGLEROOM.md)
-* [OVERVIEW](OCCLUSION_CULLING.md)
 * [TUTORIAL](https://github.com/lawnjelly/lportal-demos/tree/master/Tutorial-Simple)
 
 ## Roadmap
