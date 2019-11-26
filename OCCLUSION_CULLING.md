@@ -50,7 +50,15 @@ These can be separated into two area, although they can potentially be used in c
 ## Geometrical methods
 The classical example of geometrical methods is rooms and portals, as used in LPortal. However, there are other geometrical methods, such as anti-portals and tests against occluding geometry. Especially notable is that geometrical methods DO NOT BECOME MORE EXPENSIVE as screen resolution increases. Geometrical methods have become relatively cheaper at runtime over the years, as their processing cost is essentially fixed (depending on the complexity of the game level).
 
+The major disadvantages of some of these methods is the need to build level geometry in order to take advantage, and mark areas such as portals (usually manually). They tend to work better with game levels that contain mostly static geometry.
+
 ## Raster methods
 The simplest raster based occlusion method is the Z Buffer, it determines the visibility on a per pixel basis. But there are raster methods that can achieve faster results than the conventional z buffer.
+
+As GPUs are much faster than CPUs at raster based operations, it would seem to make sense to try and do this type of occlusion culling on the GPU. There is a problem though, if the CPU needs to read back the results of such a query from the GPU in order to decide what to draw. The GPU is typically rendering frames in a queue submitted by the CPU, and as such there can a delay of several frames between making a query and getting result, so the visibility information from say, 3 frames ago can be stale by the time it is read, resulting in objects being incorrectly culled and objects popping into and out of view.
+
+An alterative is to perform raster methods on the CPU. This can be done without any delay, however it is usually necessary to optimize the method because of the lack of brute force available on the CPU. This can for example involve using a lower resolution version than the final frame to determine approximate visibility, or storing minimum and maximum z values within tiles instead of the exact z value at each pixel.
+
+Raster methods have become relatively more common recently as techniques have improved, and the processing horsepower has become available. They have the advantage that in many cases there is less need to manually process game levels to take advantage of the culling. They also work well with totally dynamic worlds.
 
 ## PVS
