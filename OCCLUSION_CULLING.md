@@ -16,23 +16,28 @@ While rendering everything twice appears counter-intuitive, it is often faster b
 As a result, if we naively draw an object behind something that will occlude it, it is wasting processing, however it is NOT AS EXPENSIVE as if the object were also put through the second pass (rendered in its entirety).
 
 ## The benefits of occlusion culling
-As such, the savings we get from occlusion culling depend on
+As such, the savings we get from camera-only occlusion culling depend on
 
 1) The proportion of objects we can cull away before the first pass
 2) The relative cost of the shaders used in pass (1) and pass (2)
 
-As fragment shaders have become more expensive over the years, the cost of pass (1) relative to pass (2) has dropped. The cost of vertex processing relative to fragment shading has also probably dropped over the years. This means that the performance benefits from occlusion culling have become less pronounced on high powered PCs and consoles.
+As fragment shaders have become more expensive over the years, the cost of pass (1) relative to pass (2) has dropped. The cost of vertex processing relative to fragment shading has also probably dropped over the years. This means that the performance benefits from occlusion culling from the camera view have become less pronounced on high powered PCs and consoles.
 
-However it can still be very important on low power devices such as phones, tablets and PCs that don't feature expensive GPUs, where there is often no choice but to run simpler shaders for high performance.
+However it can still be very important on low power devices such as phones, tablets and PCs that don't feature expensive GPUs, where there is often no choice but to run simpler shaders for high performance. And occlusion culling can be used to reduce lighting calculations, which will often help even in complex shaders.
 
 There are also benefits to visibility determination outside of rendering.
 
-Occlusion culling can potentially save performance by:
+Camera occlusion culling can potentially save performance by:
 
 1) Reducing the fragment shader costs of pass (1)
 2) Reducing the number of draw calls / material changes
 3) Eliminating some of the transparent objects
 4) Enabling other processing such as physics / AI to be switched off for invisible objects
+
+It can also save performance for lighting, for instance by:
+
+1) Reducing the amount of shadow casters that need to be rendered into shadow maps
+2) Culling lights entirely that are not affecting the objects in view of the camera
 
 
 
