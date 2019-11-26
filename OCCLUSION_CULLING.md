@@ -72,3 +72,5 @@ This is extremely fast, however there are a few disadvantages:
 4) As visibility is determined from a cell (with volume), the results cannot be as accurate as visibility determined from a single camera viewpoint
 5) Without modification it can only give quite approximate culling of dynamic objects (similar problem to (4))
 
+# How does LPortal calculate visibility?
+LPortal, as the name implies, is a geometrical solution using rooms and portals. At present it is calculated at runtime but I am planning to add optional PVS (this is unlikely to make a significant difference in most cases, as LPortal is very efficient at runtime).
