@@ -62,3 +62,13 @@ An alterative is to perform raster methods on the CPU. This can be done without 
 Raster methods have become relatively more common recently as techniques have improved, and the processing horsepower has become available. They have the advantage that in many cases there is less need to manually process game levels to take advantage of the culling. They also work well with totally dynamic worlds.
 
 ## PVS
+As the calculations involved in occlusion culling can be quite time consuming, it is worth noting that there is an alternative to making these calculations at runtime. If the level is mostly static, and can be split up into zones or cells of some kind, it is possible to precalculate all the objects / areas that are potentially visible from each cell. Then at runtime instead of a complex calculation, you can simply lookup the objects that are potentially in view, cull them against the view frustum and render!
+
+This is extremely fast, however there are a few disadvantages:
+
+1) This only works for static geometry
+2) The pre-processing to calculate the PVS can be time consuming (but it only need be done at design time)
+3) The PVS can take significant memory - it may need to be compressed, or low resolution
+4) As visibility is determined from a cell (with volume), the results cannot be as accurate as visibility determined from a single camera viewpoint
+5) Without modification it can only give quite approximate culling of dynamic objects (similar problem to (4))
+
