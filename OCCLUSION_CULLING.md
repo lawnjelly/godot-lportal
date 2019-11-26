@@ -5,6 +5,8 @@ Occlusion culling refers to the removal of objects (and faces) as early as possi
 
 while it is fairly easy to determine which objects are outside a view frustum (for example using a series of plane checks), determining which objects are in view within that frustum is a far more difficult problem. If we send everything to the GPU to render this will be resolved using brute force using the Z buffer, however if we can use cheaper techniques this can potentially save a lot of processing.
 
+An important factor to note about culling is that it should be conservative. If something is in view, we cannot afford to miscalculate and cull it. This would result in objects popping in and out of view. However, if something is not in view, we can afford to make a mistake and not cull it, because the visual results will be the same. So very rare cases where we fail to cull an object are fine, if they make the overall algorithm faster.
+
 ## How does a naive modern renderer determine visibility?
 As GPUs have become more powerful over time, the types of fragment shaders used now are far more complex than their counterparts in the early years of GPUs (early 2000s). Modern fragment shaders often use PBR rendering and many calculations, whereas early (fixed function) shaders were simply one or two texture lookups. Due to this, a very common optimization technique to save on fill rate has been to split rendering into 2 passes:
 
@@ -39,5 +41,16 @@ It can also save performance for lighting, for instance by:
 1) Reducing the amount of shadow casters that need to be rendered into shadow maps
 2) Culling lights entirely that are not affecting the objects in view of the camera
 
+# Methods of Occlusion Culling
+These can be separated into two area, although they can potentially be used in combination:
 
+1) Geometrical methods
+2) Raster based methods
 
+## Geometrical methods
+The classical example of geometrical methods is rooms and portals, as used in LPortal. However, there are other geometrical methods, such as anti-portals and tests against occluding geometry. Especially notable is that geometrical methods DO NOT BECOME MORE EXPENSIVE as screen resolution increases. Geometrical methods have become relatively cheaper at runtime over the years, as their processing cost is essentially fixed (depending on the complexity of the game level).
+
+## Raster methods
+The simplest raster based occlusion method is the Z Buffer, it determines the visibility on a per pixel basis. But there are raster methods that can achieve faster results than the conventional z buffer.
+
+## PVS
