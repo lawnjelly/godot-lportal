@@ -1,5 +1,5 @@
 # godot-lportal
-Portal rendering / Occlusion culling module for Godot 3.2\
+Portal rendering / Occlusion culling module for Godot 3.2
 
 You can either use LPortal as a full occlusion culling system if you can create your level as rooms and portals, or use it in a simplified single room mode to speed up culling in any 3d level.
 
@@ -23,7 +23,7 @@ I am currently working on the (optional) external baked lightmap workflow - expo
 The first demo tutorial (see above) is now working with the internal godot baked lightmap workflow. It shows registering dynamic objects (DOBs), loading and unloading levels.
 
 Dynamic lights are now working, both global (directional lights) and local (omnis and spotlights):\
-https://www.youtube.com/watch?v=1WT5AXZlsDc \
+https://www.youtube.com/watch?v=1WT5AXZlsDc 
 
 I have just added a single room mode, which allows LPortal to speed up culling in games that haven't even been designed as rooms and portals.
 
