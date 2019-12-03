@@ -5,6 +5,8 @@
 #define LDEBUG_LIGHTS
 #define LDEBUG_LIGHT_AFFECTED_ROOMS
 
+//#define LDEBUG_UNMERGE
+
 // single compilation unit
 #include "register_types.cpp"
 #include "ldebug.cpp"
@@ -21,4 +23,5 @@
 #include "ltrace.cpp"
 #include "lmain_camera.cpp"
 #include "larea.cpp"
+#include "ldae_exporter.cpp"
 

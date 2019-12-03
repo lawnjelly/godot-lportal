@@ -106,12 +106,16 @@ public:
 	// LIGHTMAPS
 	// helper function to merge SOB meshes for producing lightmaps VIA external blender workflow
 	bool rooms_merge_sobs(Node * pMergeMeshInstance);
-	bool rooms_unmerge_sobs(Node * pMergeMeshInstance);
+	bool rooms_unmerge_sobs(Node * pMergeMeshInstance, float thresh_dist, float thresh_dot);
 	bool rooms_transfer_uv2s(Node * pMeshInstance_From, Node * pMeshInstance_To);
+
+	bool lightmap_external_export(String szFilename); // DAE filename
+	bool lightmap_external_unmerge(Node * pMergeMeshInstance, String szLevelFilename);
+	void lightmap_set_unmerge_params(float thresh_dist, float thresh_dot);
 
 	// one function to do all the uv mapping and lightmap creation in one
 	// (for godot lightmap workflow)
-	MeshInstance * rooms_convert_lightmap_internal(String szProxyFilename, String szLevelFilename);
+	MeshInstance * lightmap_internal(String szProxyFilename, String szLevelFilename);
 
 	//______________________________________________________________________________________
 	// HELPERS
@@ -123,6 +127,7 @@ public:
 	Array rooms_get_visible_rooms() const;
 	// helper func, not needed usually as dob_update returns the room
 	int dob_get_room_id(Node * pDOB);
+	bool export_scene_DAE(Node * pNode, String szFilename);
 
 
 	//______________________________________________________________________________________
@@ -283,6 +288,10 @@ private:
 
 	// for debugging, can emulate view frustum culling
 	bool m_bFrustumOnly;
+
+	// lightmap unmerge params
+	float m_fLightmapUnMerge_ThresholdDist;
+	float m_fLightmapUnMerge_ThresholdDot;
 
 private:
 	// PRIVATE FUNCS

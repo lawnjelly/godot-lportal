@@ -82,7 +82,7 @@ public:
 	void ReverseWindingOrder();
 
 	// useful funcs
-	static bool NameStartsWith(Node * pNode, String szSearch);
+	static bool NameStartsWith(const Node * pNode, String szSearch);
 	static String FindNameAfter(Node * pNode, String szStart);
 
 private:

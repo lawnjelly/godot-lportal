@@ -26,7 +26,7 @@
 
 /////////////////////////////////////////////////////////////////////
 
-bool LPortal::NameStartsWith(Node * pNode, String szSearch)
+bool LPortal::NameStartsWith(const Node * pNode, String szSearch)
 {
 	int sl = szSearch.length();
 

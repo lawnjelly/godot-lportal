@@ -30,6 +30,7 @@
 #include "lroom.h"
 #include "lhelper.h"
 #include "lscene_saver.h"
+#include "ldae_exporter.h"
 
 #define LROOMLIST m_pRoomList
 #define CHECK_ROOM_LIST if (!CheckRoomList())\
@@ -67,6 +68,15 @@ LRoomManager::LRoomManager()
 	m_bDebugFrameString = false;
 
 	m_pRoomList = 0;
+
+
+
+	// loses detail at approx .. 0.00001
+	// dot 0.9999
+	// however, this will depend on the map so we will use some more approximate figures, and allow
+	// the user to change in rare cases where this fails
+	m_fLightmapUnMerge_ThresholdDist = 0.001f;
+	m_fLightmapUnMerge_ThresholdDot = 0.99f;
 
 	if (!Engine::get_singleton()->is_editor_hint())
 	{
@@ -1233,15 +1243,22 @@ bool LRoomManager::rooms_transfer_uv2s(Node * pMeshInstance_From, Node * pMeshIn
 }
 
 
-bool LRoomManager::rooms_unmerge_sobs(Node * pMergeMeshInstance)
+bool LRoomManager::rooms_unmerge_sobs(Node * pMergeMeshInstance, float thresh_dist, float thresh_dot)
 {
 	MeshInstance * pMI = Object::cast_to<MeshInstance>(pMergeMeshInstance);
 
 	LHelper helper;
+	helper.SetUnMergeParams(thresh_dist, thresh_dot);
 	Lawn::LDebug::m_bRunning = false;
 	bool res = helper.UnMergeSOBs(*this, pMI);
 	Lawn::LDebug::m_bRunning = true;
 	return res;
+}
+
+bool LRoomManager::export_scene_DAE(Node * pNode, String szFilename)
+{
+	LDAEExporter dae;
+	return dae.SaveScene(pNode, szFilename);
 }
 
 bool LRoomManager::rooms_save_scene(Node * pNode, String szFilename)
@@ -1250,8 +1267,41 @@ bool LRoomManager::rooms_save_scene(Node * pNode, String szFilename)
 	return saver.SaveScene(pNode, szFilename);
 }
 
+void LRoomManager::lightmap_set_unmerge_params(float thresh_dist, float thresh_dot)
+{
+	// sanitize? NYI
+	m_fLightmapUnMerge_ThresholdDist = thresh_dist;
+	m_fLightmapUnMerge_ThresholdDot = thresh_dot;
+}
 
-MeshInstance * LRoomManager::rooms_convert_lightmap_internal(String szProxyFilename, String szLevelFilename)
+bool LRoomManager::lightmap_external_unmerge(Node * pMergeMeshInstance, String szLevelFilename)
+{
+	ResolveRoomListPath();
+	if (!CheckRoomList())
+	{
+		WARN_PRINT_ONCE("rooms_convert_lightmap_external : rooms not set");
+		return 0;
+	}
+
+	LRoomConverter conv;
+	conv.Convert(*this, true, true, false);
+
+	bool res = rooms_unmerge_sobs(pMergeMeshInstance, m_fLightmapUnMerge_ThresholdDist, m_fLightmapUnMerge_ThresholdDot);
+
+	if (res)
+	{
+		// save the UV2 mapped level
+		if (szLevelFilename != "")
+			rooms_save_scene(LROOMLIST, szLevelFilename);
+
+		return true;
+	}
+
+	return false;
+}
+
+
+MeshInstance * LRoomManager::lightmap_internal(String szProxyFilename, String szLevelFilename)
 {
 	ResolveRoomListPath();
 	if (!CheckRoomList())
@@ -1264,6 +1314,10 @@ MeshInstance * LRoomManager::rooms_convert_lightmap_internal(String szProxyFilen
 	conv.Convert(*this, true, true, false);
 
 	LHelper helper;
+
+	// as we are doing an unmerge, we want to allow the user to override the parameters of the unmerge
+	helper.SetUnMergeParams(m_fLightmapUnMerge_ThresholdDist, m_fLightmapUnMerge_ThresholdDot);
+
 	Lawn::LDebug::m_bRunning = false;
 	MeshInstance * pMI = helper.CreateLightmapProxy(*this);
 
@@ -1283,15 +1337,70 @@ MeshInstance * LRoomManager::rooms_convert_lightmap_internal(String szProxyFilen
 	return pMI;
 }
 
+bool LRoomManager::lightmap_external_export(String szFilename) // DAE filename
+{
+	ResolveRoomListPath();
+	CHECK_ROOM_LIST
+
+	LRoomConverter conv;
+	conv.Convert(*this, true, true, false, true);
+
+//	LRoomConverter conv;
+//	conv.Convert(*this, true, true, false);
+
+//#m_Manager.rooms_single_room_convert(true, false)
+//	rooms_single_room_convert(
+
+
+
+//	if (!m_pRoomList)
+//		return false;
+
+	rooms_set_active(false);
+
+	// first create a temporary mesh instance
+	MeshInstance * pMerged = memnew(MeshInstance);
+	pMerged->set_name("Merged");
+	add_child(pMerged);
+
+
+	LHelper helper;
+	Lawn::LDebug::m_bRunning = false;
+	bool res = helper.MergeSOBs(*this, pMerged, false);
+	Lawn::LDebug::m_bRunning = true;
+
+	// create the merged geometry
+	if (res)
+	{
+		// save as a DAE
+		LDAEExporter dae;
+		dae.SetMergedMeshInstance(pMerged);
+
+		res = dae.SaveScene(m_pRoomList, szFilename, true);
+	}
+
+	pMerged->queue_delete();
+
+	rooms_set_active(true);
+	return res;
+}
 
 bool LRoomManager::rooms_merge_sobs(Node * pMergeMeshInstance)
 {
 	MeshInstance * pMI = Object::cast_to<MeshInstance>(pMergeMeshInstance);
 
+
+	// first make sure all SOBs are showing by deactivating LPortal
+	rooms_set_active(false);
+
 	LHelper helper;
 	Lawn::LDebug::m_bRunning = false;
 	bool res = helper.MergeSOBs(*this, pMI);
 	Lawn::LDebug::m_bRunning = true;
+
+	// finally reactivate LPortal
+	rooms_set_active(true);
+
 	return res;
 }
 
@@ -1881,10 +1990,17 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("rooms_save_scene", "node", "filename"), &LRoomManager::rooms_save_scene);
 
 	// stuff for external workflow .. works but don't expose yet
-//	ClassDB::bind_method(D_METHOD("rooms_merge_sobs"), &LRoomManager::rooms_merge_sobs);
-//	ClassDB::bind_method(D_METHOD("rooms_unmerge_sobs"), &LRoomManager::rooms_unmerge_sobs);
-//	ClassDB::bind_method(D_METHOD("rooms_transfer_uv2s"), &LRoomManager::rooms_transfer_uv2s);
+	//ClassDB::bind_method(D_METHOD("rooms_merge_sobs"), &LRoomManager::rooms_merge_sobs);
+	//ClassDB::bind_method(D_METHOD("rooms_unmerge_sobs"), &LRoomManager::rooms_unmerge_sobs);
+	//ClassDB::bind_method(D_METHOD("rooms_transfer_uv2s"), &LRoomManager::rooms_transfer_uv2s);
 
+	ClassDB::bind_method(D_METHOD("lightmap_external_export", "DAE filename"), &LRoomManager::lightmap_external_export);
+	ClassDB::bind_method(D_METHOD("lightmap_external_unmerge", "merged mesh instance", "output level filename"), &LRoomManager::lightmap_external_unmerge);
+	ClassDB::bind_method(D_METHOD("lightmap_set_unmerge_params", "threshold distance (e.g. 0.001)", "threshold dot (e.g. 0.99)"), &LRoomManager::lightmap_set_unmerge_params);
+
+
+	// lightmapping
+	ClassDB::bind_method(D_METHOD("lightmap_internal", "output proxy filename", "output level filename"), &LRoomManager::lightmap_internal);
 
 	// debugging
 	ClassDB::bind_method(D_METHOD("rooms_set_logging", "level 0 to 6"), &LRoomManager::rooms_set_logging);
@@ -1899,8 +2015,6 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("rooms_set_debug_frame_string", "active"), &LRoomManager::rooms_set_debug_frame_string);
 	ClassDB::bind_method(D_METHOD("rooms_get_debug_frame_string"), &LRoomManager::rooms_get_debug_frame_string);
 
-	// lightmapping
-	ClassDB::bind_method(D_METHOD("rooms_convert_lightmap_internal", "proxy filename", "level filename"), &LRoomManager::rooms_convert_lightmap_internal);
 
 	// functions to add dynamic objects to the culling system
 	// Note that these should not be placed directly in rooms, the system will 'soft link' to them
@@ -1933,6 +2047,9 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("set_rooms", "rooms"), &LRoomManager::set_rooms);
 	ClassDB::bind_method(D_METHOD("set_rooms_path", "rooms"), &LRoomManager::set_rooms_path);
 	ClassDB::bind_method(D_METHOD("get_rooms_path"), &LRoomManager::get_rooms_path);
+
+	ClassDB::bind_method(D_METHOD("export_scene_DAE", "node", "filename"), &LRoomManager::export_scene_DAE);
+
 
 	ADD_PROPERTY(PropertyInfo(Variant::NODE_PATH, "rooms"), "set_rooms_path", "get_rooms_path");
 }

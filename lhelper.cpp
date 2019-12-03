@@ -7,6 +7,11 @@
 // for ::free
 #include <stdlib.h>
 
+LHelper::LHelper()
+{
+	SetUnMergeParams(0.1f, 0.95f);
+}
+
 
 String LHelper::LFace::ToString() const
 {
@@ -18,7 +23,7 @@ String LHelper::LFace::ToString() const
 		sz += ", ";
 	}
 
-	sz += " norm : ";
+	sz += "norm : ";
 	for (int c=0; c<3; c++)
 	{
 		sz += String(Variant(m_Norm[c]));
@@ -97,8 +102,15 @@ bool LHelper::FillMergedFromMesh(LMerged &merged, const MeshInstance &mesh)
 
 	if (merged.m_UV2s.size() == 0)
 	{
-		LWARN(5, "Merged mesh has no secondary UVs");
-		return false;
+		LPRINT(5, "Merged mesh has no secondary UVs, using primary UVs");
+
+		merged.m_UV2s = arrays[VS::ARRAY_TEX_UV];
+
+		if (merged.m_UV2s.size() == 0)
+		{
+			LWARN(5, "Merged mesh has no UVs");
+			return false;
+		}
 	}
 
 	int miCount = 0;
@@ -120,6 +132,13 @@ bool LHelper::FillMergedFromMesh(LMerged &merged, const MeshInstance &mesh)
 }
 
 
+void LHelper::SetUnMergeParams(float thresh_dist, float thresh_dot)
+{
+	m_MergeParams.m_fThresholdDist = thresh_dist;
+	m_MergeParams.m_fThresholdDist_Squared = thresh_dist * thresh_dist;
+	m_MergeParams.m_fThresholdDot = thresh_dot;
+}
+
 // take the UV2 coords from the merged mesh and attach these to the SOB meshes
 bool LHelper::UnMergeSOBs(LRoomManager &manager, MeshInstance * pMerged)
 {
@@ -134,8 +153,13 @@ bool LHelper::UnMergeSOBs(LRoomManager &manager, MeshInstance * pMerged)
 		return false;
 
 	// go through each sob mesh
+//	for (int n=1; n<2; n++)
 	for (int n=0; n<manager.m_SOBs.size(); n++)
 	{
+#ifdef LDEBUG_UNMERGE
+		LPRINT(5, "Unmerge SOB " + itos(n));
+#endif
+
 		LSob &sob = manager.m_SOBs[n];
 		GeometryInstance * pGI = sob.GetGI();
 		if (!pGI)
@@ -182,31 +206,101 @@ unsigned int LHelper::FindMatchingVertex(const PoolVector<Vector2> &uvs, const V
 	return -1;
 }
 
-bool LHelper::DoFaceVertsApproxMatch(const LFace& sob_f, const LFace &m_face, int c0, int c1) const
+bool LHelper::DoFaceVertsApproxMatch(const LFace& sob_f, const LFace &m_face, int c0, int c1, bool bDebug) const
 {
-	return DoPosNormsApproxMatch(sob_f.m_Pos[c0], sob_f.m_Norm[c0], m_face.m_Pos[c1], m_face.m_Norm[c1]);
+	return DoPosNormsApproxMatch(sob_f.m_Pos[c0], sob_f.m_Norm[c0], m_face.m_Pos[c1], m_face.m_Norm[c1], bDebug);
 }
 
-bool LHelper::DoPosNormsApproxMatch(const Vector3 &a_pos, const Vector3 &a_norm, const Vector3 &b_pos, const Vector3 &b_norm) const
+bool LHelper::DoPosNormsApproxMatch(const Vector3 &a_pos, const Vector3 &a_norm, const Vector3 &b_pos, const Vector3 &b_norm, bool bDebug) const
 {
+	bDebug = false;
+
+	float thresh_diff = m_MergeParams.m_fThresholdDist;
+	float thresh_diff_squared = m_MergeParams.m_fThresholdDist_Squared;
+
 	float x_diff = fabs (b_pos.x - a_pos.x);
-	if (x_diff > 0.2f)
+	if (x_diff > thresh_diff)
+	{
+#ifdef LDEBUG_UNMERGE
+		if (bDebug)
+			LPRINT(5, "\t\t\t\tRejecting x_diff " + ftos(x_diff));
+#endif
 		return false;
+	}
+
+	float z_diff = fabs (b_pos.z - a_pos.z);
+	if (z_diff > thresh_diff)
+	{
+#ifdef LDEBUG_UNMERGE
+		if (bDebug)
+			LPRINT(5, "\t\t\t\tRejecting z_diff " + ftos(z_diff));
+#endif
+		return false;
+	}
+
+	float y_diff = fabs (b_pos.y - a_pos.y);
+	if (y_diff > thresh_diff)
+	{
+#ifdef LDEBUG_UNMERGE
+		if (bDebug)
+			LPRINT(5, "\t\t\t\tRejecting y_diff " + ftos(y_diff));
+#endif
+		return false;
+	}
+
 
 
 	Vector3 pos_diff = b_pos - a_pos;
-	if (pos_diff.length_squared() > 0.1f)
+	if (pos_diff.length_squared() > thresh_diff_squared) // 0.1
+	{
+#ifdef LDEBUG_UNMERGE
+		if (bDebug)
+			LPRINT(5, "\t\t\t\tRejecting length squared " + ftos(pos_diff.length_squared()));
+#endif
+
 		return false;
+	}
 
 	// make sure both are normalized
 	Vector3 na = a_norm;//.normalized();
 	Vector3 nb = b_norm;//.normalized();
 
 	float norm_dot = na.dot(nb);
-	if (norm_dot < 0.95f)
+	if (norm_dot < m_MergeParams.m_fThresholdDot)
+	{
+#ifdef LDEBUG_UNMERGE
+		if (bDebug)
+			LPRINT(5, "\t\t\t\tRejecting normal " + ftos(norm_dot) + " na : " + String(na) + ", nb : " + String(nb));
+#endif
 		return false;
+	}
 
 	return true;
+}
+
+
+int LHelper::DoFacesMatch_Offset(const LFace& sob_f, const LFace &m_face, int offset) const
+{
+#ifdef LDEBUG_UNMERGE
+	// debug
+	String sz = "\t\tPOSS match sob : ";
+	sz += sob_f.ToString();
+	sz += "\n\t\t\tmerged : ";
+	sz += m_face.ToString();
+	LPRINT(2, sz);
+#endif
+
+
+	// does 2nd and third match?
+	int offset1 = (offset + 1) % 3;
+	if (!DoFaceVertsApproxMatch(sob_f, m_face, 1, offset1, true))
+		return -1;
+
+	int offset2 = (offset + 2) % 3;
+	if (!DoFaceVertsApproxMatch(sob_f, m_face, 2, offset2, true))
+		return -1;
+
+	return offset;
 }
 
 
@@ -214,39 +308,18 @@ bool LHelper::DoPosNormsApproxMatch(const Vector3 &a_pos, const Vector3 &a_norm,
 int LHelper::DoFacesMatch(const LFace& sob_f, const LFace &m_face) const
 {
 	// match one
-	int offset = 0;
-	bool bMatch = false;
-	for (offset = 0; offset < 3; offset++)
+	for (int offset = 0; offset < 3; offset++)
 	{
-		if (DoFaceVertsApproxMatch(sob_f, m_face, 0, offset))
+		if (DoFaceVertsApproxMatch(sob_f, m_face, 0, offset, false))
 		{
-			bMatch = true;
-			break;
+			int res = DoFacesMatch_Offset(sob_f, m_face, offset);
+
+			if (res != -1)
+				return res;
 		}
 	}
 
-	// none found that match, most common scenario
-	if (!bMatch)
-		return -1;
-
-	// debug
-//	String sz = "\t\tposs match sob : ";
-//	sz += sob_f.ToString();
-//	sz += " merged : ";
-//	sz += m_face.ToString();
-//	LPRINT(2, sz);
-
-
-	// does 2nd and third match?
-	int offset1 = (offset + 1) % 3;
-	if (!DoFaceVertsApproxMatch(sob_f, m_face, 1, offset1))
-		return -1;
-
-	int offset2 = (offset + 2) % 3;
-	if (!DoFaceVertsApproxMatch(sob_f, m_face, 2, offset2))
-		return -1;
-
-	return offset;
+	return -1; // no match
 }
 
 
@@ -317,6 +390,10 @@ bool LHelper::UnMerge_SOB(MeshInstance &mi, LMerged &merged)
 
 			lf.m_index[c] = ind;
 		}
+
+#ifdef LDEBUG_UNMERGE
+		LPRINT(5, "lface : " + lf.ToString());
+#endif
 
 		// find matching face
 //		int miCount = 0;
@@ -533,7 +610,7 @@ finish:
 }
 
 
-bool LHelper::MergeSOBs(LRoomManager &manager, MeshInstance * pMerged)
+bool LHelper::MergeSOBs(LRoomManager &manager, MeshInstance * pMerged, bool bLightmapUnwrap)
 {
 	PoolVector<Vector3> verts;
 	PoolVector<Vector3> normals;
@@ -554,12 +631,12 @@ bool LHelper::MergeSOBs(LRoomManager &manager, MeshInstance * pMerged)
 			continue;
 
 		// to get the transform, the node has to be in the tree, so temporarily show if hidden
-		bool bShowing = sob.m_bShow;
-		sob.Show(true);
+		//bool bShowing = sob.m_bShow;
+		//sob.Show(true);
 
 		Merge_MI(*pMI, verts, normals, inds);
 
-		sob.Show(bShowing);
+		//sob.Show(bShowing);
 	}
 
 
@@ -608,7 +685,8 @@ bool LHelper::MergeSOBs(LRoomManager &manager, MeshInstance * pMerged)
 
 	am->add_surface_from_arrays(Mesh::PRIMITIVE_TRIANGLES, arr, Array(), Mesh::ARRAY_COMPRESS_DEFAULT);
 
-	LightmapUnwrap(am, pMerged->get_global_transform());
+	if (bLightmapUnwrap)
+		LightmapUnwrap(am, pMerged->get_global_transform());
 
 	// duplicate the UV2 to uv1 just in case they are needed
 	arr[Mesh::ARRAY_TEX_UV] = arr[Mesh::ARRAY_TEX_UV2];
