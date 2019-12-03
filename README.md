@@ -48,12 +48,14 @@ I have added a single room mode, which allows LPortal to speed up culling in gam
 * Optional convex hull bound for rooms DONE
 * Add debug graphical view of portal planes DONE
 * Add debug graphical view of room bounds DONE
-* Dealing with shadows from objects outside of view PARTIALLY DONE
+* Dealing with shadows from objects outside of view DONE
 * Universal visibility query for camera and dynamic lights DONE
-* Support for global directional lights (like the sun) ONGOING
-* Building baked lightmap workflow ONGOING
+* Support for global directional lights (like the sun) DONE
+* Internal baked lightmap workflow DONE
+* External baked lightmap workflow DONE
 * Bug fixing / testing ONGOING
 
+* Demo game
 * Shadow caster optimization
 * Closable portals
 * PVS (primary and secondary)
