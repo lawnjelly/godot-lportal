@@ -18,14 +18,16 @@ https://github.com/lawnjelly/lportal-demos
 _Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._
 
 ## Current status
-I am currently working on the (optional) external baked lightmap workflow - exporting levels to blender for uvmapping and lightmapping.
+As everything is now basically working, aside from bug fixing, my next stage is to build a demo game to show off the module and better test everything, probably a simple first person shooter.
+
+The external lightmapping workflow is now basically working, as described in the instructions. This allows a higher quality result than is currently possible with the Godot lightmapper. LPortal can export your level as a collada (dae) file which you can uv map and bake a lightmap in blender. Note that I'm not yet exporting the materials, I may add this later as this will enable the material colours and properties to affect the baked lightmap (e.g. a green wall will reflect green colour).
 
 The first demo tutorial (see above) is now working with the internal godot baked lightmap workflow. It shows registering dynamic objects (DOBs), loading and unloading levels.
 
 Dynamic lights are now working, both global (directional lights) and local (omnis and spotlights):\
 https://www.youtube.com/watch?v=1WT5AXZlsDc 
 
-I have just added a single room mode, which allows LPortal to speed up culling in games that haven't even been designed as rooms and portals.
+I have added a single room mode, which allows LPortal to speed up culling in games that haven't even been designed as rooms and portals.
 
 ## Instructions
 * [OVERVIEW](OCCLUSION_CULLING.md)
