@@ -234,15 +234,32 @@ void LPortal::CreateGeometry(PoolVector<Vector3> p_vertices, const Transform &tr
 	int nPoints = p_vertices.size();
 	ERR_FAIL_COND(nPoints < 3);
 
-	m_ptsWorld.resize(nPoints);
+	m_ptsWorld.clear();
 
 	//print("\t\t\tLPortal::CreateGeometry nPoints : " + itos(nPoints));
 
 	for (int n=0; n<nPoints; n++)
 	{
 		Vector3 ptWorld = trans.xform(p_vertices[n]);
-		m_ptsWorld.set(n, ptWorld);
-		m_ptCentre += ptWorld;
+
+		// new!! test for duplicates. Some geometry may contain duplicate verts in portals which will muck up
+		// the winding etc...
+		bool bDuplicate = false;
+		for (int m=0; m<m_ptsWorld.size(); m++)
+		{
+			Vector3 ptDiff = ptWorld - m_ptsWorld[m];
+			if (ptDiff.length() < 0.001f)
+			{
+				bDuplicate = true;
+				break;
+			}
+		}
+
+		if (!bDuplicate)
+		{
+			m_ptsWorld.push_back(ptWorld);
+			m_ptCentre += ptWorld;
+		}
 
 		//print("\t\t\t\t" + itos(n) + "\tLocal : " + Variant(p_vertices[n]) + "\tWorld : " + ptWorld);
 	}

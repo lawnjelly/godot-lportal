@@ -15,7 +15,8 @@ sources = [
 ]
 
 module_env = env.Clone()
-module_env.Append(CXXFLAGS=['-O2', '-std=c++11', '-Wno-sign-compare', '-Wno-strict-aliasing'])
+#module_env.Append(CXXFLAGS=['-O2', '-std=c++11', '-Wno-sign-compare', '-Wno-strict-aliasing'])
+module_env.Append(CXXFLAGS=['-std=c++11', '-Wno-sign-compare', '-Wno-strict-aliasing'])
 
 if ARGUMENTS.get('lportal_shared', 'no') == 'yes':
     # Shared lib compilation
