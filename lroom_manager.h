@@ -60,6 +60,7 @@ public:
 	// convert empties and meshes to rooms and portals
 	bool rooms_convert(bool bVerbose, bool bDeleteLights);
 	bool rooms_single_room_convert(bool bVerbose, bool bDeleteLights);
+	void rooms_set_portal_plane_convention(bool bFlip);
 	// free memory for current set of rooms, prepare for converting a new game level
 	void rooms_release();
 
@@ -141,6 +142,9 @@ public:
 	void rooms_set_debug_frustums(bool bActive);
 	void rooms_set_debug_frame_string(bool bActive);
 
+	// rough .. for debugging
+	Vector3 rooms_get_room_centre(int room_id) const;
+
 	// 0 to 6 .. less to more
 	// defaults to 4 which is (2) in our priorities (i.e. 6 - level)
 	void rooms_set_logging(int level);
@@ -207,6 +211,10 @@ private:
 	// keep a frame counter, to mark when objects have been hit by the visiblity algorithm
 	// already to prevent multiple hits on rooms and objects
 	unsigned int m_uiFrameCounter;
+
+	// the portal plane determined by the artwork geometry for room conversion can either point in or out,
+	// this convention is switchable
+	bool m_bPortalPlane_Convention;
 
 private:
 	// lists of rooms and portals, contiguous list so cache friendly

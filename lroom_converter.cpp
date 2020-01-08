@@ -1388,7 +1388,7 @@ void LRoomConverter::LRoom_DetectedPortalMesh(LRoom &lroom, LTempRoom &troom, Me
 	lport.m_iRoomNum = iLinkRoom;
 
 	// create the portal geometry
-	lport.CreateGeometry(p_vertices, pMeshInstance->get_global_transform());
+	lport.CreateGeometry(p_vertices, pMeshInstance->get_global_transform(), LMAN->m_bPortalPlane_Convention);
 
 
 //	LPRINT(2, "\t\t\tnum portals now " + itos(troom.m_Portals.size()));

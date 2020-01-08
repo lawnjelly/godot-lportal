@@ -229,7 +229,7 @@ LPortal::eClipResult LPortal::ClipWithPlane(const Plane &p) const
 }
 
 
-void LPortal::CreateGeometry(PoolVector<Vector3> p_vertices, const Transform &trans)
+void LPortal::CreateGeometry(PoolVector<Vector3> p_vertices, const Transform &trans, bool bPortalPlane_Convention)
 {
 	int nPoints = p_vertices.size();
 	ERR_FAIL_COND(nPoints < 3);
@@ -238,9 +238,15 @@ void LPortal::CreateGeometry(PoolVector<Vector3> p_vertices, const Transform &tr
 
 	//print("\t\t\tLPortal::CreateGeometry nPoints : " + itos(nPoints));
 
+	//Vector3 ptFirstThree[3];
+
 	for (int n=0; n<nPoints; n++)
 	{
 		Vector3 ptWorld = trans.xform(p_vertices[n]);
+
+		// store the first three to make the plane, irrespective of duplicates
+//		if (n < 3)
+//			ptFirstThree[n] = ptWorld;
 
 		// new!! test for duplicates. Some geometry may contain duplicate verts in portals which will muck up
 		// the winding etc...
@@ -264,17 +270,25 @@ void LPortal::CreateGeometry(PoolVector<Vector3> p_vertices, const Transform &tr
 		//print("\t\t\t\t" + itos(n) + "\tLocal : " + Variant(p_vertices[n]) + "\tWorld : " + ptWorld);
 	}
 
-	SortVertsClockwise();
+//	Plane portal_plane = Plane(ptFirstThree[0], ptFirstThree[1], ptFirstThree[2]);
+
+	SortVertsClockwise(bPortalPlane_Convention);
 	PlaneFromPoints();
 }
 
-// assume first 3 determine the desired normal
-void LPortal::SortVertsClockwise()
+void LPortal::SortVertsClockwise(bool bPortalPlane_Convention)
 {
 	Vector<Vector3> &verts = m_ptsWorld;
 
+	// We first assumed first 3 determine the desired normal
+
 	// find normal
-	Plane plane = Plane(verts[0], verts[1], verts[2]);
+	Plane plane;
+	if (bPortalPlane_Convention)
+		plane = Plane(verts[0], verts[2], verts[1]);
+	else
+		plane = Plane(verts[0], verts[1], verts[2]);
+
 	Vector3 ptNormal = plane.normal;
 
 	// find centroid

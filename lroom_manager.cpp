@@ -56,6 +56,8 @@ LRoomManager::LRoomManager()
 	m_bActive = true;
 	m_bFrustumOnly = false;
 
+	m_bPortalPlane_Convention = false;
+
 	// to know which rooms to hide we keep track of which were shown this, and the previous frame
 	m_pCurr_VisibleRoomList = &m_VisibleRoomList_A;
 	m_pPrev_VisibleRoomList = &m_VisibleRoomList_B;
@@ -1025,6 +1027,17 @@ int LRoomManager::rooms_get_num_rooms() const
 	return m_Rooms.size();
 }
 
+Vector3 LRoomManager::rooms_get_room_centre(int room_id) const
+{
+	const LRoom * pRoom = GetRoom(room_id);
+
+	if (!pRoom)
+		return Vector3(0, 0, 0);
+
+	return pRoom->m_ptCentre;
+}
+
+
 bool LRoomManager::rooms_is_room_visible(int room_id) const
 {
 	if (room_id >= m_Rooms.size())
@@ -1216,6 +1229,12 @@ bool LRoomManager::RoomsConvert(bool bVerbose, bool bDeleteLights, bool bSingleR
 bool LRoomManager::rooms_single_room_convert(bool bVerbose, bool bDeleteLights)
 {
 	return RoomsConvert(bVerbose, bDeleteLights, true);
+}
+
+
+void LRoomManager::rooms_set_portal_plane_convention(bool bFlip)
+{
+	m_bPortalPlane_Convention = bFlip;
 }
 
 // convert empties and meshes to rooms and portals
@@ -1983,6 +2002,8 @@ void LRoomManager::_bind_methods()
 	// main functions
 	ClassDB::bind_method(D_METHOD("rooms_convert", "verbose", "delete lights"), &LRoomManager::rooms_convert);
 	ClassDB::bind_method(D_METHOD("rooms_single_room_convert", "verbose", "delete lights"), &LRoomManager::rooms_single_room_convert);
+	ClassDB::bind_method(D_METHOD("rooms_set_portal_plane_convention", "flip"), &LRoomManager::rooms_set_portal_plane_convention);
+
 	ClassDB::bind_method(D_METHOD("rooms_release"), &LRoomManager::rooms_release);
 
 	ClassDB::bind_method(D_METHOD("rooms_set_camera", "camera"), &LRoomManager::rooms_set_camera);
@@ -2015,6 +2036,7 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("rooms_set_debug_frame_string", "active"), &LRoomManager::rooms_set_debug_frame_string);
 	ClassDB::bind_method(D_METHOD("rooms_get_debug_frame_string"), &LRoomManager::rooms_get_debug_frame_string);
 
+	ClassDB::bind_method(D_METHOD("rooms_get_room_centre", "room_id"), &LRoomManager::rooms_get_room_centre);
 
 	// functions to add dynamic objects to the culling system
 	// Note that these should not be placed directly in rooms, the system will 'soft link' to them

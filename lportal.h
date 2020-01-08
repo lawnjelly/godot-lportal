@@ -76,9 +76,9 @@ public:
 	LPortal();
 
 	void CopyReversedGeometry(const LPortal &source);
-	void CreateGeometry(PoolVector<Vector3> p_vertices, const Transform &trans);
+	void CreateGeometry(PoolVector<Vector3> p_vertices, const Transform &trans, bool bPortalPlane_Convention);
 	void PlaneFromPoints();
-	void SortVertsClockwise();
+	void SortVertsClockwise(bool bPortalPlane_Convention);
 	void ReverseWindingOrder();
 
 	// useful funcs
