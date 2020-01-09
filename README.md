@@ -12,22 +12,21 @@ https://www.youtube.com/watch?v=uVwLltiouBs \
 https://www.youtube.com/watch?v=xF_3Fe2HRdk \
 https://www.youtube.com/watch?v=NmlWkkhGoJA
 
+### Features
+* Support for dynamic objects (DOBs)
+* Dynamic lights
+* Optional auto-generation of room bound convex hulls
+* Internal lightmapping workflow (for baking lights in Godot)
+* External lightmapping workflow (for baking lights in Blender etc)
+* Single room mode (for non-portalled levels)
+
 ### Demos / Tutorials
 https://github.com/lawnjelly/lportal-demos
 
 _Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._
 
 ## Current status
-As everything is now basically working, aside from bug fixing, my next stage is to build a demo game to show off the module and better test everything, probably a simple first person shooter.
-
-The external lightmapping workflow is now basically working, as described in the instructions. This allows a higher quality result than is currently possible with the Godot lightmapper. LPortal can export your level as a collada (dae) file which you can uv map and bake a lightmap in blender. Note that I'm not yet exporting the materials, I may add this later as this will enable the material colours and properties to affect the baked lightmap (e.g. a green wall will reflect green colour).
-
-The first demo tutorial (see above) is now working with the internal godot baked lightmap workflow. It shows registering dynamic objects (DOBs), loading and unloading levels.
-
-Dynamic lights are now working, both global (directional lights) and local (omnis and spotlights):\
-https://www.youtube.com/watch?v=1WT5AXZlsDc 
-
-I have added a single room mode, which allows LPortal to speed up culling in games that haven't even been designed as rooms and portals.
+As everything is now basically working, I am currently working on a small demo / test first person shooter game. This is helping me find bugs / add usability features as I go.
 
 ## Instructions
 * [OVERVIEW](OCCLUSION_CULLING.md)
@@ -41,11 +40,10 @@ I have added a single room mode, which allows LPortal to speed up culling in gam
 * Recursive determine visibility DONE
 * Prevent memory allocations (use pools for plane vectors) DONE
 * Add support for objects moving between rooms - cameras, players, physics etc - DONE
-* Refactor code, moving LRooms and LPortals outside scene graph DONE
-* Cleanup code, Optimize DONE
 * Handle special cases (multiple portals views into room etc) DONE
 * Optimize non-moving statics DONE
 * Optional convex hull bound for rooms DONE
+* Auto convex hull bound generation DONE
 * Add debug graphical view of portal planes DONE
 * Add debug graphical view of room bounds DONE
 * Dealing with shadows from objects outside of view DONE
@@ -53,9 +51,10 @@ I have added a single room mode, which allows LPortal to speed up culling in gam
 * Support for global directional lights (like the sun) DONE
 * Internal baked lightmap workflow DONE
 * External baked lightmap workflow DONE
+* Switchable culling method DONE
 * Bug fixing / testing ONGOING
 
-* Demo game
+* Demo game ONGOING
 * Shadow caster optimization
 * Closable portals
 * PVS (primary and secondary)
