@@ -378,27 +378,8 @@ bool LRoomConverter::Bound_AddPlaneIfUnique(LVector<Plane> &planes, const Plane 
 	return true;
 }
 
-bool LRoomConverter::Convert_Bound(LRoom &lroom, MeshInstance * pMI)
+bool LRoomConverter::Convert_Bound_FromPoints(LRoom &lroom, const Vector<Vector3> &points)
 {
-	LPRINT(2, "\tCONVERT_BOUND : '" + pMI->get_name() + "' for room '" + lroom.get_name() + "'");
-
-	// some godot jiggery pokery to get the mesh verts in local space
-	Ref<Mesh> rmesh = pMI->get_mesh();
-	Array arrays = rmesh->surface_get_arrays(0);
-	PoolVector<Vector3> p_vertices = arrays[VS::ARRAY_VERTEX];
-
-	// convert to world space
-	Transform trans = pMI->get_global_transform();
-	Vector<Vector3> points;
-	for (int n=0; n<p_vertices.size(); n++)
-	{
-		Vector3 ptWorld = trans.xform(p_vertices[n]);
-		points.push_back(ptWorld);
-
-		// expand the room AABB to make sure it encompasses the bound
-		lroom.m_AABB.expand_to(ptWorld);
-	}
-
 	if (points.size() > 3)
 	{
 		Geometry::MeshData md;
@@ -434,6 +415,39 @@ bool LRoomConverter::Convert_Bound(LRoom &lroom, MeshInstance * pMI)
 	}
 
 	return false;
+}
+
+
+void LRoomConverter::GetWorldVertsFromMesh(const MeshInstance &mi, Vector<Vector3> &pts) const
+{
+	// some godot jiggery pokery to get the mesh verts in local space
+	Ref<Mesh> rmesh = mi.get_mesh();
+	Array arrays = rmesh->surface_get_arrays(0);
+	PoolVector<Vector3> p_vertices = arrays[VS::ARRAY_VERTEX];
+
+	// convert to world space
+	Transform trans = mi.get_global_transform();
+
+	for (int n=0; n<p_vertices.size(); n++)
+	{
+		Vector3 ptWorld = trans.xform(p_vertices[n]);
+		pts.push_back(ptWorld);
+	}
+}
+
+bool LRoomConverter::Convert_ManualBound(LRoom &lroom, MeshInstance * pMI)
+{
+	LPRINT(2, "\tCONVERT_MANUAL_BOUND : '" + pMI->get_name() + "' for room '" + lroom.get_name() + "'");
+
+	Vector<Vector3> points;
+	GetWorldVertsFromMesh(*pMI, points);
+	for (int n=0; n<points.size(); n++)
+	{
+		// expand the room AABB to make sure it encompasses the bound
+		lroom.m_AABB.expand_to(points[n]);
+	}
+
+	return Convert_Bound_FromPoints(lroom, points);
 }
 
 // hide all in preparation for first frame
@@ -885,7 +899,7 @@ void LRoomConverter::Convert_Bounds()
 			{
 				MeshInstance * pMesh = Object::cast_to<MeshInstance>(pChild);
 				assert (pMesh);
-				Convert_Bound(lroom, pMesh);
+				Convert_ManualBound(lroom, pMesh);
 
 				// delete the mesh
 				pGRoom->remove_child(pChild);
@@ -894,8 +908,36 @@ void LRoomConverter::Convert_Bounds()
 			}
 		}
 
+		// if no manual bound is found, we will create one by using qhull on all the points
+		if (!lroom.m_Bound.IsActive())
+		{
+			Vector<Vector3> pts;
+			Bound_FindPoints_Recursive(pGRoom, pts);
+
+			LPRINT(2, "\tCONVERT_AUTO_BOUND room : '" + lroom.get_name() + "' (" + itos(pts.size()) + " verts)");
+
+			// use qhull
+			Convert_Bound_FromPoints(lroom, pts);
+		}
 	}
 
+}
+
+void LRoomConverter::Bound_FindPoints_Recursive(Node * pNode, Vector<Vector3> &pts)
+{
+	// is it a mesh instance?
+	MeshInstance * pMI = Object::cast_to<MeshInstance>(pNode);
+	if (pMI)
+	{
+		// get the points in world space
+		GetWorldVertsFromMesh(*pMI, pts);
+	}
+
+	for (int n=0; n<pNode->get_child_count(); n++)
+	{
+		Node * pChild = pNode->get_child(n);
+		Bound_FindPoints_Recursive(pChild, pts);
+	}
 }
 
 void LRoomConverter::Convert_Portals()

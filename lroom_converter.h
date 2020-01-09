@@ -97,7 +97,10 @@ private:
 
 	void Convert_Portals();
 	void Convert_Bounds();
-	bool Convert_Bound(LRoom &lroom, MeshInstance * pMI);
+	bool Convert_ManualBound(LRoom &lroom, MeshInstance * pMI);
+	void GetWorldVertsFromMesh(const MeshInstance &mi, Vector<Vector3> &pts) const;
+	void Bound_FindPoints_Recursive(Node * pNode, Vector<Vector3> &pts);
+	bool Convert_Bound_FromPoints(LRoom &lroom, const Vector<Vector3> &points);
 	void Convert_ShadowCasters();
 	void Convert_Lights();
 	void Convert_AreaLights();
