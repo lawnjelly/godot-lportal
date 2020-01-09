@@ -115,15 +115,15 @@ When you first add an object to a room at runtime, it has to decide which room i
 
 You have three choices here:
 
-1) Manually supply the convex hull (bound) for a room
-2) Do not supply a bound, in which case LPortal will simply choose the nearest room centre to the object. _(this can choose the wrong room when rooms are different sizes, for instance a hallway by a large room, so it is not recommended)_
+1) Do not supply a bound, in which case LPortal will auto generate a bound using qhull from the geometry
+2) Manually supply the convex hull (bound) for a room
 3) Use the dob_register_hint and teleport_hint versions, where the user specifies the start room
 
-Approach (1) is the most powerful and flexible, but requires creating a bound, either in your modelling package or within Godot IDE.
+Approach (1) can often be used, but in the case where the geometry is not a good match, you can create a manual bound, either in your modelling package or within Godot IDE.
 
 The bound should be stored as a MeshInstance child of the room, with a specific naming convention, it should start with the prefix 'bound_'. You can put anything after the prefix (or leave as is).
 
-Although the bound will be treated as a convex hull at runtime, you don't have to be perfect when creating it because the geometry will be run through the quickhull algorithm.
+Although the bound will be treated as a convex hull at runtime, you don't have to be perfect when creating it because the geometry for the bound mesh instance will be run through the quickhull algorithm.
 
 ### Ignore objects
 You can optionally prevent objects being added to LPortal internal room system (so they will not be culled to the planes). To do this, their name should begin with 'ignore_'. Note this is only relevant for objects derived from VisualInstance, LPortal ignores all non-visual instance objects. However note that these objects will still be culled when entire rooms are hidden by LPortal (_?is this still true?_).
