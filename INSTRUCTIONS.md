@@ -41,7 +41,9 @@ What does give the expected performance boost and prevent them being processed i
 
 For instance a collision shape child may mean the physics no longer works for the object when culled. To get around this it is suggested to either create collision shapes as siblings (rather than children) of MeshInstances, or place them in another part of the scene graph.
 
-On the other hand you may actively wish to deactivate some processing (e.g. AI) rather than just rendering in areas that are not visible. For this purpose you can query LPortal to find which rooms are visible.
+However, the ultimate choice of which method is up to you. You can choose either detaching objects to show / hide, or the more traditional godot show / hide approach (which will not affect physics etc). The command `rooms_set_hide_method_detach` can either be set to true (default) or false. This should be set before using `rooms_convert`.
+
+You may also actively wish to deactivate some processing (e.g. AI), rather than just rendering in areas that are not visible. For this purpose you can query LPortal to find which rooms are visible.
 
 # Components
 
