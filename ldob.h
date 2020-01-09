@@ -43,6 +43,9 @@ public:
 
 	// separate flag so we don't have to touch the godot lookup
 	bool m_bShow;
+
+	// which method we are using to show and hide .. detaching from scene tree or just show / hide through godot
+	static bool m_bDetach;
 };
 
 // static object

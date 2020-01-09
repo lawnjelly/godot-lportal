@@ -27,6 +27,8 @@
 #include "scene/3d/light.h"
 
 
+bool LHidable::m_bDetach = true;
+
 void LHidable::Hidable_Create(Node * pNode)
 {
 //	m_pNode = 0; m_pParent = 0; m_bShow = true;
@@ -47,15 +49,25 @@ void LHidable::Show(bool bShow)
 
 	assert (m_pParent);
 
-	if (bShow)
+	if (m_bDetach)
 	{
-		// add to tree
-		m_pParent->add_child(m_pNode);
+		if (bShow)
+		{
+			// add to tree
+			m_pParent->add_child(m_pNode);
+		}
+		else
+		{
+			// remove from tree
+			m_pParent->remove_child(m_pNode);
+		}
 	}
 	else
 	{
-		// remove from tree
-		m_pParent->remove_child(m_pNode);
+		if (bShow)
+			((Spatial *) m_pNode)->show();
+		else
+			((Spatial *) m_pNode)->hide();
 	}
 
 }

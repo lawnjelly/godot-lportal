@@ -60,7 +60,6 @@ public:
 	// convert empties and meshes to rooms and portals
 	bool rooms_convert(bool bVerbose, bool bDeleteLights);
 	bool rooms_single_room_convert(bool bVerbose, bool bDeleteLights);
-	void rooms_set_portal_plane_convention(bool bFlip);
 	// free memory for current set of rooms, prepare for converting a new game level
 	void rooms_release();
 
@@ -71,6 +70,10 @@ public:
 	// get the Godot room that is associated with an LPortal room
 	// (can be used to find the name etc of a room ID returned by dob_update)
 	Node * rooms_get_room(int room_id);
+
+	// CONVENTIONS
+	void rooms_set_portal_plane_convention(bool bFlip);
+	void rooms_set_hide_method_detach(bool bDetach);
 
 	//______________________________________________________________________________________
 	// DOBS

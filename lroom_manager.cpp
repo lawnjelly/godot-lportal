@@ -1232,6 +1232,12 @@ bool LRoomManager::rooms_single_room_convert(bool bVerbose, bool bDeleteLights)
 }
 
 
+void LRoomManager::rooms_set_hide_method_detach(bool bDetach)
+{
+	LHidable::m_bDetach = bDetach;
+}
+
+
 void LRoomManager::rooms_set_portal_plane_convention(bool bFlip)
 {
 	m_bPortalPlane_Convention = bFlip;
@@ -2003,6 +2009,8 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("rooms_convert", "verbose", "delete lights"), &LRoomManager::rooms_convert);
 	ClassDB::bind_method(D_METHOD("rooms_single_room_convert", "verbose", "delete lights"), &LRoomManager::rooms_single_room_convert);
 	ClassDB::bind_method(D_METHOD("rooms_set_portal_plane_convention", "flip"), &LRoomManager::rooms_set_portal_plane_convention);
+
+	ClassDB::bind_method(D_METHOD("rooms_set_hide_method_detach", "detach"), &LRoomManager::rooms_set_hide_method_detach);
 
 	ClassDB::bind_method(D_METHOD("rooms_release"), &LRoomManager::rooms_release);
 
