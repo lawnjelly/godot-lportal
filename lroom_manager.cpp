@@ -519,7 +519,7 @@ bool LRoomManager::dob_teleport_hint(Node * pDOB, Node * pRoom)
 
 bool LRoomManager::DobTeleport(Spatial * pDOB, int iNewRoomID)
 {
-	print_line("teleporting " + pDOB->get_name() + " to room " + itos(iNewRoomID));
+	LPRINT(5, "teleporting " + pDOB->get_name() + " to room " + itos(iNewRoomID));
 
 	// old room
 	LRoom * pOldRoom = GetRoomFromDOB(pDOB);
