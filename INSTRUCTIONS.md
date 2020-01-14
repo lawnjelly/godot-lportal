@@ -149,7 +149,7 @@ If a DOB is being culled (popping out of view) when it should not, it is normall
 
 * Each frame, call `dob_update(cam)` to keep that DOB updated in the system
 
-If the DOB is not moving, or you want to deactivate it to save processing, simply don't call update again until you want to reactivate it.
+If the DOB is not moving, or you want to deactivate it to save processing, simply don't call update again until you want to reactivate it. There is no need to call dob_update on the selected camera, it will be updated automatically.
 
 * When you have finished with a DOB you should call `dob_unregister(cam)` to remove the soft link from the system. This is more important when you are creating and deleting DOBs (say with multiple game levels). If you call rooms_release when unloading a level and want to keep DOBs in between levels, it is crucial that you do not update them until you have re-registered them after calling rooms_convert to create the new level (you will get an error message otherwise).
 
