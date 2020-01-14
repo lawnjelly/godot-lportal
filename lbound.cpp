@@ -27,18 +27,24 @@
 
 // get distance behind all planes and return the smallest..
 // if inside this will be negative, if outside, positive
-float LBound::GetClosestDistance(const Vector3 &pt) const
+float LBound::GetSmallestPenetrationDistance(const Vector3 &pt) const
 {
 	assert (m_Planes.size());
 
-	float closest = FLT_MAX;
+	float closest = -FLT_MAX;
 
 	for (int n=0; n<m_Planes.size(); n++)
 	{
 		float d = m_Planes[n].distance_to(pt);
 
 		// if in front of plane, outside the convex hull
-		if (d < closest)
+		if (d > 0.1f) // some large epsilon .. we would rather classify in a nearby cell than not in any cell
+		{
+			// outside the convex hull, don't use
+			return FLT_MAX;
+		}
+
+		if (d > closest)
 			closest = d;
 	}
 

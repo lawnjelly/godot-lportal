@@ -423,6 +423,14 @@ void LRoomConverter::GetWorldVertsFromMesh(const MeshInstance &mi, Vector<Vector
 	// some godot jiggery pokery to get the mesh verts in local space
 	Ref<Mesh> rmesh = mi.get_mesh();
 	Array arrays = rmesh->surface_get_arrays(0);
+
+	// possible to have a meshinstance with no geometry .. don't want to crash
+	if (!arrays.size())
+	{
+		WARN_PRINT_ONCE("Warning : LRoomConverter::GetWorldVertsFromMesh MeshInstance with no mesh, ignoring");
+		return;
+	}
+
 	PoolVector<Vector3> p_vertices = arrays[VS::ARRAY_VERTEX];
 
 	// convert to world space

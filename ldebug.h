@@ -25,10 +25,10 @@
 #ifdef DEBUG_ENABLED
 
 #pragma message ("LPortal DEBUG_ENABLED")
-#define LPRINT_RUN(a, b) {String sz;\
+#define LPRINT_RUN(a, b) {if (!Lawn::LDebug::m_bRunning) {String sz;\
 for (int n=0; n<Lawn::LDebug::m_iTabDepth; n++)\
 sz += "\t";\
-LPRINT(a, sz + b);}
+LPRINT(a, sz + b);}}
 
 //#define LPRINT_RUN(a, b) ;
 
@@ -36,12 +36,19 @@ LPRINT(a, sz + b);}
 #define LPRINT_RUN(a, b) ;
 #endif
 
-#define LPRINT(a, b) if (!Lawn::LDebug::m_bRunning) {\
+#ifdef LDEBUG_VERBOSE
+#define LPRINT(a, b) {LPRINT_IMPL(a, b);}
+#else
+#define LPRINT(a, b) {if (!Lawn::LDebug::m_bRunning) {LPRINT_IMPL(a, b);}}
+#endif
+
+#define LPRINT_IMPL(a, b) {\
 if (a >= Lawn::LDebug::m_iLoggingLevel)\
 {\
 Lawn::LDebug::print(b);\
 }\
 }
+
 
 #define LWARN(a, b) if (a >= Lawn::LDebug::m_iWarningLevel)\
 {\

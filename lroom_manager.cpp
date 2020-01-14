@@ -116,7 +116,7 @@ int LRoomManager::FindClosestRoom(const Vector3 &pt) const
 			if (lroom.m_AABB.has_point(pt))
 			{
 				// is it within the convex hull?
-				float dist = lroom.m_Bound.GetClosestDistance(pt);
+				float dist = lroom.m_Bound.GetSmallestPenetrationDistance(pt);
 
 				// find the lowest within distance of the nearby room convex hulls
 				if (dist < within_dist)
@@ -417,7 +417,7 @@ bool LRoomManager::dob_register(Node * pDOB, float radius)
 		return false;
 	}
 
-	LPRINT(3, "dob_register " + pDOB->get_name());
+	LPRINT(3, "dob_register " + pDOB->get_name() + " instance ID " + itos(pDOB->get_instance_id()));
 
 	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
 	if (!pSpat)
@@ -454,6 +454,8 @@ int LRoomManager::dob_update(Node * pDOB)
 		int iRoomNum = pNewRoom->m_RoomID;
 
 		// get dob data to move to new room
+		//unsigned int uidob_instance_id = pDOB->get_instance_id();
+
 		unsigned int dob_id = pRoom->DOB_Find(pDOB);
 //		if (dob_id == -1)
 //		{
@@ -517,6 +519,8 @@ bool LRoomManager::dob_teleport_hint(Node * pDOB, Node * pRoom)
 
 bool LRoomManager::DobTeleport(Spatial * pDOB, int iNewRoomID)
 {
+	print_line("teleporting " + pDOB->get_name() + " to room " + itos(iNewRoomID));
+
 	// old room
 	LRoom * pOldRoom = GetRoomFromDOB(pDOB);
 	if (!pOldRoom)
@@ -534,6 +538,12 @@ bool LRoomManager::DobTeleport(Spatial * pDOB, int iNewRoomID)
 	LRoom * pNewRoom = GetRoom(iNewRoomID);
 	if (!pNewRoom)
 		return false;
+
+	// special case, if teleporting within the same room, no op
+	// (if we do try and move from same room to same room we get data corruption because of
+	// const ref)
+	if (pOldRoom == pNewRoom)
+		return true;
 
 	// detach from old room, add to new room
 	// get dob data to move to new room
@@ -1202,7 +1212,16 @@ bool LRoomManager::rooms_set_camera(Node * pCam)
 		return false;
 	}
 
-	m_ID_camera = pCam->get_instance_id();
+	int id = pCam->get_instance_id();
+
+	// was this a change in camera?
+	if (id != m_ID_camera)
+	{
+		m_ID_camera = id;
+
+		// make sure the camera room is correct by doing a teleport
+		dob_teleport(pCam);
+	}
 
 	// new .. select the cull layer
 	// 1 is for showing objects outside the room system
@@ -1567,7 +1586,7 @@ bool LRoomManager::FrameUpdate()
 
 	// we keep a frame counter to prevent visiting things multiple times on the same frame in recursive functions
 	m_uiFrameCounter++;
-	LPRINT(5, "\nFRAME " + itos(m_uiFrameCounter));
+	LPRINT_RUN(5, "\nFRAME " + itos(m_uiFrameCounter));
 
 	FrameUpdate_Prepare();
 
@@ -1578,6 +1597,11 @@ bool LRoomManager::FrameUpdate()
 	{
 		Object *pObj = ObjectDB::get_instance(m_ID_camera);
 		pCamera = Object::cast_to<Camera>(pObj);
+
+		// always doing dob update here for camera, this ensures it is not one frame behind
+		// depending on scene tree, which can cause camera lroom id to be the old one after crossing
+		// a portal plane, causing a flicker on changing room...
+		dob_update(pCamera);
 	}
 	else
 		// camera not set .. do nothing

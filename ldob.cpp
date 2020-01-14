@@ -51,16 +51,23 @@ void LHidable::Show(bool bShow)
 
 	if (m_bDetach)
 	{
+		//String sz = "";
 		if (bShow)
 		{
+			//sz = "show ";
 			// add to tree
 			m_pParent->add_child(m_pNode);
 		}
 		else
 		{
+			//sz = "hide ";
 			// remove from tree
 			m_pParent->remove_child(m_pNode);
 		}
+		//sz += m_pParent->get_name();
+		//sz += "->";
+		//sz += m_pNode->get_name();
+		//print_line(sz);
 	}
 	else
 	{

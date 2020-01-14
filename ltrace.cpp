@@ -443,7 +443,7 @@ void LTrace::Trace_Recursive(int depth, LRoom &room, const LVector<Plane> &plane
 		// plane the camera is on! If it is behind, the portal can be seen through, if in front, it can't! :)
 		float dist_cam = port.m_Plane.distance_to(m_pCamera->m_ptPos);
 		LPRINT_RUN(2, "\tPORTAL " + itos (port_num) + " (" + itos(port_id) + ") " + port.get_name());
-		if (dist_cam > 0.0f)
+		if (dist_cam >= 0.0f) // was >
 		{
 			LPRINT_RUN(2, "\t\tCULLED (back facing)");
 			continue;

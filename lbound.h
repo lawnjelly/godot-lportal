@@ -34,7 +34,7 @@ public:
 
 	// get distance behind all planes and return the smallest..
 	// if inside this will be negative, if outside, positive
-	float GetClosestDistance(const Vector3 &pt) const;
+	float GetSmallestPenetrationDistance(const Vector3 &pt) const;
 
 	// the bound is optional .. not all rooms have a bound
 	bool IsActive() const {return m_Planes.size() != 0;}
