@@ -133,7 +133,7 @@ Although the bound will be treated as a convex hull at runtime, you don't have t
 You can optionally prevent objects being added to LPortal internal room system (so they will not be culled to the planes). To do this, their name should begin with 'ignore_'. Note this is only relevant for objects derived from VisualInstance, LPortal ignores all non-visual instance objects. However note that these objects will still be culled when entire rooms are hidden by LPortal (_?is this still true?_).
 
 ## DOBs (Dynamic objects)
-While most of the world in the room portal is assumed to be static (non-moving), you will inevitably want some objects to move around in the scene. These objects that can move _between_ rooms are special, the visibility system has to keep track of which room they are in in order to render them correctly.
+While most of the objects in the rooms are assumed to be static (non-moving), you will inevitably want some objects to move around in the scene. The objects that can move _between_ rooms are special, the visibility system has to keep track of which room they are in in order to render them correctly.
 
 Players, boxes, props, physics objects are all examples of candidates for DOBs, as well as the most crucial example, the camera itself. Unless the visibility system knows which room the camera is in, the system will not know what to render! We will use the camera as an example as you will need to register this as a DOB.
 
