@@ -52,14 +52,14 @@ float LBound::GetSmallestPenetrationDistance(const Vector3 &pt) const
 }
 
 
-bool LBound::IsPointWithin(const Vector3 &pt) const
+bool LBound::IsPointWithin(const Vector3 &pt, float epsilon) const
 {
 	for (int n=0; n<m_Planes.size(); n++)
 	{
 		float d = m_Planes[n].distance_to(pt);
 
 		// if in front of plane, outside the convex hull
-		if (d > 0.0f)
+		if (d > epsilon)
 			return false;
 	}
 

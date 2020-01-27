@@ -30,7 +30,7 @@
 class LBound
 {
 public:
-	bool IsPointWithin(const Vector3 &pt) const;
+	bool IsPointWithin(const Vector3 &pt, float epsilon = 0.0f) const;
 
 	// get distance behind all planes and return the smallest..
 	// if inside this will be negative, if outside, positive

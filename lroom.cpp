@@ -99,6 +99,20 @@ LRoom * LRoom::DOB_Update(LRoomManager &manager, Spatial * pDOB)
 	if (bCamera)
 		slop = 0.0f;
 
+	// deal with the case that the DOB has moved way outside the room
+	if (!m_Bound.IsPointWithin(pt, 1.0f))
+	{
+		// revert to expensive method (may have been teleported etc)
+		int iRoomNum = manager.FindClosestRoom(pt);
+		//print_line("dob_teleport closest room " + itos(iRoomNum));
+
+		if (iRoomNum == -1)
+			return 0;
+
+
+		return manager.GetRoom(iRoomNum);
+	}
+
 	// the camera can't have slop because we might end up front side of a door without entering the room,
 	// hence can't see into the room through the portal!
 //	if (bCamera)

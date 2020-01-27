@@ -219,7 +219,7 @@ void LRoomConverter::Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &l
 
 		// ignore invisible
 		Spatial * pSpatialChild = Object::cast_to<Spatial>(pChild);
-		if (pSpatialChild && (pSpatialChild->is_visible_in_tree() == false))
+		if (pSpatialChild && (Convert_IsVisibleInRooms(pSpatialChild) == false))
 		{
 			pSpatialChild->queue_delete();
 			continue;
@@ -286,6 +286,29 @@ void LRoomConverter::Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &l
 	}
 
 }
+
+bool LRoomConverter::Convert_IsVisibleInRooms(const Node * pNode) const
+{
+	const Spatial * pS = Object::cast_to<Spatial>(pNode);
+	const Spatial * pRoomList = Object::cast_to<Spatial>(LROOMLIST);
+
+	while (pS)
+	{
+		if (!pS->is_visible())
+		{
+			return false;
+		}
+
+		pS = pS->get_parent_spatial();
+
+		// terminate
+		if (pS == pRoomList)
+			return true;
+	}
+
+	return true;
+}
+
 
 // areaID could be -1 if unset
 bool LRoomConverter::Convert_Room(Spatial * pNode, int lroomID, int areaID)

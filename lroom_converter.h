@@ -94,6 +94,7 @@ private:
 	bool Convert_Room(Spatial * pNode, int lroomID, int areaID);
 	void Convert_Room_FindObjects_Recursive(Node * pParent, LRoom &lroom, LAABB &bb_room);
 	void Convert_Room_SetDefaultCullMask_Recursive(Node * pParent);
+	bool Convert_IsVisibleInRooms(const Node * pNode) const;
 
 	void Convert_Portals();
 	void Convert_Bounds();
