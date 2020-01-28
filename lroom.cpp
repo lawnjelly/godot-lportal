@@ -109,6 +109,9 @@ LRoom * LRoom::DOB_Update(LRoomManager &manager, Spatial * pDOB)
 		if (iRoomNum == -1)
 			return 0;
 
+		// could be no change of room...
+		if (iRoomNum == m_RoomID)
+			return 0;
 
 		return manager.GetRoom(iRoomNum);
 	}
