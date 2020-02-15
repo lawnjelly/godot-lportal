@@ -28,6 +28,8 @@ _Feel free to leave suggestions / feature requests on the issue tracker, especia
 ## Current status
 As everything is now basically working, I am currently working on a small demo / test first person shooter game. This is helping me find bugs / add usability features as I go.
 
+Note I'm also currently rewriting the Godot 2d GLES renderer in core, so that has to take priority until it is working.
+
 ## Instructions
 * [OVERVIEW](OCCLUSION_CULLING.md)
 * [INSTRUCTIONS](INSTRUCTIONS.md)
