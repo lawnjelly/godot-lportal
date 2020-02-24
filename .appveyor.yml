@@ -32,7 +32,7 @@ before_build:
   - python --version
   - scons --version
   - cl.exe
-  - SET "SCONS_CACHE=%SCONS_CACHE_ROOT%\master"
+  - SET "SCONS_CACHE=%SCONS_CACHE_ROOT%\3.2"
 
 build_script:
 - scons platform=%GD_PLATFORM% target=%TARGET% tools=%TOOLS% debug_symbols=no verbose=yes progress=no gdnative_wrapper=yes
