@@ -1,9 +1,8 @@
 artifacts:
-  - path: bin
-    name: myrelease
-    type: zip
+  - path: godot\bin\*.exe
+    name: GodotBinary
   
-os: Visual Studio 2015
+os: Visual Studio 2019
 
 environment:
   HOME: "%HOMEDRIVE%%HOMEPATH%"
@@ -12,10 +11,10 @@ environment:
   SCONS_CACHE_LIMIT: 1024
   GODOT_REPO_URL: "https://github.com/godotengine/godot"
   matrix:
-    - VS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
+    - VS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat
       GD_PLATFORM: windows
       TOOLS: yes
-      TARGET: debug
+      TARGET: release_debug
       ARCH: amd64
 
 cache:
