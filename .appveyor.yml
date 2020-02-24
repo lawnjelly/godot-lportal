@@ -1,3 +1,8 @@
+artifacts:
+  - path: bin
+    name: myrelease
+    type: zip
+  
 os: Visual Studio 2015
 
 environment:
@@ -10,7 +15,7 @@ environment:
     - VS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
       GD_PLATFORM: windows
       TOOLS: yes
-      TARGET: release_debug
+      TARGET: debug
       ARCH: amd64
 
 cache:
