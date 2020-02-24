@@ -5,7 +5,10 @@ environment:
   PYTHON: C:\Python27
   SCONS_CACHE_ROOT: "%HOME%\\scons_cache"
   SCONS_CACHE_LIMIT: 1024
-  GODOT_REPO_URL: "https://github.com/godotengine/godot/tree/3.2"
+  GODOT_REPO_URL: "https://github.com/godotengine/godot"
+  branches:
+    only:
+      - 3.2
   matrix:
     - VS: C:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\vcvarsall.bat
       GD_PLATFORM: windows
