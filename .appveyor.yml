@@ -1,7 +1,3 @@
-artifacts:
-  - path: godot\bin\*.exe
-    name: GodotBinary
-  
 os: Visual Studio 2019
 
 environment:
@@ -39,4 +35,10 @@ before_build:
   - SET "SCONS_CACHE=%SCONS_CACHE_ROOT%\3.2"
 
 build_script:
-- scons platform=%GD_PLATFORM% target=%TARGET% tools=%TOOLS% debug_symbols=no verbose=yes progress=no gdnative_wrapper=yes
+#- scons platform=%GD_PLATFORM% target=%TARGET% tools=%TOOLS% debug_symbols=no verbose=yes progress=no gdnative_wrapper=yes
+
+artifacts:
+  - path: godot\core\array.h
+#  - path: godot\bin\*.exe
+    name: GodotBinary
+  
