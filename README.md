@@ -62,7 +62,12 @@ Note I'm also currently rewriting the Godot 2d GLES renderer in core, so that ha
 * PVS (primary and secondary)
 
 ## Installation
-You will need to compile Godot from source (for now). See:
+
+To easily try out I have provided a win64 build under the 'releases' tab in github. However note that for production use on multiple platforms you will have to compile from source.
+
+## Compiling from source
+
+See:
 http://docs.godotengine.org/en/3.0/development/compiling/index.html
 
 Once the engine is compiling okay on your system, to add the module:
