@@ -25,7 +25,8 @@ install:
 before_build:
   # Get Godot source and install the module
   - cd %APPVEYOR_BUILD_FOLDER%\..
-  - git clone --depth=1 --branch=3.2 %GODOT_REPO_URL% && cd godot
+  #- git clone --depth=1 --branch=3.2 %GODOT_REPO_URL% && cd godot
+  - mkdir godot && cd godot && mkdir modules
   - mklink /d modules\lportal %APPVEYOR_BUILD_FOLDER%
 
   - echo %GD_PLATFORM%
@@ -38,6 +39,7 @@ build_script:
 #- scons platform=%GD_PLATFORM% target=%TARGET% tools=%TOOLS% debug_symbols=no verbose=yes progress=no gdnative_wrapper=yes -c
 - scons --version
 - ls
+- dir /s
 
 artifacts:
   - path: core\array.h
