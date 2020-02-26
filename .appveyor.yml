@@ -6,6 +6,7 @@ environment:
   SCONS_CACHE_ROOT: "%HOME%\\scons_cache"
   SCONS_CACHE_LIMIT: 1024
   GODOT_REPO_URL: "https://github.com/godotengine/godot"
+  
   matrix:
     - VS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat
       GD_PLATFORM: windows
@@ -24,6 +25,7 @@ install:
 
 before_build:
   # Get Godot source and install the module
+  - mkdir Artifacts
   - cd %APPVEYOR_BUILD_FOLDER%\..
   - echo.> my_file.txt
   #- git clone --depth=1 --branch=3.2 %GODOT_REPO_URL% && cd godot
@@ -43,8 +45,12 @@ build_script:
 - ls
 - dir /s
 
+after_build:
+  - cd %APPVEYOR_BUILD_FOLDER%\..
+  - xcopy my_file.txt %APPVEYOR_BUILD_FOLDER%\Artifacts\
+
 artifacts:
-  - path: '..\*.txt'
+  - path: 'Artifacts\*.*'
 #  - path: godot\bin\*.exe
     name: GodotBinary
   
