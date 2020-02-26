@@ -63,7 +63,9 @@ Note I'm also currently rewriting the Godot 2d GLES renderer in core, so that ha
 
 ## Installation
 
-To easily try out I have provided a win64 build under the 'releases' tab in github. However note that for production use on multiple platforms you will have to compile from source.
+For convenience to trial LPortal I have provided a win64 build under the 'releases' tab in github. However, note that for production use (on multiple platforms) you will currently have to compile from source.
+
+I will work on increasing the number of builds for different platforms.
 
 ## Compiling from source
 
