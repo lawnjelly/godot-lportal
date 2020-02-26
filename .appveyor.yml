@@ -1,4 +1,4 @@
-os: Visual Studio 2019
+os: Visual Studio 2017
 
 environment:
   HOME: "%HOMEDRIVE%%HOMEPATH%"
@@ -8,7 +8,8 @@ environment:
   GODOT_REPO_URL: "https://github.com/godotengine/godot"
   
   matrix:
-    - VS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat
+    #- VS: C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Auxiliary\Build\vcvarsall.bat
+    - VS: C:\Program Files (x86)\Microsoft Visual Studio\2017\Community\VC\Auxiliary\Build\vcvarsall.bat
       GD_PLATFORM: windows
       TOOLS: yes
       TARGET: release_debug
