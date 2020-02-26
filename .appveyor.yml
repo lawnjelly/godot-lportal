@@ -27,10 +27,10 @@ before_build:
   # Get Godot source and install the module
   - mkdir Artifacts
   - cd %APPVEYOR_BUILD_FOLDER%\..
-  - echo.> my_file.txt
-  #- git clone --depth=1 --branch=3.2 %GODOT_REPO_URL% && cd godot
+  #- echo.> my_file.txt
+  - git clone --depth=1 --branch=3.2 %GODOT_REPO_URL% && cd godot
   #- mkdir godot && cd godot && mkdir modules
-  #- mklink /d modules\lportal %APPVEYOR_BUILD_FOLDER%
+  - mklink /d modules\lportal %APPVEYOR_BUILD_FOLDER%
 
   - echo %GD_PLATFORM%
   #- python --version
@@ -43,11 +43,11 @@ build_script:
 - scons --version
 #- cd ..
 - ls
-- dir /s
+#- dir /s
 
 after_build:
   - cd %APPVEYOR_BUILD_FOLDER%\..
-  - xcopy my_file.txt %APPVEYOR_BUILD_FOLDER%\Artifacts\
+  - xcopy godot\core\array.h %APPVEYOR_BUILD_FOLDER%\Artifacts\
 
 artifacts:
   - path: 'Artifacts\*.*'
