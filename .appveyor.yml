@@ -29,16 +29,17 @@ before_build:
   - mklink /d modules\lportal %APPVEYOR_BUILD_FOLDER%
 
   - echo %GD_PLATFORM%
-  - python --version
-  - scons --version
-  - cl.exe
+  #- python --version
+  #- scons --version
+  #- cl.exe
   - SET "SCONS_CACHE=%SCONS_CACHE_ROOT%\3.2"
 
 build_script:
-- scons platform=%GD_PLATFORM% target=%TARGET% tools=%TOOLS% debug_symbols=no verbose=yes progress=no gdnative_wrapper=yes -c
+#- scons platform=%GD_PLATFORM% target=%TARGET% tools=%TOOLS% debug_symbols=no verbose=yes progress=no gdnative_wrapper=yes -c
+- scons --version
 
 artifacts:
-  - path: godot\core\array.h
+  - path: core\array.h
 #  - path: godot\bin\*.exe
     name: GodotBinary
   
