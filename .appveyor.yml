@@ -47,10 +47,10 @@ build_script:
 
 after_build:
   - cd %APPVEYOR_BUILD_FOLDER%\..
-  - xcopy godot\core\array.h %APPVEYOR_BUILD_FOLDER%\Artifacts\
+  - xcopy godot\core\*.h %APPVEYOR_BUILD_FOLDER%\Artifacts\
 
 artifacts:
-  - path: 'Artifacts\*.*'
+  - path: 'Artifacts\color.*'
 #  - path: godot\bin\*.exe
     name: GodotBinary
   
