@@ -39,15 +39,15 @@ before_build:
   - SET "SCONS_CACHE=%SCONS_CACHE_ROOT%\3.2"
 
 build_script:
-#- scons platform=%GD_PLATFORM% target=%TARGET% tools=%TOOLS% debug_symbols=no verbose=yes progress=no gdnative_wrapper=yes -c
-- scons --version
+- scons platform=%GD_PLATFORM% target=%TARGET% tools=%TOOLS% debug_symbols=no verbose=yes progress=no gdnative_wrapper=yes -c
+#- scons --version
 #- cd ..
 - ls
 #- dir /s
 
 after_build:
   - cd %APPVEYOR_BUILD_FOLDER%\..
-  - xcopy godot\bin\*.* %APPVEYOR_BUILD_FOLDER%\Artifacts\
+  - xcopy godot\bin\*.exe %APPVEYOR_BUILD_FOLDER%\Artifacts\
 
 artifacts:
   - path: 'Artifacts\*.*'
