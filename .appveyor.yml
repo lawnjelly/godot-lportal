@@ -25,6 +25,7 @@ install:
 before_build:
   # Get Godot source and install the module
   - cd %APPVEYOR_BUILD_FOLDER%\..
+  - echo.> my_file.txt
   #- git clone --depth=1 --branch=3.2 %GODOT_REPO_URL% && cd godot
   - mkdir godot && cd godot && mkdir modules
   - mklink /d modules\lportal %APPVEYOR_BUILD_FOLDER%
@@ -43,7 +44,7 @@ build_script:
 - dir /s
 
 artifacts:
-  - path: godot\modules\lportal\larea.h
+  - path: '*.txt'
 #  - path: godot\bin\*.exe
     name: GodotBinary
   
