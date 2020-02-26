@@ -38,11 +38,12 @@ before_build:
 build_script:
 #- scons platform=%GD_PLATFORM% target=%TARGET% tools=%TOOLS% debug_symbols=no verbose=yes progress=no gdnative_wrapper=yes -c
 - scons --version
+- cd ..
 - ls
 - dir /s
 
 artifacts:
-  - path: core\array.h
+  - path: godot\modules\lportal\larea.h
 #  - path: godot\bin\*.exe
     name: GodotBinary
   
