@@ -26,7 +26,11 @@ https://github.com/lawnjelly/lportal-demos
 _Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._
 
 ## Current status
-As everything is now basically working, I am currently working on a small demo / test first person shooter game. This is helping me find bugs / add usability features as I go.
+8 March 2020 - I've identified a breaking bug in the DOB visibility caused by the assumptions from the data coming from godot. It turns out when DOBs are hidden I can't retrieve their position etc from the Godot node, so I'm having to change the API for DOBs and dynamic lights so you pass the position manually each update. I've tested and this works, I just have to polish this up more before pushing to the repository here.
+
+So for now if you are testing I would advise not using the DOB functionality, and just not culling your DOBs for now (aside from for the camera, which should work fine). I should have the fixed version finished in the not too distant future.
+
+I am currently working on a small demo / test first person shooter game. This is helping me find bugs / add usability features as I go.
 
 Note I'm also currently rewriting the Godot 2d GLES renderer in core, so that has to take priority until it is working.
 
