@@ -97,9 +97,8 @@ public:
 
 	// dynamic lights (spot or omni within rooms)
 	// returns light ID
-//	int dynamic_light_register(Node * pLightNode, const Vector3 &pos, const Vector3 &dir, float radius);
+	// only lights within the rooms on conversion are supported so far
 	int dynamic_light_register(Node * pLightNode, float radius);
-//	bool dynamic_light_register_hint(Node * pLightNode, float radius, Node * pRoom);
 	bool dynamic_light_unregister(int light_id);
 	int dynamic_light_update(int light_id, const Vector3 &pos, const Vector3 &dir); // returns room within
 

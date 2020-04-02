@@ -791,7 +791,13 @@ bool LRoomManager::Light_FindCasters(int lightID)
 
 void LRoomManager::Light_UpdateTransform(LLight &light, const Light &glight) const
 {
-//	assert (glight.is_in_tree());
+	if (!glight.get_parent())
+	{
+		WARN_PRINT_ONCE("LRoomManager::Light_UpdateTransform Light is not in tree");
+		return;
+	}
+
+	// get global transform only works if glight is in the tree
 	Transform tr = glight.get_global_transform();
 	light.m_Source.m_ptPos = tr.origin;
 	light.m_Source.m_ptDir = -tr.basis.get_axis(2); // or possibly get_axis .. z is what we want
@@ -907,12 +913,6 @@ int LRoomManager::dynamic_light_register(Node * pLightNode, float radius)
 
 	return -1;
 }
-
-//bool LRoomManager::dynamic_light_register_hint(Node * pLightNode, float radius, Node * pRoom)
-//{
-//	// NYI
-//	return true;
-//}
 
 
 bool LRoomManager::dynamic_light_unregister(int light_id)
