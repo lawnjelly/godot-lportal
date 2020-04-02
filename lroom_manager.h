@@ -83,24 +83,17 @@ public:
 	// These are defined by their ability to move from room to room.
 	// You can still move static objects within the same room (e.g. elevators, moving platforms)
 	// as these don't require checks for changing rooms.
+
+	// returns DOB ID
 	int dob_register(Node * pDOB, const Vector3 &pos, float radius);
-	// register but let LPortal know which room the dob should start in
-//	bool dob_register_hint(Node * pDOB, float radius, Node * pRoom);
-
 	bool dob_unregister(int dob_id);
-
 	// returns the room ID within
 	int dob_update(int dob_id, const Vector3 &pos);
-
-	// if we are moving the DOB possibly through multiple rooms, then teleport rather than detect
-	// portal crossings
-	bool dob_teleport(Node * pDOB);
-//	bool dob_teleport_hint(Node * pDOB, Node * pRoom);
 
 	//______________________________________________________________________________________
 	// LIGHTS
 	// global directional lights that will apply to all rooms
-	bool light_register(Node * pLightNode, String szArea);
+	bool global_light_register(Node * pLightNode, String szArea);
 
 	// dynamic lights (spot or omni within rooms)
 	// returns light ID
@@ -165,8 +158,7 @@ public:
 private:
 	// PER FRAME STUFF
 
-	// godot ID of the camera (which should be registered as a DOB to allow moving between rooms)
-	//ObjectID m_ID_camera;
+	// camera
 	int m_DOB_id_camera;
 
 	// keep track of which rooms are visible, so we can hide ones that aren't hit that were previously on

@@ -625,29 +625,28 @@ bool LRoomManager::DobTeleport(Spatial * pDOB, int iNewRoomID)
 */
 
 // not tested...
+/*
 bool LRoomManager::dob_teleport(Node * pDOB)
 {
 	CHECK_ROOM_LIST
 
 	return true;
-	/*
 
-	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
-	if (!pSpat)
-		return false;
+//	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
+//	if (!pSpat)
+//		return false;
 
-	Vector3 pt = pSpat->get_global_transform().origin;
+//	Vector3 pt = pSpat->get_global_transform().origin;
 
-	int iRoomNum = FindClosestRoom(pt);
-	//print_line("dob_teleport closest room " + itos(iRoomNum));
+//	int iRoomNum = FindClosestRoom(pt);
+//	//print_line("dob_teleport closest room " + itos(iRoomNum));
 
-	if (iRoomNum == -1)
-		return false;
+//	if (iRoomNum == -1)
+//		return false;
 
-	return DobTeleport(pSpat, iRoomNum);
-	*/
+//	return DobTeleport(pSpat, iRoomNum);
 }
-
+*/
 
 
 bool LRoomManager::dob_unregister(int dob_id)
@@ -935,7 +934,7 @@ int LRoomManager::dynamic_light_update(int light_id, const Vector3 &pos, const V
 	LLight &light = m_Lights[light_id];
 
 	int iRoom = light.m_Source.m_RoomID;
-	if ((iRoom == -1) || (light.m_DOB_id == -1))
+	if (iRoom == -1)
 	{
 		WARN_PRINT_ONCE("dynamic_light_update : can't update global light");
 		return -1;
@@ -945,8 +944,11 @@ int LRoomManager::dynamic_light_update(int light_id, const Vector3 &pos, const V
 	light.m_Source.m_ptDir = dir.normalized();
 
 	// update dob
-	int iNewRoom = m_DobList.UpdateDob(*this, light.m_DOB_id, pos);
-	light.m_Source.m_RoomID = iNewRoom;
+	if (light.m_DOB_id != -1)
+	{
+		int iNewRoom = m_DobList.UpdateDob(*this, light.m_DOB_id, pos);
+		light.m_Source.m_RoomID = iNewRoom;
+	}
 
 	// update with a new Trace (we are assuming update is only called if the light has moved)
 	// remove the old local lights
@@ -975,7 +977,7 @@ int LRoomManager::dynamic_light_update(int light_id, const Vector3 &pos, const V
 	}
 
 	// this may or may not have changed
-	return iNewRoom;
+	return light.m_Source.m_RoomID;
 
 	/*
 	if (!pLightNode)
@@ -1094,7 +1096,7 @@ void LRoomManager::DebugString_Light_AffectedRooms(int light_id)
 }
 
 
-bool LRoomManager::light_register(Node * pLightNode, String szArea)
+bool LRoomManager::global_light_register(Node * pLightNode, String szArea)
 {
 	//CHECK_ROOM_LIST
 
@@ -2216,7 +2218,7 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("dob_register", "node", "pos", "radius"), &LRoomManager::dob_register);
 	ClassDB::bind_method(D_METHOD("dob_unregister", "dob_id"), &LRoomManager::dob_unregister);
 	ClassDB::bind_method(D_METHOD("dob_update", "dob_id", "pos"), &LRoomManager::dob_update);
-	ClassDB::bind_method(D_METHOD("dob_teleport", "dob"), &LRoomManager::dob_teleport);
+//	ClassDB::bind_method(D_METHOD("dob_teleport", "dob"), &LRoomManager::dob_teleport);
 
 //	ClassDB::bind_method(D_METHOD("dob_register_hint", "dob", "radius", "room"), &LRoomManager::dob_register_hint);
 //	ClassDB::bind_method(D_METHOD("dob_teleport_hint", "dob", "room"), &LRoomManager::dob_teleport_hint);
@@ -2224,7 +2226,7 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("dob_get_room_id", "dob"), &LRoomManager::dob_get_room_id);
 
 
-	ClassDB::bind_method(D_METHOD("light_register", "light", "area"), &LRoomManager::light_register);
+	ClassDB::bind_method(D_METHOD("global_light_register", "light", "area"), &LRoomManager::global_light_register);
 
 	ClassDB::bind_method(D_METHOD("dynamic_light_register", "light", "radius"), &LRoomManager::dynamic_light_register);
 //	ClassDB::bind_method(D_METHOD("dynamic_light_register_hint", "light", "radius", "room"), &LRoomManager::dynamic_light_register_hint);
