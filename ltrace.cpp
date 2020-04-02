@@ -105,7 +105,7 @@ void LTrace::CullSOBs(LRoom &room, const LVector<Plane> &planes)
 void LTrace::CullDOBs(LRoom &room, const LVector<Plane> &planes)
 {
 	// NYI this isn't efficient, there may be more than 1 portal to the same room
-
+/*
 	// cull DOBs
 	int nDOBs = room.m_DOBs.size();
 
@@ -145,7 +145,7 @@ void LTrace::CullDOBs(LRoom &room, const LVector<Plane> &planes)
 			}
 		}
 	} // for through dobs
-
+*/
 }
 
 
@@ -601,6 +601,8 @@ void LTrace::FirstTouch(LRoom &room)
 //	m_pVisible_Rooms->push_back(room.m_RoomID);
 
 	// hide all dobs
+	/*
 	for (int n=0; n<room.m_DOBs.size(); n++)
 		room.m_DOBs[n].m_bVisible = false;
+		*/
 }

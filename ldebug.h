@@ -24,7 +24,7 @@
 // you won't be able to get frame debugging of the visibility tree though.
 #ifdef DEBUG_ENABLED
 
-#pragma message ("LPortal DEBUG_ENABLED")
+#pragma message ("LPortal DEBUG_ENABLED, verbose mode")
 #define LPRINT_RUN(a, b) {if (!Lawn::LDebug::m_bRunning) {String sz;\
 for (int n=0; n<Lawn::LDebug::m_iTabDepth; n++)\
 sz += "\t";\

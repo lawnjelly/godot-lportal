@@ -117,6 +117,7 @@ void LLight::Light_SetDefaults()
 	m_Source.Source_SetDefaults();
 
 	m_GodotID = 0;
+	m_DOB_id = -1;
 //	m_eType = LT_DIRECTIONAL;
 //	m_eClass = LT_STATIC;
 //	m_fSpread = 0.0f; // for spotlight

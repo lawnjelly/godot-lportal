@@ -42,7 +42,8 @@ return false;\
 
 LRoomManager::LRoomManager()
 {
-	m_ID_camera = 0;
+//	m_ID_camera = 0;
+	m_DOB_id_camera = -1;
 	m_ID_DebugPlanes = 0;
 	m_ID_DebugBounds = 0;
 	m_ID_DebugLights = 0;
@@ -183,6 +184,8 @@ int LRoomManager::Meta_GetLightID(Node * pNode) const
 }
 
 
+/*
+  CANT BE TRUSTED
 void LRoomManager::Meta_SetRoomNum(Node * pNode, int num)
 {
 	pNode->set_meta("_lroom", num);
@@ -199,33 +202,10 @@ int LRoomManager::Meta_GetRoomNum(Node * pNode) const
 
 	return v;
 }
-
-LRoom * LRoomManager::GetRoomFromDOB(Node * pNode)
-{
-	int iRoom = Meta_GetRoomNum(pNode);
-	if (iRoom < 0)
-	{
-		if (iRoom == -1)
-		{
-			WARN_PRINT_ONCE("LRoomManager::GetRoomFromDOB : metadata is empty");
-		}
-
-		if (iRoom == -2)
-		{
-			WARN_PRINT_ONCE("LRoomManager::GetRoomFromDOB : are you updating an unregistered DOB?");
-		}
-		return 0;
-	}
-
-	LRoom * pRoom = GetRoom(iRoom);
-	if (pRoom == 0)
-	{
-		WARN_PRINT_ONCE("LRoomManager::GetRoomFromDOB : pRoom is NULL");
-	}
-	return pRoom;
-}
+*/
 
 
+/*
 // register but let LPortal know which room the dob should start in
 bool LRoomManager::dob_register_hint(Node * pDOB, float radius, Node * pRoom)
 {
@@ -258,7 +238,7 @@ bool LRoomManager::dob_register_hint(Node * pDOB, float radius, Node * pRoom)
 
 	return DobRegister(pSpat, radius, iRoom);
 }
-
+*/
 
 void LRoomManager::CreateDebug()
 {
@@ -373,7 +353,7 @@ ObjectID LRoomManager::DobRegister_FindVIRecursive(Node * pNode) const
 	return 0;
 }
 
-bool LRoomManager::DobRegister(Spatial * pDOB, float radius, int iRoom)
+int LRoomManager::DobRegister(Spatial * pDOB, const Vector3 &pos, float radius, int iRoom)
 {
 	//LPRINT(3, "register_dob " + pDOB->get_name());
 
@@ -383,38 +363,56 @@ bool LRoomManager::DobRegister(Spatial * pDOB, float radius, int iRoom)
 		return false;
 	}
 
-	LRoom * pRoom = GetRoom(iRoom);
-	if (!pRoom)
-		return false;
+	int did = m_DobList.Request();
+	LDob &dob = m_DobList.GetDob(did);
 
-	// The dob is derived from spatial, but the visual instances may be children of the dob
-	// rather than the node itself .. we need visual instances for layer culling for shadows
-	LDob dob;
+	dob.m_iRoomID = iRoom;
 	dob.m_ID_Spatial = pDOB->get_instance_id();
 	dob.m_fRadius = radius;
 
+//	LRoom * pRoom = GetRoom(iRoom);
+//	if (!pRoom)
+//		return false;
+
+	// The dob is derived from spatial, but the visual instances may be children of the dob
+	// rather than the node itself .. we need visual instances for layer culling for shadows
+//	LDob dob;
+//	dob.m_ID_Spatial = pDOB->get_instance_id();
+//	dob.m_fRadius = radius;
+
 	dob.m_ID_VI = DobRegister_FindVIRecursive(pDOB);
 
-	pRoom->DOB_Add(dob);
+//	pRoom->DOB_Add(dob);
 
 	// save the room ID on the dob metadata
-	Meta_SetRoomNum(pDOB, iRoom);
+//	Meta_SetRoomNum(pDOB, iRoom);
+
+#ifdef LPORTAL_DOBS_NO_SOFTSHOW
+	VisualInstance * pVI = dob.GetVI();
+	if (pVI)
+	{
+		uint32_t mask = 0;
+		mask = LRoom::LAYER_MASK_CAMERA | LRoom::LAYER_MASK_LIGHT;
+		LRoom::SoftShow(pVI, mask);
+	}
+#endif
 
 	// change visibility
-	DobChangeVisibility(pDOB, 0, pRoom);
+	m_DobList.UpdateDob(*this, did, pos);
+//	DobUpdateVisibility(pDOB, pRoom);
 
-	return true;
+	return did;
 }
 
 
-bool LRoomManager::dob_register(Node * pDOB, float radius)
+int LRoomManager::dob_register(Node * pDOB, const Vector3 &pos, float radius)
 {
 	CHECK_ROOM_LIST
 
 	if (!pDOB)
 	{
 		WARN_PRINT_ONCE("dob_register : pDOB is NULL");
-		return false;
+		return -1;
 	}
 
 	LPRINT(3, "dob_register " + pDOB->get_name() + " instance ID " + itos(pDOB->get_instance_id()));
@@ -423,30 +421,30 @@ bool LRoomManager::dob_register(Node * pDOB, float radius)
 	if (!pSpat)
 	{
 		WARN_PRINT_ONCE("dob_register : DOB is not a spatial");
-		return false;
+		return -1;
 	}
 
-	Vector3 pt = pSpat->get_global_transform().origin;
+//	Vector3 pt = pSpat->get_global_transform().origin;
 
-	int iRoomNum = FindClosestRoom(pt);
+	int iRoomNum = FindClosestRoom(pos);
 	LPRINT(2, "dob_register closest room " + itos(iRoomNum));
 
-	return DobRegister(pSpat, radius, iRoomNum);
+	return DobRegister(pSpat, pos, radius, iRoomNum);
 }
 
 
-int LRoomManager::dob_update(Node * pDOB)
+/*
+// where pRoom is current room
+int LRoomManager::DobUpdate(Spatial * pDOB_Spatial, LRoom * pRoom)
 {
-	// find the room the object is attached to
-	LRoom * pRoom = GetRoomFromDOB(pDOB);
-	if (!pRoom)
-		return -1;
+	LRoom * pNewRoom = pRoom->DOB_Update(*this, pDOB_Spatial);
 
-	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
-	if (!pSpat)
-		return -1;
+//	// update visibility
+//	if (pNewRoom)
+//		DobUpdateVisibility(pSpat, pNewRoom);
+//	else
+//		DobUpdateVisibility(pSpat, pRoom);
 
-	LRoom * pNewRoom = pRoom->DOB_Update(*this, pSpat);
 
 	if (pNewRoom)
 	{
@@ -456,13 +454,15 @@ int LRoomManager::dob_update(Node * pDOB)
 		// get dob data to move to new room
 		//unsigned int uidob_instance_id = pDOB->get_instance_id();
 
-		unsigned int dob_id = pRoom->DOB_Find(pDOB);
+		unsigned int dob_id = pRoom->DOB_Find(pDOB_Spatial);
 //		if (dob_id == -1)
 //		{
 //			WARN_PRINT_ONCE("DOB is not found in room");
 //			return -1;
 //		}
 		assert (dob_id != -1);
+
+		print_line("dob " + itos(dob_id) + " entering room " + pNewRoom->get_name());
 
 		// copy across data before removing
 		const LDob &data = pRoom->DOB_Get(dob_id);
@@ -472,19 +472,75 @@ int LRoomManager::dob_update(Node * pDOB)
 		pRoom->DOB_Remove(dob_id);
 
 		// change visibility
-		DobChangeVisibility(pSpat, pRoom, pNewRoom);
+		DobUpdateVisibility(pDOB_Spatial, pNewRoom);
 
 		// save the room ID on the dob metadata
-		Meta_SetRoomNum(pSpat, iRoomNum);
+		Meta_SetRoomNum(pDOB_Spatial, iRoomNum);
 
 		// new room number
 		return iRoomNum;
 	}
 
+//#ifdef LDEBUG_DOB_VISIBILITY
+//#pragma message ("LPortal LDEBUG_DOB_VISIBILITY, dobs will flicker when hidden")
+//	bool bVis = pRoom->IsVisible();
+
+//	bool bSpatVisible = pSpat->is_visible_in_tree();
+//	if (bVis != bSpatVisible)
+//	{
+//		WARN_PRINT("DOB visibility incorrect");
+//	}
+
+//	bool bShow = true;
+
+//	if (!bVis)
+//	{
+//		if ((Engine::get_singleton()->get_frames_drawn() % 2) == 0)
+//		{
+//			pSpat->show();
+//		}
+//		else
+//		{
+//			pSpat->hide();
+//		}
+//	}
+//	else
+//	{
+//		pSpat->show();
+//	}
+//#endif
+
+
 	// still in the same room
 	return pRoom->m_RoomID;
 }
+*/
 
+int LRoomManager::dob_update(int dob_id, const Vector3 &pos)
+{
+#ifdef LPORTAL_DOBS_AUTO_UPDATE
+	return -1;
+#endif
+
+
+
+	return m_DobList.UpdateDob(*this, dob_id, pos);
+
+
+
+	// find the room the object is attached to
+//	LRoom * pRoom = GetRoomFromDOB(pDOB);
+//	if (!pRoom)
+//		return -1;
+
+//	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
+//	if (!pSpat)
+//		return -1;
+
+//	return DobUpdate(pSpat, pRoom);
+}
+
+/*
 bool LRoomManager::dob_teleport_hint(Node * pDOB, Node * pRoom)
 {
 	CHECK_ROOM_LIST
@@ -515,8 +571,9 @@ bool LRoomManager::dob_teleport_hint(Node * pDOB, Node * pRoom)
 
 	return DobTeleport(pSpat, iRoom);
 }
+*/
 
-
+/*
 bool LRoomManager::DobTeleport(Spatial * pDOB, int iNewRoomID)
 {
 	LPRINT(5, "teleporting " + pDOB->get_name() + " to room " + itos(iNewRoomID));
@@ -561,16 +618,19 @@ bool LRoomManager::DobTeleport(Spatial * pDOB, int iNewRoomID)
 	Meta_SetRoomNum(pDOB, iNewRoomID);
 
 	// change visibility
-	DobChangeVisibility(pDOB, pOldRoom, pNewRoom);
+	DobUpdateVisibility(pDOB, pNewRoom);
 
 	return true;
 }
-
+*/
 
 // not tested...
 bool LRoomManager::dob_teleport(Node * pDOB)
 {
 	CHECK_ROOM_LIST
+
+	return true;
+	/*
 
 	Spatial * pSpat = Object::cast_to<Spatial>(pDOB);
 	if (!pSpat)
@@ -585,26 +645,29 @@ bool LRoomManager::dob_teleport(Node * pDOB)
 		return false;
 
 	return DobTeleport(pSpat, iRoomNum);
+	*/
 }
 
 
 
-bool LRoomManager::dob_unregister(Node * pDOB)
+bool LRoomManager::dob_unregister(int dob_id)
 {
 	CHECK_ROOM_LIST
 
-	LRoom * pRoom = GetRoomFromDOB(pDOB);
+//	LRoom * pRoom = GetRoomFromDOB(pDOB);
 
-	// change the meta data on the DOB .. this will catch trying to update an unregistered DOB
-	Meta_SetRoomNum(pDOB, -2);
+//	// change the meta data on the DOB .. this will catch trying to update an unregistered DOB
+//	Meta_SetRoomNum(pDOB, -2);
 
-	if (pRoom)
-	{
-		unsigned int dob_id = pRoom->DOB_Find(pDOB);
-		return pRoom->DOB_Remove(dob_id);
-	}
+//	if (pRoom)
+//	{
+//		unsigned int dob_id = pRoom->DOB_Find(pDOB);
+//		return pRoom->DOB_Remove(dob_id);
+//	}
 
-	return false;
+	m_DobList.DeleteDob(dob_id);
+
+	return true;
 }
 
 
@@ -815,14 +878,13 @@ bool LRoomManager::LightCreate(Light * pLight, int roomID, String szArea)
 }
 
 
-bool LRoomManager::dynamic_light_register(Node * pLightNode, float radius)
+int LRoomManager::dynamic_light_register(Node * pLightNode, float radius)
 {
 	CHECK_ROOM_LIST
-
 	if (!pLightNode)
 	{
 		WARN_PRINT_ONCE("dynamic_light_register : pLightNode is NULL");
-		return false;
+		return -1;
 	}
 
 	ObjectID light_id = pLightNode->get_instance_id();
@@ -834,31 +896,88 @@ bool LRoomManager::dynamic_light_register(Node * pLightNode, float radius)
 		{
 			m_Lights[n].m_Source.m_eClass = LSource::SC_DYNAMIC;
 
+
+			// do an update on the light
+			//dynamic_light_update(n, pos, dir);
+
 			// store the light ID in the metadata for the node
-			Meta_SetLightID(pLightNode, n);
-			return true;
+			//Meta_SetLightID(pLightNode, n);
+			return n;
 		}
 	}
 
-	return false;
+	return -1;
 }
 
-bool LRoomManager::dynamic_light_register_hint(Node * pLightNode, float radius, Node * pRoom)
+//bool LRoomManager::dynamic_light_register_hint(Node * pLightNode, float radius, Node * pRoom)
+//{
+//	// NYI
+//	return true;
+//}
+
+
+bool LRoomManager::dynamic_light_unregister(int light_id)
 {
 	// NYI
-
 	return true;
 }
 
-
-bool LRoomManager::dynamic_light_unregister(Node * pLightNode)
+// returns room within or -1 if no dob
+int LRoomManager::dynamic_light_update(int light_id, const Vector3 &pos, const Vector3 &dir) // returns room within
 {
-	// NYI
-	return true;
-}
+	// doesn't now matter if not in tree as position and dir are passed directly
+	if ((unsigned int) light_id >= (unsigned int) m_Lights.size())
+	{
+		WARN_PRINT_ONCE("dynamic_light_update : meta light ID out of range");
+		return -1;
+	}
 
-int LRoomManager::dynamic_light_update(Node * pLightNode) // returns room within
-{
+	LLight &light = m_Lights[light_id];
+
+	int iRoom = light.m_Source.m_RoomID;
+	if ((iRoom == -1) || (light.m_DOB_id == -1))
+	{
+		WARN_PRINT_ONCE("dynamic_light_update : can't update global light");
+		return -1;
+	}
+
+	light.m_Source.m_ptPos = pos;
+	light.m_Source.m_ptDir = dir.normalized();
+
+	// update dob
+	int iNewRoom = m_DobList.UpdateDob(*this, light.m_DOB_id, pos);
+	light.m_Source.m_RoomID = iNewRoom;
+
+	// update with a new Trace (we are assuming update is only called if the light has moved)
+	// remove the old local lights
+	for (int n=0; n<light.m_NumAffectedRooms; n++)
+	{
+		int r = light.m_AffectedRooms[n];
+		GetRoom(r)->RemoveLocalLight(light_id);
+	}
+	light.ClearAffectedRooms();
+
+
+	// now do a new trace, and add all the rooms that are hit
+	m_Trace.Trace_Light(*this, light, LTrace::LR_ROOMS);
+
+	// we should now have a list of the rooms hit in m_LightRender.m_Temp_Visible_Rooms
+	for (int n=0; n<m_LightRender.m_Temp_Visible_Rooms.size(); n++)
+	{
+		int r = m_LightRender.m_Temp_Visible_Rooms[n];
+
+		// add to the list on the light
+		light.AddAffectedRoom(r);
+
+		// add to the list of local lights in the room
+		GetRoom(r)->AddLocalLight(light_id);
+
+	}
+
+	// this may or may not have changed
+	return iNewRoom;
+
+	/*
 	if (!pLightNode)
 	{
 		WARN_PRINT_ONCE("dynamic_light_update : pLightNode is NULL");
@@ -949,6 +1068,8 @@ int LRoomManager::dynamic_light_update(Node * pLightNode) // returns room within
 
 	// this may or may not have changed
 	return light.m_Source.m_RoomID;
+	*/
+	return 0;
 }
 
 void LRoomManager::DebugString_Light_AffectedRooms(int light_id)
@@ -1002,33 +1123,39 @@ bool LRoomManager::light_register(Node * pLightNode, String szArea)
 	return LightCreate(pLight, -1, szArea);
 }
 
-
-void LRoomManager::DobChangeVisibility(Spatial * pDOB, const LRoom * pOld, const LRoom * pNew)
+/*
+void LRoomManager::DobUpdateVisibility(int dob_id)
 {
-	bool bVisOld = false;
-	bool bVisNew = false;
+	LDob &dob = m_DobList.GetDob(dob_id);
 
-	if (pOld)
-		bVisOld = pOld->IsVisible();
+//	return;
 
-	if (pNew)
-		bVisNew = pNew->IsVisible();
+	bool bRoomVis = pRoom->IsVisible();
+	bool bDobVis = pDOB->is_visible_in_tree();
 
-
-	if (bVisOld != bVisNew)
+	if (bDobVis != bRoomVis)
 	{
-		if (!bVisOld)
+		String sz = "DOB " + pDOB->get_name() + "\t";
+
+		if (bRoomVis)
+		{
 			pDOB->show();
+			sz += "coming into view";
+		}
 		else
+		{
 			pDOB->hide();
+			sz += "exiting view";
+		}
+
+		print_line(sz);
 	}
-
 }
+*/
 
-
-int LRoomManager::dob_get_room_id(Node * pDOB)
+int LRoomManager::dob_get_room_id(int dob_id)
 {
-	return Meta_GetRoomNum(pDOB);
+	return m_DobList.GetDob(dob_id).m_iRoomID;
 }
 
 // helpers to enable the client to manage switching on and off physics and AI
@@ -1192,15 +1319,14 @@ void LRoomManager::rooms_log_frame()
 }
 
 
-bool LRoomManager::rooms_set_camera(Node * pCam)
+bool LRoomManager::rooms_set_camera(int dob_id, Node * pCam)
 {
 	CHECK_ROOM_LIST
 
 	// is it the first setting of the camera? if so hide all
-	if (m_ID_camera == 0)
+	if (m_DOB_id_camera == -1)
 		ShowAll(false);
 
-	m_ID_camera = 0;
 
 	if (!pCam)
 		return false;
@@ -1212,15 +1338,17 @@ bool LRoomManager::rooms_set_camera(Node * pCam)
 		return false;
 	}
 
-	int id = pCam->get_instance_id();
+
+//	int id = pCam->get_instance_id();
 
 	// was this a change in camera?
-	if (id != m_ID_camera)
+	if (m_DOB_id_camera != dob_id)
 	{
-		m_ID_camera = id;
+		m_DOB_id_camera = dob_id;
+		//m_ID_camera = id;
 
 		// make sure the camera room is correct by doing a teleport
-		dob_teleport(pCam);
+		//dob_teleport(pCam);
 	}
 
 	// new .. select the cull layer
@@ -1458,17 +1586,18 @@ void LRoomManager::rooms_release()
 	rooms_set_active(false);
 
 	// unregister all the dobs
-	for (int n=0; n<m_Rooms.size(); n++)
-	{
-		LRoom &lroom = m_Rooms[n];
-		lroom.Release(*this);
-	}
+//	for (int n=0; n<m_Rooms.size(); n++)
+//	{
+//		LRoom &lroom = m_Rooms[n];
+//		lroom.Release(*this);
+//	}
 
 
 	ReleaseResources(false);
 
 
-	m_ID_camera = 0;
+	m_DOB_id_camera = -1;
+	//m_ID_camera = 0;
 	m_ID_RoomList = 0;
 
 	m_uiFrameCounter = 0;
@@ -1577,6 +1706,11 @@ bool LRoomManager::FrameUpdate()
 
 	CHECK_ROOM_LIST
 
+#ifdef LPORTAL_DOBS_AUTO_UPDATE
+	DobsAutoUpdate();
+#endif
+
+
 	if (m_bFrustumOnly)
 	{
 		// debugging emulate view frustum
@@ -1593,26 +1727,32 @@ bool LRoomManager::FrameUpdate()
 
 	// get the camera desired and make into lcamera
 	Camera * pCamera = 0;
-	if (m_ID_camera)
+	if (m_DOB_id_camera == -1)
 	{
-		Object *pObj = ObjectDB::get_instance(m_ID_camera);
-		pCamera = Object::cast_to<Camera>(pObj);
-
-		// always doing dob update here for camera, this ensures it is not one frame behind
-		// depending on scene tree, which can cause camera lroom id to be the old one after crossing
-		// a portal plane, causing a flicker on changing room...
-		dob_update(pCamera);
-	}
-	else
 		// camera not set .. do nothing
 		return false;
+	}
+
+	LDob &dob = m_DobList.GetDob(m_DOB_id_camera);
+	pCamera = Object::cast_to<Camera>(dob.GetSpatial());
 
 	// camera not a camera?? shouldn't happen but we'll check
 	if (!pCamera)
 		return false;
 
+	//Object *pObj = ObjectDB::get_instance(m_ID_camera);
+	//pCamera = Object::cast_to<Camera>(pObj);
+
+	// always doing dob update here for camera, this ensures it is not one frame behind
+	// depending on scene tree, which can cause camera lroom id to be the old one after crossing
+	// a portal plane, causing a flicker on changing room...
+	dob_update(m_DOB_id_camera, pCamera->get_global_transform().origin);
+
+	//dob_update(pCamera);
+
+
 	// Which room is the camera currently in?
-	LRoom * pRoom = GetRoomFromDOB(pCamera);
+	LRoom * pRoom = GetRoom(dob.m_iRoomID);
 
 	if (!pRoom)
 	{
@@ -2073,13 +2213,13 @@ void LRoomManager::_bind_methods()
 	// functions to add dynamic objects to the culling system
 	// Note that these should not be placed directly in rooms, the system will 'soft link' to them
 	// so they can be held, e.g. in pools elsewhere in the scene graph
-	ClassDB::bind_method(D_METHOD("dob_register", "dob", "radius"), &LRoomManager::dob_register);
-	ClassDB::bind_method(D_METHOD("dob_unregister", "dob"), &LRoomManager::dob_unregister);
-	ClassDB::bind_method(D_METHOD("dob_update", "dob"), &LRoomManager::dob_update);
+	ClassDB::bind_method(D_METHOD("dob_register", "node", "pos", "radius"), &LRoomManager::dob_register);
+	ClassDB::bind_method(D_METHOD("dob_unregister", "dob_id"), &LRoomManager::dob_unregister);
+	ClassDB::bind_method(D_METHOD("dob_update", "dob_id", "pos"), &LRoomManager::dob_update);
 	ClassDB::bind_method(D_METHOD("dob_teleport", "dob"), &LRoomManager::dob_teleport);
 
-	ClassDB::bind_method(D_METHOD("dob_register_hint", "dob", "radius", "room"), &LRoomManager::dob_register_hint);
-	ClassDB::bind_method(D_METHOD("dob_teleport_hint", "dob", "room"), &LRoomManager::dob_teleport_hint);
+//	ClassDB::bind_method(D_METHOD("dob_register_hint", "dob", "radius", "room"), &LRoomManager::dob_register_hint);
+//	ClassDB::bind_method(D_METHOD("dob_teleport_hint", "dob", "room"), &LRoomManager::dob_teleport_hint);
 
 	ClassDB::bind_method(D_METHOD("dob_get_room_id", "dob"), &LRoomManager::dob_get_room_id);
 
@@ -2087,7 +2227,7 @@ void LRoomManager::_bind_methods()
 	ClassDB::bind_method(D_METHOD("light_register", "light", "area"), &LRoomManager::light_register);
 
 	ClassDB::bind_method(D_METHOD("dynamic_light_register", "light", "radius"), &LRoomManager::dynamic_light_register);
-	ClassDB::bind_method(D_METHOD("dynamic_light_register_hint", "light", "radius", "room"), &LRoomManager::dynamic_light_register_hint);
+//	ClassDB::bind_method(D_METHOD("dynamic_light_register_hint", "light", "radius", "room"), &LRoomManager::dynamic_light_register_hint);
 	ClassDB::bind_method(D_METHOD("dynamic_light_unregister", "light"), &LRoomManager::dynamic_light_unregister);
 	ClassDB::bind_method(D_METHOD("dynamic_light_update", "light"), &LRoomManager::dynamic_light_update);
 
@@ -2261,3 +2401,35 @@ void LRoomManager::rooms_set_debug_frame_string(bool bActive)
 {
 	m_bDebugFrameString = bActive;
 }
+
+
+
+//void LRoomManager::DobsAutoUpdate()
+//{
+//	// go through each room, each dob
+//	for (int n=0; n<m_Rooms.size(); n++)
+//	{
+//		LRoom &lroom = m_Rooms[n];
+//		int iRoomNum = lroom.m_RoomID;
+
+
+//		for (int d=0; d<lroom.m_DOBs.size(); d++)
+//		{
+//			LDob &dob = lroom.m_DOBs[d];
+//			Spatial * pDOB_Spatial = dob.GetSpatial();
+
+//			if (!pDOB_Spatial)
+//				continue;
+
+//			int iNewRoom = DobUpdate(pDOB_Spatial, &lroom);
+
+//			// changed?
+//			if (iNewRoom != iRoomNum)
+//			{
+//				// very inefficient but will do for testing
+//				DobsAutoUpdate();
+//				return;
+//			}
+//		}
+//	}
+//}
