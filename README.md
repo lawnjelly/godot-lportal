@@ -26,13 +26,13 @@ https://github.com/lawnjelly/lportal-demos
 _Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._
 
 ## Current status
-8 March 2020 - I've identified a breaking bug in the DOB visibility caused by the assumptions from the data coming from godot. It turns out when DOBs are hidden I can't retrieve their position etc from the Godot node, so I'm having to change the API for DOBs and dynamic lights so you pass the position manually each update. I've tested and this works, I just have to polish this up more before pushing to the repository here.
+April 2nd 2020 - New API for DOBS. I had identified a breaking bug in the DOB visibility caused by the assumptions from the data coming from godot. It turns out when DOBs are hidden I can't retrieve their position etc from the Godot node, so I'm having to change the API for DOBs and dynamic lights so you pass the position manually each update. I've tested and this works.
 
-So for now if you are testing I would advise not using the DOB functionality, and just not culling your DOBs for now (aside from for the camera, which should work fine). I should have the fixed version finished in the not too distant future.
+Note that the new dob culling isn't totally finished yet, it simply culls based on which room the dob is within, and whether that room is visible. This is approximate and won't deal with the case where a dob should be casting a shadow into the frustum from a room that is not visible. I'll get more accurate dob culling and light tracing working again in time, but it should be okay for most cases to start with.
 
 I am currently working on a small demo / test first person shooter game. This is helping me find bugs / add usability features as I go.
 
-Note I'm also currently rewriting the Godot 2d GLES renderer in core, so that has to take priority until it is working.
+Note I'm also working on the GLES2 2d core renderer, so there may be some periods of inactivity on LPortal.
 
 ## Instructions
 * [OVERVIEW](OCCLUSION_CULLING.md)
