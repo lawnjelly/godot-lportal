@@ -55,19 +55,19 @@ Spatial * LRoom::GetGodotRoom() const
 }
 
 
-
-void LRoom::DOB_Add(const LDob &dob)
+/*
+void LRoom::DOB_Add(int id)
 {
-	m_DOBs.push_back(dob);
+	m_DOB_ids.push_back(id);
 }
 
-unsigned int LRoom::DOB_Find(Node * pDOB) const
+unsigned int LRoom::DOB_Find(int id) const
 {
-	ObjectID id = pDOB->get_instance_id();
+//	ObjectID id = pDOB->get_instance_id();
 
-	for (int n=0; n<m_DOBs.size(); n++)
+	for (int n=0; n<m_DOB_ids.size(); n++)
 	{
-		if (m_DOBs[n].m_ID_Spatial == id)
+		if (m_DOB_ids[n] == id)
 		{
 			return n;
 		}
@@ -78,9 +78,9 @@ unsigned int LRoom::DOB_Find(Node * pDOB) const
 
 bool LRoom::DOB_Remove(unsigned int ui)
 {
-	if (ui < m_DOBs.size())
+	if (ui < m_DOB_ids.size())
 	{
-		m_DOBs.remove_unsorted(ui);
+		m_DOB_ids.remove_unsorted(ui);
 		return true;
 	}
 
@@ -91,6 +91,7 @@ bool LRoom::DOB_Remove(unsigned int ui)
 // returns -1 if no change, or the linked room we are moving into
 LRoom * LRoom::DOB_Update(LRoomManager &manager, Spatial * pDOB)
 {
+	// get _global_transform DOES NOT WORK when detached from scene tree (or hidden)
 	const Vector3 &pt = pDOB->get_global_transform().origin;
 
 	// is it the camera?
@@ -98,6 +99,10 @@ LRoom * LRoom::DOB_Update(LRoomManager &manager, Spatial * pDOB)
 	float slop = 0.2f;
 	if (bCamera)
 		slop = 0.0f;
+	else
+	{
+//		print_line("dob position : " + String(Variant(pt)));
+	}
 
 	// deal with the case that the DOB has moved way outside the room
 	if (!m_Bound.IsPointWithin(pt, 1.0f))
@@ -139,7 +144,7 @@ LRoom * LRoom::DOB_Update(LRoomManager &manager, Spatial * pDOB)
 
 	return 0;
 }
-
+*/
 
 // instead of directly showing and hiding objects we now set their layer,
 // and the camera will hide them with a cull mask. This is so that
@@ -316,6 +321,7 @@ void LRoom::FinalizeVisibility(LRoomManager &manager)
 
 	//print_line("FinalizeVisibility room " + get_name() + " NumSOBs " + itos(m_SOBs.size()) + ", NumDOBs " + itos(m_DOBs.size()));
 
+#ifndef LPORTAL_DOBS_NO_SOFTSHOW
 	for (int n=0; n<m_DOBs.size(); n++)
 	{
 		const LDob &dob = m_DOBs[n];
@@ -350,22 +356,7 @@ void LRoom::FinalizeVisibility(LRoomManager &manager)
 //				pS->hide();
 		}
 	}
-}
-
-// call when releasing a level, this should unregister all dobs within all rooms
-void LRoom::Release(LRoomManager &manager)
-{
-	for (int n=0; n<m_DOBs.size(); n++)
-	{
-		LDob &dob = m_DOBs[n];
-
-		Spatial * pS = dob.GetSpatial();
-		if (pS)
-		{
-			// signifies released or unregistered
-			manager.Meta_SetRoomNum(pS, -2);
-		}
-	}
+#endif
 
 }
 
@@ -390,6 +381,7 @@ void LRoom::Room_MakeVisible(bool bVisible)
 
 	m_bVisible = bVisible;
 
+	/*
 	if (m_bVisible)
 	{
 		// show room
@@ -418,6 +410,7 @@ void LRoom::Room_MakeVisible(bool bVisible)
 				p->hide();
 		}
 	}
+	*/
 }
 
 

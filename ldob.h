@@ -69,10 +69,13 @@ public:
 	Spatial * GetSpatial() const;
 	VisualInstance * GetVI() const;
 
-	ObjectID m_ID_Spatial;
-	ObjectID m_ID_VI;
+	bool m_bSlotTaken;
 	bool m_bVisible;
 	float m_fRadius;
+	int m_iRoomID;
+
+	ObjectID m_ID_Spatial;
+	ObjectID m_ID_VI;
 };
 
 
@@ -129,6 +132,8 @@ public:
 
 	LSource m_Source;
 	ObjectID m_GodotID;
+	int m_DOB_id;
+
 	// shadow casters
 	int m_FirstCaster;
 	int m_NumCasters;

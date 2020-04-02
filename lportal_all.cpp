@@ -7,13 +7,17 @@
 #define LDEBUG_CAMERA
 #define LDEBUG_LIGHTS
 #define LDEBUG_LIGHT_AFFECTED_ROOMS
+//#define LDEBUG_DOB_VISIBILITY
 
+#define LPORTAL_DOBS_NO_SOFTSHOW
+//#define LPORTAL_DOBS_AUTO_UPDATE
 
 //#define LDEBUG_UNMERGE
 
 // single compilation unit
 #include "register_types.cpp"
 #include "ldebug.cpp"
+#include "ldoblist.cpp"
 #include "lroom.cpp"
 #include "lroom_manager.cpp"
 #include "lroom_converter.cpp"

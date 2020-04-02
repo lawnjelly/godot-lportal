@@ -30,6 +30,7 @@
 #include "lbitfield_dynamic.h"
 #include "lplanes_pool.h"
 
+#include "ldoblist.h"
 #include "lroom.h"
 #include "lportal.h"
 #include "larea.h"
@@ -44,6 +45,7 @@ class LRoomManager : public Spatial {
 	friend class LHelper;
 	friend class LTrace;
 	friend class LMainCamera;
+	friend class LDobList;
 
 public:
 	// PUBLIC INTERFACE TO GDSCRIPT
@@ -65,7 +67,7 @@ public:
 
 	// choose which camera you want to use to determine visibility.
 	// normally this will be your main camera, but you can choose another for debugging
-	bool rooms_set_camera(Node * pCam);
+	bool rooms_set_camera(int dob_id, Node * pCam);
 
 	// get the Godot room that is associated with an LPortal room
 	// (can be used to find the name etc of a room ID returned by dob_update)
@@ -81,30 +83,24 @@ public:
 	// These are defined by their ability to move from room to room.
 	// You can still move static objects within the same room (e.g. elevators, moving platforms)
 	// as these don't require checks for changing rooms.
-	bool dob_register(Node * pDOB, float radius);
-	// register but let LPortal know which room the dob should start in
-	bool dob_register_hint(Node * pDOB, float radius, Node * pRoom);
 
-	bool dob_unregister(Node * pDOB);
-
+	// returns DOB ID
+	int dob_register(Node * pDOB, const Vector3 &pos, float radius);
+	bool dob_unregister(int dob_id);
 	// returns the room ID within
-	int dob_update(Node * pDOB);
-
-	// if we are moving the DOB possibly through multiple rooms, then teleport rather than detect
-	// portal crossings
-	bool dob_teleport(Node * pDOB);
-	bool dob_teleport_hint(Node * pDOB, Node * pRoom);
+	int dob_update(int dob_id, const Vector3 &pos);
 
 	//______________________________________________________________________________________
 	// LIGHTS
 	// global directional lights that will apply to all rooms
-	bool light_register(Node * pLightNode, String szArea);
+	bool global_light_register(Node * pLightNode, String szArea);
 
 	// dynamic lights (spot or omni within rooms)
-	bool dynamic_light_register(Node * pLightNode, float radius);
-	bool dynamic_light_register_hint(Node * pLightNode, float radius, Node * pRoom);
-	bool dynamic_light_unregister(Node * pLightNode);
-	int dynamic_light_update(Node * pLightNode); // returns room within
+	// returns light ID
+	// only lights within the rooms on conversion are supported so far
+	int dynamic_light_register(Node * pLightNode, float radius);
+	bool dynamic_light_unregister(int light_id);
+	int dynamic_light_update(int light_id, const Vector3 &pos, const Vector3 &dir); // returns room within
 
 	//______________________________________________________________________________________
 	// LIGHTMAPS
@@ -130,7 +126,7 @@ public:
 	bool rooms_is_room_visible(int room_id) const;
 	Array rooms_get_visible_rooms() const;
 	// helper func, not needed usually as dob_update returns the room
-	int dob_get_room_id(Node * pDOB);
+	int dob_get_room_id(int dob_id);
 	bool export_scene_DAE(Node * pNode, String szFilename);
 
 
@@ -161,8 +157,8 @@ public:
 private:
 	// PER FRAME STUFF
 
-	// godot ID of the camera (which should be registered as a DOB to allow moving between rooms)
-	ObjectID m_ID_camera;
+	// camera
+	int m_DOB_id_camera;
 
 	// keep track of which rooms are visible, so we can hide ones that aren't hit that were previously on
 	Lawn::LBitField_Dynamic m_BF_visible_rooms;
@@ -249,6 +245,7 @@ private:
 	// We use a pool for this instead of allocating on the fly.
 	LPlanesPool m_Pool;
 
+	LDobList m_DobList;
 
 public:
 	// whether debug planes is switched on
@@ -325,10 +322,16 @@ private:
 	bool RoomsConvert(bool bVerbose, bool bDeleteLights, bool bSingleRoomMode);
 
 	// dobs
-	bool DobRegister(Spatial * pDOB, float radius, int iRoom);
+	int DobRegister(Spatial * pDOB, const Vector3 &pos, float radius, int iRoom);
+
 	ObjectID DobRegister_FindVIRecursive(Node * pNode) const;
-	bool DobTeleport(Spatial * pDOB, int iNewRoomID);
-	void DobChangeVisibility(Spatial * pDOB, const LRoom * pOld, const LRoom * pNew);
+//	bool DobTeleport(Spatial * pDOB, int iNewRoomID);
+
+	//int DobUpdate(Spatial * pDOB_Spatial, LRoom * pRoom);
+	void DobUpdateVisibility(int dob_id);
+
+	// for debugging only have autoupdate mode where all dobs are updated
+//	void DobsAutoUpdate();
 
 	void CreateDebug();
 	void ReleaseResources(bool bPrepareConvert);
@@ -351,15 +354,14 @@ private:
 	const LRoom * GetRoom(int i) const;
 	LRoom * GetRoom(int i);
 
-	LRoom * GetRoomFromDOB(Node * pNode);
 	int FindClosestRoom(const Vector3 &pt) const;
 
 	LRoom &Portal_GetLinkedRoom(const LPortal &port);
 
 	// for DOBs, we need some way of storing the room ID on them, so we use metadata (currently)
 	// this is pretty gross but hey ho
-	int Meta_GetRoomNum(Node * pNode) const;
-	void Meta_SetRoomNum(Node * pNode, int num);
+//	int Meta_GetRoomNum(Node * pNode) const;
+//	void Meta_SetRoomNum(Node * pNode, int num);
 
 	// for lights we store the light ID in the metadata
 	void Meta_SetLightID(Node * pNode, int id);

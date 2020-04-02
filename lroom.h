@@ -58,7 +58,7 @@ public:
 	int m_iNumSOBs;
 
 	// dynamic objects
-	LVector<LDob> m_DOBs;
+	//LVector<uint32_t> m_DOB_ids;
 
 	// local lights affecting this room
 	LVector<int> m_LocalLights;
@@ -105,9 +105,6 @@ public:
 	// allows us to show / hide all dobs as the room visibility changes
 	void Room_MakeVisible(bool bVisible);
 
-	// call when releasing a level, this should unregister all dobs within all rooms
-	void Release(LRoomManager &manager);
-
 	// show godot room and all linked dobs and all sobs
 	void Debug_ShowAll(bool bActive);
 
@@ -118,11 +115,11 @@ public:
 	// naive version, adds all the non visible objects in visible rooms as shadow casters
 	void AddShadowCasters(LRoomManager &manager);
 
-	void DOB_Add(const LDob &dob);
-	const LDob &DOB_Get(unsigned int ui) const {return m_DOBs[ui];}
-	unsigned int DOB_Find(Node * pDOB) const;
-	bool DOB_Remove(unsigned int ui);
-	LRoom * DOB_Update(LRoomManager &manager, Spatial * pDOB);
+//	void DOB_Add(int id);
+//	int DOB_GetID(unsigned int ui) const {return m_DOB_ids[ui];}
+//	unsigned int DOB_Find(int id) const;
+//	bool DOB_Remove(unsigned int ui);
+//	LRoom * DOB_Update(LRoomManager &manager, Spatial * pDOB);
 
 	LRoom();
 	Spatial * GetGodotRoom() const;

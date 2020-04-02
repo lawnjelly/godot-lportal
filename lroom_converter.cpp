@@ -336,7 +336,7 @@ bool LRoomConverter::Convert_Room(Spatial * pNode, int lroomID, int areaID)
 	// save the room ID on the godot room metadata
 	// This is used when registering DOBs and teleporting them with hints
 	// i.e. the Godot room is used to lookup the room ID of the startroom.
-	LMAN->Meta_SetRoomNum(pNode, lroomID);
+//	LMAN->Meta_SetRoomNum(pNode, lroomID);
 
 	// create a new LRoom to exchange the children over to, and delete the original empty
 	lroom.m_szName = szRoom;
