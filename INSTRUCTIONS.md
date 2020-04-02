@@ -141,21 +141,19 @@ Somewhat counter-intuitively, all DOBs should be maintained in your game __OUTSI
 
 All the following functions should be called on the LRoomManager node.
 
-* Call `dob_register(cam, 0.0)` to register a DOB to be handled
+* Call `dob_id = dob_register(godot_node, position, radius)` to register a DOB to be handled
 
-The number 0.0 is the radius of the DOB in the visibility system. All DOBs are managed as spheres. For a camera the radius can be zero because it will never be visible (however it DOES require to be a DOB so that the system can keep track of which room it is in).
+The radius is needed because all DOBs are managed as spheres. For a camera the radius can be zero because it will never be visible (however it DOES require to be a DOB so that the system can keep track of which room it is in). It returns a dob_id which will need to be stored in your game and used to refer to the dob.
 
 If a DOB is being culled (popping out of view) when it should not, it is normally because the bounding radius needs to be larger. On the other hand, too large a radius will make the DOB render when it is not necessary, so it is a good idea to tweak this value. It is in Godot world units, so you may be able to simply measure you object in the IDE. 
 
-* Each frame, call `dob_update(dob_node)` to keep that DOB updated in the system
+* Each frame, call `dob_update(dob_id, position)` to keep that DOB updated in the system with the new position
 
 If the DOB is not moving, or you want to deactivate it to save processing, simply don't call update again until you want to reactivate it. Note that there is no need to call dob_update on the selected camera, it will be updated automatically.
 
-* When you have finished with a DOB you should call `dob_unregister(cam)` to remove the soft link from the system. This is more important when you are creating and deleting DOBs (say with multiple game levels). If you call rooms_release when unloading a level and want to keep DOBs in between levels, it is crucial that you do not update them until you have re-registered them after calling rooms_convert to create the new level (you will get an error message otherwise).
+* When you have finished with a DOB you should call `dob_unregister(dob_id)` to remove the soft link from the system. This is more important when you are creating and deleting DOBs (say with multiple game levels). If you call rooms_release when unloading a level and want to keep DOBs in between levels, it is crucial that you do not update them until you have re-registered them after calling rooms_convert to create the new level (you will get an error message otherwise).
 
-* If you are suddenly moving a DOB a large distance (rather than into a neighbouring room), you should call `dob_teleport(cam)`. This uses a different system to estimate the new room that the DOB is in. If you know in advance what room the dob will teleport to, there is a hint version of the function.
-
-* DOBs should only move between rooms via the portals. In fact that is how their movement between rooms is defined. This is why a room's portals should form a convex space, never concave. In order to limit movement between rooms to the portals, you should use e.g. physics, or a navmesh.
+* DOBs should usually only move between rooms via the portals. In fact that is how their movement between rooms is defined. This is why a room's portals should form a convex space, never concave. In order to limit movement between rooms to the portals, you should use e.g. physics, or a navmesh.
 
 ## Conversion
 Build your rooms and portals and placed them as children in a scene graph structure something like this:
@@ -186,9 +184,9 @@ Root
 
 This will provide some output to indicate the building of the optimized internal visibility structure.
 
-* Set which camera you want LPortal to use by calling `rooms_set_camera(cam)`
-
 * Register the camera as a DOB (see above section on DOBs) and update each frame.
+
+* Set which camera you want LPortal to use by calling `rooms_set_camera(dob_id, camera_node)`
 
 * If you want to unload a level and load a new one, call `rooms_release()`, free the old level, load the new one, and call `rooms_convert()` again (which clears the old data), and repeat each step.
 
@@ -380,12 +378,16 @@ var m_node_KitchenLight = get_node("/root").find_node("kitchen_light", true, fal
 Then after converting the level, call
 ```
 # where LRoomManager is your LRoomManager
-$LRoomManager.dynamic_light_register(m_node_KitchenLight)
+light_id = $LRoomManager.dynamic_light_register(m_node_KitchenLight, radius)
 ```
 Move or rotate the light as you would normally, but to keep LPortal up to date, immediately after moving the light call 'dynamic_light_update':
 ```
 m_node_KitchenLight.rotate_y(0.01) # just an example
-$LRoomManager.dynamic_light_update(m_node_KitchenLight)
+$LRoomManager.dynamic_light_update(light_id, position, direction)
+```
+The direction is important for spotlights, you can calculate it using the following formula:
+```
+var dir = (-node_Spotlight.global_transform.basis.z).normalized()
 ```
 
 #### Global Directional lights
@@ -398,7 +400,7 @@ As directional lights are not associated with any particular room, you should ad
 ```
 # where $DirectionalLight is your light node,
 # and "myarea" is the name of your area (e.g. area_myarea) that you want it to affect
-$LRoomManager.light_register($DirectionalLight, "myarea")
+$LRoomManager.global_light_register($DirectionalLight, "myarea")
 ```
 That's all you need to do. If any of the visible rooms (as calculated by LPortal) are part of the area affected by the light, the light will be drawn. If not, it will not. LPortal also calculates only those shadow casters that are relevant, but directional lights cannot as yet (Godot 3) take advantage of this information. This may change in Godot 4.
 
@@ -487,20 +489,3 @@ Note that you should usually assign the shader to the materials while creating t
 
 ### Command reference
 _(There is a full reference available from the help section in the IDE under 'LRoomManager')_
-* `rooms_convert()` - prepare lportal for rendering
-* `rooms_set_camera()` - set which camera visibility is calculated from
-* `Node * rooms_get_room()` - returns godot room node from lportal room id
-* `rooms_set_active()` - turns on and off lportal
-* `rooms_log_frame()` - output debug logs for the next frame
-* `rooms_set_logging()` - set debug logging level, 0 - 6 (0 is none, 6 is most)
-* `rooms_set_debug_planes()` - turns on and off graphic debugging of portal planes
-* `rooms_set_debug_bounds()` - turns on and off graphic debugging of room bounds
-
-* `dob_register()` - have lportal find start room
-* `dob_register_hint()` - user provides start room
-* `dob_unregister()`
-* `int dob_update()` - returns room ID within
-* `dob_teleport()` - have lportal find start room
-* `dob_teleport_hint()` - user provides start room
-* `int dob_get_room_id()` - return room ID the dob is currently within
-
