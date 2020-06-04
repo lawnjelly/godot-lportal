@@ -30,8 +30,6 @@ April 2nd 2020 - New API for DOBS. I had identified a breaking bug in the DOB vi
 
 Note that the new dob culling isn't totally finished yet, it simply culls based on which room the dob is within, and whether that room is visible. This is approximate and won't deal with the case where a dob should be casting a shadow into the frustum from a room that is not visible. I'll get more accurate dob culling and light tracing working again in time, but it should be okay for most cases to start with.
 
-I'll also have to update some of the instructions and demos, this may take a little time so bear with me. If you encounter small error running the demos, consult the docs for LRoomManager in the IDE for API changes.
-
 I am currently working on a small demo / test first person shooter game. This is helping me find bugs / add usability features as I go.
 
 Note I'm also working on the GLES2 2d core renderer, so there may be some periods of inactivity on LPortal.
