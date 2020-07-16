@@ -32,7 +32,7 @@ Note that the new dob culling isn't totally finished yet, it simply culls based 
 
 I am currently working on a small demo / test first person shooter game. This is helping me find bugs / add usability features as I go.
 
-The new lightmapper is now available as a separate module (https://github.com/lawnjelly/godot-llightmap). It supercedes the lportal lightmapping workflows so I'll soon be removing them. The two modules can (and are encouraged) to be used together.
+July 16th 2020 - The new lightmapper is now available as a separate module (https://github.com/lawnjelly/godot-llightmap). It supercedes the lportal lightmapping workflows so I'll soon be removing them. The two modules can (and are encouraged) to be used together.
 
 I'm going to be working on improving the user interface for LPortal, exposing some of the features in the LRoomManager node, and having editor plugins for both the lightmapper and lportal.
 
