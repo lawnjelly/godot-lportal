@@ -32,7 +32,7 @@ Note that the new dob culling isn't totally finished yet, it simply culls based 
 
 I am currently working on a small demo / test first person shooter game. This is helping me find bugs / add usability features as I go.
 
-I've also written a small lightmapper which started out as a bit of fun, but will be integrated in LPortal. The current voxel based lightmapper in core 3.x has a lot of bugs. JFons has been writing a replacement lightmapper for core, and I may switch to that when it is available, or have both options available. My lightmapper (and I believe JFons also) are based on path tracing rather than voxels. Reduz has also written a new lightmapper for 4.x, but whether that will be backported to 3.x and will work on CPUs remains to be seen.
+The new lightmapper is now available as a separate module (https://github.com/lawnjelly/godot-llightmap). It supercedes the lportal lightmapping workflows so I'll soon be removing them. The two modules can (and are encouraged) to be used together.
 
 I'm going to be working on improving the user interface for LPortal, exposing some of the features in the LRoomManager node, and having editor plugins for both the lightmapper and lportal.
 
