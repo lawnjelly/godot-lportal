@@ -1131,7 +1131,7 @@ void LRoomConverter::LRoom_FindShadowCasters_FromLight(LRoom &lroom, const LLigh
 
 	// the first set of planes are blank
 	unsigned int pool_member = LMAN->m_Pool.Request();
-	assert (pool_member != -1);
+	assert (pool_member != (unsigned int) -1);
 
 	LVector<Plane> &planes = LMAN->m_Pool.Get(pool_member);
 	planes.clear();
@@ -1270,7 +1270,7 @@ void LRoomConverter::LRoom_FindShadowCasters_Recursive(LRoom &source_lroom, int 
 
 		// recurse into that portal
 		unsigned int uiPoolMem = LMAN->m_Pool.Request();
-		if (uiPoolMem != -1)
+		if (uiPoolMem != (unsigned int) -1)
 		{
 			// get a vector of planes from the pool
 			LVector<Plane> &new_planes = LMAN->m_Pool.Get(uiPoolMem);

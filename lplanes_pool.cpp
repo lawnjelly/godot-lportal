@@ -7,7 +7,7 @@ LPlanesPool::LPlanesPool()
 	// preallocate the vectors to a reasonable size
 	for (int n=0; n<POOL_MAX; n++)
 	{
-		m_Planes[n].reserve(32);
+		m_Planes[n].resize(32);
 	}
 }
 

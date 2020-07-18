@@ -225,7 +225,7 @@ void LMainCamera::CompactLUT_Entry(int n)
 		return;
 
 	LVector<uint8_t> temp;
-	temp.reserve(16); // 8 max?
+	temp.resize(16); // 8 max?
 
 	String sz;
 	sz = "Compact LUT" + itos(n) + ":\t";

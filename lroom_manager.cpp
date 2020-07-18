@@ -142,7 +142,7 @@ int LRoomManager::FindClosestRoom(const Vector3 &pt) const
 
 const LRoom * LRoomManager::GetRoom(int i) const
 {
-	if ((unsigned int) i >= m_Rooms.size())
+	if ((unsigned int) i >= (unsigned int) m_Rooms.size())
 	{
 		WARN_PRINT_ONCE("LRoomManager::GetRoom out of range");
 		return 0;
@@ -152,7 +152,7 @@ const LRoom * LRoomManager::GetRoom(int i) const
 
 LRoom * LRoomManager::GetRoom(int i)
 {
-	if ((unsigned int) i >= m_Rooms.size())
+	if ((unsigned int) i >= (unsigned int) m_Rooms.size())
 	{
 		WARN_PRINT_ONCE("LRoomManager::GetRoom out of range");
 		return 0;
@@ -1787,7 +1787,7 @@ bool LRoomManager::FrameUpdate()
 	// Note that the visual server doesn't actually need to do view frustum culling as a result...
 	// (but is still doing it for now)
 	unsigned int pool_member = m_Pool.Request();
-	assert (pool_member != -1);
+	assert (pool_member != (unsigned int) -1);
 
 	LVector<Plane> &planes = m_Pool.Get(pool_member);
 	planes.clear();

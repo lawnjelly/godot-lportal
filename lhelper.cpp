@@ -2,7 +2,10 @@
 #include "ldebug.h"
 #include "scene/3d/baked_lightmap.h"
 #include "scene/3d/mesh_instance.h"
+
+#ifdef TOOLS_ENABLED
 #include "thirdparty/xatlas/xatlas.h"
+#endif
 
 // for ::free
 #include <stdlib.h>
@@ -140,7 +143,7 @@ void LHelper::SetUnMergeParams(float thresh_dist, float thresh_dot)
 }
 
 // take the UV2 coords from the merged mesh and attach these to the SOB meshes
-bool LHelper::UnMergeSOBs(LRoomManager &manager, MeshInstance * pMerged)
+bool LHelper::UnMergeSOBs(LRoomManager &manager, const MeshInstance * pMerged)
 {
 	if (!pMerged)
 	{
@@ -693,6 +696,26 @@ bool LHelper::MergeSOBs(LRoomManager &manager, MeshInstance * pMerged, bool bLig
 
 	pMerged->set_mesh(am);
 
+
+	////////////////////////////////////
+	// do some assert checks for the xatlas version
+//	{
+//	Ref<Mesh> rmesh = pMerged->get_mesh();
+//	Array arrays = rmesh->surface_get_arrays(0);
+//	PoolVector<Vector3> verts = arrays[VS::ARRAY_VERTEX];
+//	PoolVector<Vector3> norms = arrays[VS::ARRAY_NORMAL];
+//	PoolVector<Vector2> uv1s = arrays[VS::ARRAY_TEX_UV];
+//	PoolVector<Vector2> uv2s = arrays[VS::ARRAY_TEX_UV2];
+//	PoolVector<int> inds = arrays[VS::ARRAY_INDEX];
+
+//	int nVerts = verts.size();
+//	int nInds = inds.size();
+//	int nUV2s = uv2s.size();
+//	int nUVs = uv1s.size();
+//	int nFaces = nInds / 3;
+//	}
+////////////////////////////////////
+
 	//DebugCountUVs(*pMerged);
 
 
@@ -737,10 +760,17 @@ bool LHelper::MergeSOBs(LRoomManager &manager, MeshInstance * pMerged, bool bLig
 //	return true;
 }
 
+
+extern bool (*array_mesh_lightmap_unwrap_callback)(float p_texel_size, const float *p_vertices, const float *p_normals, int p_vertex_count, const int *p_indices, const int *p_face_materials, int p_index_count, float **r_uv, int **r_vertex, int *r_vertex_count, int **r_index, int *r_index_count, int *r_size_hint_x, int *r_size_hint_y);
+
+
 bool LHelper::LightmapUnwrap(Ref<ArrayMesh> am, const Transform &trans)
 {
 //	ArrayMesh
 //	Ref<Mesh> rmesh = pMesh->get_mesh();
+
+#ifdef TOOLS_ENABLED
+	array_mesh_lightmap_unwrap_callback = xatlas_unwrap;
 
 	// we can add the UV2 coords from here
 	Error err = am->lightmap_unwrap(trans);
@@ -748,7 +778,9 @@ bool LHelper::LightmapUnwrap(Ref<ArrayMesh> am, const Transform &trans)
 		LWARN(5, "UV Unwrap failed, mesh may not be manifold?");
 		return false;
 	}
-
+#else
+	WARN_PRINT("LightmapUnwrap only possible in TOOLS build.");
+#endif
 	return true;
 }
 
@@ -842,6 +874,15 @@ void LHelper::Merge_MI(const MeshInstance &mi, PoolVector<Vector3> &verts, PoolV
 	PoolVector<int> p_indices = arrays[VS::ARRAY_INDEX];
 	//PoolVector<int>::Read ir = mesh_indices.read();
 
+	// no normals, can't do
+	if (!p_normals.size())
+	{
+		//assert (0);
+		WARN_PRINT_ONCE("Merge_MI : mesh with no normals, ignoring");
+		return;
+	}
+
+
 	// the first index of this mesh is offset from the verts we already have stored in the merged mesh
 	int first_index = verts.size();
 
@@ -872,7 +913,7 @@ void LHelper::Merge_MI(const MeshInstance &mi, PoolVector<Vector3> &verts, PoolV
 }
 
 
-extern bool (*array_mesh_lightmap_unwrap_callback)(float p_texel_size, const float *p_vertices, const float *p_normals, int p_vertex_count, const int *p_indices, const int *p_face_materials, int p_index_count, float **r_uv, int **r_vertex, int *r_vertex_count, int **r_index, int *r_index_count, int *r_size_hint_x, int *r_size_hint_y);
+//extern bool (*array_mesh_lightmap_unwrap_callback)(float p_texel_size, const float *p_vertices, const float *p_normals, int p_vertex_count, const int *p_indices, const int *p_face_materials, int p_index_count, float **r_uv, int **r_vertex, int *r_vertex_count, int **r_index, int *r_index_count, int *r_size_hint_x, int *r_size_hint_y);
 
 /*
 bool LHelper::LightmapUnwrap(const PoolVector<Vector3> &p_verts, const PoolVector<Vector3> &p_normals, const PoolVector<int> &p_inds, PoolVector<Vector2> &r_uvs)
@@ -945,6 +986,81 @@ bool LHelper::LightmapUnwrap(const PoolVector<Vector3> &p_verts, const PoolVecto
 	return true;
 }
 */
+
+#ifdef TOOLS_ENABLED
+bool LHelper::xatlas_unwrap(float p_texel_size, const float *p_vertices, const float *p_normals, int p_vertex_count, const int *p_indices, const int *p_face_materials, int p_index_count, float **r_uv, int **r_vertex, int *r_vertex_count, int **r_index, int *r_index_count, int *r_size_hint_x, int *r_size_hint_y)
+{
+
+	//set up input mesh
+	xatlas::MeshDecl input_mesh;
+	input_mesh.indexData = p_indices;
+	input_mesh.indexCount = p_index_count;
+	input_mesh.indexFormat = xatlas::IndexFormat::UInt32;
+
+	input_mesh.vertexCount = p_vertex_count;
+	input_mesh.vertexPositionData = p_vertices;
+	input_mesh.vertexPositionStride = sizeof(float) * 3;
+	input_mesh.vertexNormalData = p_normals;
+	input_mesh.vertexNormalStride = sizeof(uint32_t) * 3;
+	input_mesh.vertexUvData = NULL;
+	input_mesh.vertexUvStride = 0;
+
+	xatlas::ChartOptions chart_options;
+	xatlas::PackOptions pack_options;
+
+	pack_options.maxChartSize = 4096;
+	pack_options.blockAlign = true;
+	pack_options.texelsPerUnit = 1.0 / p_texel_size;
+	pack_options.padding = 4;
+
+	xatlas::Atlas *atlas = xatlas::Create();
+	printf("Adding mesh..\n");
+	xatlas::AddMeshError::Enum err = xatlas::AddMesh(atlas, input_mesh, 1);
+	ERR_FAIL_COND_V_MSG(err != xatlas::AddMeshError::Enum::Success, false, xatlas::StringForEnum(err));
+
+	printf("Generate..\n");
+	xatlas::Generate(atlas, chart_options, xatlas::ParameterizeOptions(), pack_options);
+
+	*r_size_hint_x = atlas->width;
+	*r_size_hint_y = atlas->height;
+
+	float w = *r_size_hint_x;
+	float h = *r_size_hint_y;
+
+	if (w == 0 || h == 0) {
+		return false; //could not bake because there is no area
+	}
+
+	const xatlas::Mesh &output = atlas->meshes[0];
+
+	*r_vertex = (int *)malloc(sizeof(int) * output.vertexCount);
+	*r_uv = (float *)malloc(sizeof(float) * output.vertexCount * 2);
+	*r_index = (int *)malloc(sizeof(int) * output.indexCount);
+
+	float max_x = 0;
+	float max_y = 0;
+	for (uint32_t i = 0; i < output.vertexCount; i++) {
+		(*r_vertex)[i] = output.vertexArray[i].xref;
+		(*r_uv)[i * 2 + 0] = output.vertexArray[i].uv[0] / w;
+		(*r_uv)[i * 2 + 1] = output.vertexArray[i].uv[1] / h;
+		max_x = MAX(max_x, output.vertexArray[i].uv[0]);
+		max_y = MAX(max_y, output.vertexArray[i].uv[1]);
+	}
+
+	printf("Final texture size: %f,%f - max %f,%f\n", w, h, max_x, max_y);
+	*r_vertex_count = output.vertexCount;
+
+	for (uint32_t i = 0; i < output.indexCount; i++) {
+		(*r_index)[i] = output.indexArray[i];
+	}
+
+	*r_index_count = output.indexCount;
+
+	xatlas::Destroy(atlas);
+	printf("Done\n");
+	return true;
+}
+#endif
 
 
 //bool LHelper::xatlas_mesh_lightmap_unwrap(float p_texel_size, const float *p_vertices, const float *p_normals, int p_vertex_count, const int *p_indices, const int *p_face_materials, int p_index_count, float **r_uv, int **r_vertex, int *r_vertex_count, int **r_index, int *r_index_count, int *r_size_hint_x, int *r_size_hint_y)

@@ -25,6 +25,7 @@ public:
 	inline unsigned int GetNumBits() const {return m_uiNumBits;}
 	inline unsigned int GetBit(unsigned int uiBit) const;
 	inline void SetBit(unsigned int uiBit, unsigned int bSet);
+	bool CheckAndSet(unsigned int uiBit);
 	void Blank(bool bSetOrZero = false);
 	void Invert();
 	void CopyFrom(const LBitField_Dynamic_IT &source);
@@ -69,6 +70,23 @@ inline unsigned int LBitField_Dynamic_IT::GetBit(unsigned int uiBit) const
 	unsigned int uiBitSet = uc & (1 << (uiBit & 7));
 	return uiBitSet;
 }
+
+inline bool LBitField_Dynamic_IT::CheckAndSet(unsigned int uiBit)
+{
+	assert (m_pucData);
+	unsigned int uiByteNumber = uiBit >> 3; // divide by 8
+	assert (uiByteNumber < m_uiNumBytes);
+	unsigned char &uc = m_pucData[uiByteNumber];
+	unsigned int uiMask = (1 << (uiBit & 7));
+	unsigned int uiBitSet = uc & uiMask;
+	if (uiBitSet)
+		return false;
+
+	// set
+	uc = uc | uiMask;
+	return true;
+}
+
 
 inline void LBitField_Dynamic_IT::SetBit(unsigned int uiBit, unsigned int bSet)
 {

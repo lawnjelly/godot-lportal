@@ -34,13 +34,17 @@ public:
 	// note this is not available in Godot Vector
 	T& operator[](unsigned int ui)
 	{
-		assert (ui < m_iSize);
+#ifdef DEBUG_ENABLED
+		assert (ui < (unsigned int) m_iSize);
+#endif
 		return m_Vec[ui];
 	}
 
 	const T& operator[](unsigned int ui) const
 	{
+#ifdef DEBUG_ENABLED
 		assert (ui < (unsigned int) m_iSize);
+#endif
 		return m_Vec[ui];
 	}
 
@@ -59,6 +63,7 @@ public:
 	void reserve(int s)
 	{
 		m_Vec.resize(s);
+		m_iSize = 0;
 	}
 
 	void resize(int s, bool bCompact = false)
@@ -67,7 +72,7 @@ public:
 		m_iSize = s;
 
 		// if compacting is not desired, no need to shrink vector
-		if (m_iSize < m_Vec.size())
+		if (m_iSize < (int) m_Vec.size())
 		{
 			if (!bCompact)
 			{
@@ -80,7 +85,9 @@ public:
 
 	void set(unsigned int ui, const T &t)
 	{
+#ifdef DEBUG_ENABLED
 		assert (ui < (unsigned int) m_iSize);
+#endif
 		m_Vec[ui] = t;
 	}
 
@@ -92,10 +99,16 @@ public:
 		m_iSize--;
 	}
 
+	void remove_last()
+	{
+		if (m_iSize)
+			m_iSize--;
+	}
+
 	T * request()
 	{
 		m_iSize++;
-		if (m_iSize >= m_Vec.size())
+		if (m_iSize >=(int) m_Vec.size())
 			grow();
 
 		return &m_Vec[m_iSize-1];
@@ -106,14 +119,17 @@ public:
 		int new_size = m_Vec.size() * 2;
 		if (!new_size) new_size = 1;
 
-		reserve(new_size);
+		int s = m_iSize;
+		resize(new_size);
+		m_iSize = s;
 	}
+
 
 	void push_back(const T &t)
 	{
 		int size_p1 = m_iSize+1;
 
-		if (size_p1 < m_Vec.size())
+		if (size_p1 < (int) m_Vec.size())
 		{
 			int size = m_iSize;
 			m_iSize = size_p1;
@@ -132,9 +148,9 @@ public:
 	void copy_from(const LVector<T> &o)
 	{
 		// make sure enough space
-		if (o.size() > m_Vec.size())
+		if (o.size() > (int) m_Vec.size())
 		{
-			reserve(o.size());
+			resize(o.size());
 		}
 
 		clear();
@@ -149,9 +165,9 @@ public:
 	void copy_from(const Vector<T> &o)
 	{
 		// make sure enough space
-		if (o.size() > m_Vec.size())
+		if (o.size() > (int) m_Vec.size())
 		{
-			reserve(o.size());
+			resize(o.size());
 		}
 
 		clear();
@@ -179,6 +195,33 @@ public:
 
 		return -1; // not found
 	}
+
+	void delete_items_first(unsigned int uiNumItems)
+	{
+		if (uiNumItems < size())
+		{
+			unsigned int num_to_move = size() - uiNumItems;
+
+			if (num_to_move)
+			{
+				memmove(&m_Vec[0], &m_Vec[uiNumItems], num_to_move * sizeof (T));
+			}
+			m_iSize -= uiNumItems;
+		}
+		else
+		{
+			if (uiNumItems == size())
+			{
+				clear();
+			}
+			else
+			{
+				assert (0 && "delete_items_first : Not enough items");
+			}
+		}
+
+	}
+
 
 	LVector()
 	{
