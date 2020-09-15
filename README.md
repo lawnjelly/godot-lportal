@@ -1,4 +1,6 @@
-# godot-lportal 0.21
+# godot-lportal 0.22
+_Sept 15th 2020_
+
 * Portal rendering / Occlusion culling module for Godot 3.2
 * See https://github.com/lawnjelly/godot-titan for pre-compiled builds
 
@@ -17,8 +19,6 @@ https://www.youtube.com/watch?v=NmlWkkhGoJA
 * Support for dynamic objects (DOBs)
 * Dynamic lights
 * Optional auto-generation of room bound convex hulls
-* Internal lightmapping workflow (for baking lights in Godot)
-* External lightmapping workflow (for baking lights in Blender etc)
 * Single room mode (for non-portalled levels)
 
 ### Demos / Tutorials
@@ -27,13 +27,13 @@ https://github.com/lawnjelly/lportal-demos
 _Feel free to leave suggestions / feature requests on the issue tracker, especially regarding ease of use._
 
 ## Current status
+September 15th 2020 - Removed lightmap generating functionality from LPortal. This has moved to LLightmap, which is far more extensive and a lightmapping solution from within Godot. The lightmaps can be used with LPortal.
+
 April 2nd 2020 - New API for DOBS. I had identified a breaking bug in the DOB visibility caused by the assumptions from the data coming from godot. It turns out when DOBs are hidden I can't retrieve their position etc from the Godot node, so I'm having to change the API for DOBs and dynamic lights so you pass the position manually each update. I've tested and this works.
 
 Note that the new dob culling isn't totally finished yet, it simply culls based on which room the dob is within, and whether that room is visible. This is approximate and won't deal with the case where a dob should be casting a shadow into the frustum from a room that is not visible. I'll get more accurate dob culling and light tracing working again in time, but it should be okay for most cases to start with.
 
 I am currently working on a small demo / test first person shooter game. This is helping me find bugs / add usability features as I go.
-
-July 16th 2020 - The new lightmapper is now available as a separate module (https://github.com/lawnjelly/godot-llightmap). It supercedes the lportal lightmapping workflows so I'll soon be removing them. The two modules can (and are encouraged) to be used together.
 
 I'm going to be working on improving the user interface for LPortal, exposing some of the features in the LRoomManager node, and having editor plugins for both the lightmapper and lportal.
 
@@ -60,8 +60,6 @@ Note I'm also working on core renderers (batching in GLES2 and GLES3, and the ne
 * Dealing with shadows from objects outside of view DONE
 * Universal visibility query for camera and dynamic lights DONE
 * Support for global directional lights (like the sun) DONE
-* Internal baked lightmap workflow DONE
-* External baked lightmap workflow DONE
 * Switchable culling method DONE
 * Bug fixing / testing ONGOING
 
