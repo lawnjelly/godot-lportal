@@ -1991,16 +1991,22 @@ void LRoomManager::_notification(int p_what) {
 			// turn on process, unless we are in the editor
 			if (!Engine::get_singleton()->is_editor_hint())
 			{
-				set_process_internal(true);
+				set_process(true);
 				//CreateDebug();
 			}
 			else
-				set_process_internal(false);
+				set_process(false);
 
 
 
 		} break;
-	case NOTIFICATION_INTERNAL_PROCESS: {
+		// NOTE!! Must use PROCESS and NOT INTERNAL_PROCESS.
+		// This is because all the internal processes are handled before all the processes.
+		// If the camera position is set in process, then the culling will be updated BEFORE
+		// the camera and we will get objects culled when they should not be.
+		// For the same reason, the LRoomManager should be low down in the scene tree
+		// so it is updated AFTER the camera.
+	case NOTIFICATION_PROCESS: {
 			FrameUpdate();
 		} break;
 	}
