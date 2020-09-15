@@ -56,6 +56,9 @@ In order for the room manager to know which roomlist it should operate on, in th
 
 The children of the roomlist should be rooms, or areas (which themselves contain rooms). The rooms contain the meshes, lights that you want to be shown and hidden by the room system.
 
+#### Room Manager synchronization
+In order to keep the LRoomManager correctly synchronized with the camera, it is essential that the LRoomManager node is updated (with _process) _AFTER_ the camera. Otherwise the culling will be based on the previous transform of the camera, and you may get culling errors where rooms are incorrectly hidden for a frame. To achieve this synchronization is quite easy, just make sure that the LRoomManager is AFTER the camera (and other nodes) in the scene tree. For example the last child of the root node of your scene.
+
 ### Rooms
 Rooms are simply spatials, whose children should contain the mesh instances that are static (non-moving) within the room. The naming of the room spatial is crucial in order for it to be recognised. All rooms should start with 'room_'.
 e.g.:
