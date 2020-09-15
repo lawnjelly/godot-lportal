@@ -419,7 +419,9 @@ Often a far better fit for lighting with occlusion culling systems is the use of
 This may mean using lightmapping in combination with traditional realtime lighting, but for example, only rendering dynamic objects to the shadow maps. You can also render the realtime lighting as normal for all objects, but only put indirect lighting into the lightmaps. This gives some increase in visual quality compared to fully realtime lighting but does not help performance wise.
 
 ### Using Baked Lighting with LPortal
-This is now very easy to achieve by using LPortal in combination with my `LLightmap` module. You can generate lightmaps and lightprobe data with LLightmap, and use the level tscn files as normal with LPortal. LLightmap will even handle the realtime lighting for you.
+This is now very easy to achieve by using LPortal in combination with my [LLightmap](https://github.com/lawnjelly/godot-llightmap) module.
+
+You can generate lightmaps and lightprobe data with LLightmap, and use the level tscn files as normal with LPortal. LLightmap will even handle the realtime lighting for you.
 
 ### Command reference
 _(There is a full reference available from the help section in the IDE under 'LRoomManager')_
