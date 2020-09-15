@@ -103,21 +103,6 @@ public:
 	int dynamic_light_update(int light_id, const Vector3 &pos, const Vector3 &dir); // returns room within
 
 	//______________________________________________________________________________________
-	// LIGHTMAPS
-	// helper function to merge SOB meshes for producing lightmaps VIA external blender workflow
-	bool rooms_merge_sobs(Node * pMergeMeshInstance);
-	bool rooms_unmerge_sobs(Node * pMergeMeshInstance, float thresh_dist, float thresh_dot);
-	bool rooms_transfer_uv2s(Node * pMeshInstance_From, Node * pMeshInstance_To);
-
-	bool lightmap_external_export(String szFilename); // DAE filename
-	bool lightmap_external_unmerge(Node * pMergeMeshInstance, String szLevelFilename);
-	void lightmap_set_unmerge_params(float thresh_dist, float thresh_dot);
-
-	// one function to do all the uv mapping and lightmap creation in one
-	// (for godot lightmap workflow)
-	MeshInstance * lightmap_internal(String szProxyFilename, String szLevelFilename);
-
-	//______________________________________________________________________________________
 	// HELPERS
 	// helper function for general use .. LPortal has the functionality, why not...
 	bool rooms_save_scene(Node * pNode, String szFilename);
