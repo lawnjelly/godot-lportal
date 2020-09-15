@@ -50,14 +50,13 @@ You may also actively wish to deactivate some processing (e.g. AI), rather than 
 ### The room manager
 Within your scene graph, to use LPortal you should add an LRoomManager node to the scene, e.g. as a child of the root node. You can reuse the same room manager as you load multiple game levels.
 
+> In order to keep the LRoomManager correctly synchronized with the camera, it is essential that the LRoomManager node is updated (with _process) _AFTER_ the camera. Otherwise the culling will be based on the previous transform of the camera, and you may get culling errors where rooms are incorrectly hidden for a frame. To achieve this synchronization is quite easy, just make sure that the LRoomManager is AFTER the camera (and other nodes) in the scene tree. For example the last child of the root node of your scene.
+
 On another branch of the scene graph you should create a standard Spatial which will act as the root node for all the rooms and meshes, lights to be controlled by the LRoomManager. You can name this anything you like, but in the documentation I will refer to it as the 'roomlist'.
 
 In order for the room manager to know which roomlist it should operate on, in the IDE you should _assign_ the roomlist to the 'rooms' property of the LRoomManager. You can do this by clicking on 'assign' in the LRoomManager inspector, and selecting the roomlist Spatial that you created.
 
 The children of the roomlist should be rooms, or areas (which themselves contain rooms). The rooms contain the meshes, lights that you want to be shown and hidden by the room system.
-
-#### Room Manager synchronization
-In order to keep the LRoomManager correctly synchronized with the camera, it is essential that the LRoomManager node is updated (with _process) _AFTER_ the camera. Otherwise the culling will be based on the previous transform of the camera, and you may get culling errors where rooms are incorrectly hidden for a frame. To achieve this synchronization is quite easy, just make sure that the LRoomManager is AFTER the camera (and other nodes) in the scene tree. For example the last child of the root node of your scene.
 
 ### Rooms
 Rooms are simply spatials, whose children should contain the mesh instances that are static (non-moving) within the room. The naming of the room spatial is crucial in order for it to be recognised. All rooms should start with 'room_'.
