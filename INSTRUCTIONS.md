@@ -348,7 +348,27 @@ Level design is a balancing act:
 
 # Lighting
 #### Introduction
-Although deciding what is in view of the camera is relatively straightforward, what complicates matters is that objects in view may be lit by lights that are not in view. Even worse, objects in view may be shadowed by objects that are NOT in view!
+Although deciding what is in view of the camera is relatively straightforward, what complicates matters is that objects in view may be lit by lights that are not in view. Even worse, objects in view may be shadowed by objects that are NOT in view! As such you are highly recommended to use baked lighting with the [LLightmap](https://github.com/lawnjelly/godot-llightmap) module, especially for your first portalled game.
+
+### Baked Lighting
+Baked lighting, such as lightmaps, is a great fit for lighting with occlusion culling systems. Lightmaps can store the entire static lighting for a level in precalculated form, as one or more textures, called lightmaps. This has pros and cons.
+
+#### Pros
+* Baked lighting removes the problem of shadows in the camera view being cast by objects that are not in view.
+* Lightmaps are pre-calculated ahead of time, so can use far more complex and realistic models of lighting than would be possible in realtime. Techniques such as path tracing, radiosity, and multiple bounces of light rays are possible.
+* Lightmaps are very fast at runtime. There is no need to render a shadow map for each light, and when rendering from the camera, instead of an expensive lookup into shadow maps, simple texture mapping can be used to lookup the lightmap texture. As such they can produce fantastic lighting even on low powered machines such as mobile phones. This is the reason many of the first action 3d games used lightmaps, such as early quake and unreal.
+
+#### Cons
+* Lightmaps are limited in what kind of lighting information they store. Classical lightmaps only store the diffuse component of the lighting, and ignore the specular component. There are some more complex types of lightmaps but only the diffuse type is directly supported in Godot so far.
+* Lightmaps only deal with static lighting. As the lighting is baked it gives a snapshot of lighting in one particular arrangement. If you want moving lights, or lights that change in brightness, you will need to either use other techniques or combine them with lightmapping. (One way of getting some simple variation is to bake more than one lightmap for a level, then blend the lightmaps on each frame prior to rendering, however this feature is not standard in Godot)
+* Another big consequence of lightmaps being static is they don't show shadows for moving objects. This can be acceptable for the best performance on low end machines, but in practice, many games combine lightmaps with other techniques to get some kind of shadows on moving objects.
+
+This may mean using lightmapping in combination with traditional realtime lighting, but for example, only rendering dynamic objects to the shadow maps. You can also render the realtime lighting as normal for all objects, but only put indirect lighting into the lightmaps. This gives some increase in visual quality compared to fully realtime lighting but does not help performance wise.
+
+### Using Baked Lighting with LPortal
+This is now very easy to achieve by using LPortal in combination with my [LLightmap](https://github.com/lawnjelly/godot-llightmap) module.
+
+You can generate lightmaps and lightprobe data with LLightmap, and use the level tscn files as normal with LPortal. LLightmap will even handle the realtime lighting for you.
 
 ### Realtime lighting
 Godot's realtime lighting works using shadow mapping, that is, before rendering the view from the camera, it first renders the view from each light affecting the scene, drawing each object to a _shadow map_. During the camera render it then uses the shadow map (or maps) to determine which pixels are in shadow.
@@ -403,25 +423,6 @@ As directional lights are not associated with any particular room, you should ad
 $LRoomManager.global_light_register($DirectionalLight, "myarea")
 ```
 That's all you need to do. If any of the visible rooms (as calculated by LPortal) are part of the area affected by the light, the light will be drawn. If not, it will not. LPortal also calculates only those shadow casters that are relevant, but directional lights cannot as yet (Godot 3) take advantage of this information. This may change in Godot 4.
-
-### Baked Lighting
-Often a far better fit for lighting with occlusion culling systems is the use of baked lighting, such as lightmaps. Lightmaps can store the entire static lighting for a level in precalculated form, as one or more textures, called lightmaps. This has pros and cons.
-
-#### Pros
-* Lightmaps are pre-calculated ahead of time, so can use far more complex and realistic models of lighting than would be possible in realtime. Techniques such as radiosity, and multiple bounces of light rays are possible.
-* Lightmaps are very fast at runtime. There is no need to render a shadow map for each light, and when rendering from the camera, instead of an expensive lookup into shadow maps, simple texture mapping can be used to lookup the lightmap texture. As such they can produce fantastic lighting even on low powered machines such as mobile phones. This is the reason many of the first action 3d games used lightmaps, such as early quake and unreal.
-
-#### Cons
-* Lightmaps are limited in what kind of lighting information they store. Classical lightmaps only store the diffuse component of the lighting, and ignore the specular component. There are some more complex types of lightmaps but only the diffuse type is directly supported in Godot so far.
-* Lightmaps only deal with static lighting. As the lighting is baked it gives a snapshot of lighting in one particular arrangement. If you want moving lights, or lights that change in brightness, you will need to either use other techniques or combine them with lightmapping. (One way of getting some simple variation is to bake more than one lightmap for a level, then blend the lightmaps on each frame prior to rendering, however this feature is not standard in Godot)
-* Another big consequence of lightmaps being static is they don't show shadows for moving objects. This can be acceptable for the best performance on low end machines, but in practice, many games combine lightmaps with other techniques to get some kind of shadows on moving objects.
-
-This may mean using lightmapping in combination with traditional realtime lighting, but for example, only rendering dynamic objects to the shadow maps. You can also render the realtime lighting as normal for all objects, but only put indirect lighting into the lightmaps. This gives some increase in visual quality compared to fully realtime lighting but does not help performance wise.
-
-### Using Baked Lighting with LPortal
-This is now very easy to achieve by using LPortal in combination with my [LLightmap](https://github.com/lawnjelly/godot-llightmap) module.
-
-You can generate lightmaps and lightprobe data with LLightmap, and use the level tscn files as normal with LPortal. LLightmap will even handle the realtime lighting for you.
 
 ### Command reference
 _(There is a full reference available from the help section in the IDE under 'LRoomManager')_
