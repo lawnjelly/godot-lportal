@@ -350,7 +350,7 @@ Level design is a balancing act:
 #### Introduction
 Although deciding what is in view of the camera is relatively straightforward, what complicates matters is that objects in view may be lit by lights that are not in view. Even worse, objects in view may be shadowed by objects that are NOT in view! As such you are highly recommended to use baked lighting with the [LLightmap](https://github.com/lawnjelly/godot-llightmap) module, especially for your first portalled game.
 
-### Baked Lighting
+## Baked Lighting
 Baked lighting, such as lightmaps, is a great fit for lighting with occlusion culling systems. Lightmaps can store the entire static lighting for a level in precalculated form, as one or more textures, called lightmaps. This has pros and cons.
 
 #### Pros
@@ -368,9 +368,9 @@ This may mean using lightmapping in combination with traditional realtime lighti
 ### Using Baked Lighting with LPortal
 This is now very easy to achieve by using LPortal in combination with my [LLightmap](https://github.com/lawnjelly/godot-llightmap) module.
 
-You can generate lightmaps and lightprobe data with LLightmap, and use the level tscn files as normal with LPortal. LLightmap will even handle the realtime lighting for you.
+You can generate lightmaps and lightprobe data with LLightmap, and use the level tscn files as normal with LPortal. LLightmap will even handle the realtime lighting for you with light probe data
 
-### Realtime lighting
+## Realtime lighting with shadow mapping
 Godot's realtime lighting works using shadow mapping, that is, before rendering the view from the camera, it first renders the view from each light affecting the scene, drawing each object to a _shadow map_. During the camera render it then uses the shadow map (or maps) to determine which pixels are in shadow.
 
 It should be obvious that this is potentially very expensive, both the extra steps to render from each light, and the lookup at runtime to determine whether pixels are in shadow. As a result, realtime shadows are not a good option on some low powered devices.
