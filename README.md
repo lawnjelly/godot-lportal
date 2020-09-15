@@ -1,4 +1,4 @@
-# godot-lportal 0.22
+# godot-lportal 0.23
 _Sept 15th 2020_
 
 * Portal rendering / Occlusion culling module for Godot 3.2
