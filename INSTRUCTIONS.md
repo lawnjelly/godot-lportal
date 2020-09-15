@@ -419,73 +419,7 @@ Often a far better fit for lighting with occlusion culling systems is the use of
 This may mean using lightmapping in combination with traditional realtime lighting, but for example, only rendering dynamic objects to the shadow maps. You can also render the realtime lighting as normal for all objects, but only put indirect lighting into the lightmaps. This gives some increase in visual quality compared to fully realtime lighting but does not help performance wise.
 
 ### Using Baked Lighting with LPortal
-I have been preparing two workflows to simplify lightmapping a level with LPortal.
-
-1) Internal workflow - Uses Godot to UV map the objects and the BakedLightmap node to create the lightmaps
-2) External workflow - Allows UV mapping and rendering lightmaps in an external 3d modelling program such as Blender
-
-The first workflow is fast to use but the end results are not as high quality as using an external program. There are also currently (as of 3.2 alpha) bugs in the Godot uvmapper and lightmapper, which can result in visual anomalies.
-
-#### Internal workflow
-
-It can be a good idea to examine the [BoxRooms demo](https://github.com/lawnjelly/lportal-demos/tree/master/BoxRooms), which shows the process in detail. Note that all this can be done manually, or with your own code (it is not even a core part of LPortal, more convenience functionality), the workflow is just a way of simplifying this for most people.
-
-1) Create your level as normal with rooms and portals.
-2) Add spotlights and omnis as desired within the rooms.
-3) You can also use directional lights (outside the room list).
-4) Make sure each light has the property set 'Use In Baked Lighting'.
-
-5) The workflow allows having one shared lightmap for the entire level, instead of one per object. To do this as well as running the game as normal you must also have a 'preparation' phase where the level will be UV mapped (a second set of UV coordinates, which are used for the lightmap). The preparation phase can be a separate godot project if desired, the only output required for a game level is (1) the uv mapped level and (2) the lightmap.
-
-6) For the preparation phase instead of calling `rooms_convert` you should call:
-`MeshInstance * lightmap_internal(String szProxyFilename, String szLevelFilename);`
-
-This will save 2 files, a .tscn containing a merged mesh (proxy) of the entire level, and a .tscn containing the entire level, but with a second set of UV coordinates matched to the proxy.
-
-7) You now have to create the lightmap. Make sure there is a BakedLightmap node in the scene, and add the proxy .tscn to the scene using the 'link' button in the Godot IDE. Hide any other geometry aside from the proxy. Make sure the original level roomlist is in the scene, but hidden. The original level contains the lights that are needed for baking.
-
-8) When all is set up, select the BakedLightmap node and click 'Bake'. If all is well it should bake a single lightmap, and save it in the folder specified in the BakedLightmap path.
-
-9) The only 2 things of interest at the end of the preparation phase are the final level .tscn file, and the lightmap. You should copy these to your main project (if you are using 2 separate projects, one for the game and one for preparation / baking).
-
-10) The only other thing necessary for your game to use the lightmap is to use a shader that blends the lightmap texture with the level textures. Here is a simple example:
-```
-shader_type spatial;
-render_mode unshaded;
-uniform sampler2D texture_albedo : hint_albedo;
-uniform sampler2D texture_lightmap : hint_albedo;
-
-void fragment() {
-	vec4 albedo_tex = texture(texture_albedo,UV);
-	vec4 lightmap_tex = texture(texture_lightmap,UV2);
-	ALBEDO = albedo_tex.rgb * lightmap_tex.rgb * 2.0;
-}
-```
-
-11) In your final running level, I currently would recommend that if you have a BakedLightmap node present, to hide it. The BakedLightmap node does allow dynamically changing the lightness of meshes as you move them around the level (as it stores a rough 3d array of voxel lighting levels) HOWEVER it may also apply this to the background meshes, which can result in considerable performance loss / visual anomalies. This recommendation may change if I find a way of getting the first effect without the second.
-
-#### External workflow
-
-1) Create your level as normal with rooms and portals.
-2) For the preparation phase, instead of calling rooms_convert, call:
-```
-lightmap_external_export("my_level.dae")
-```
-Where 'my_level' is the filename/path you want to use. This will export all the rooms (and lights within the roomlist) as a Collada DAE file which can be loaded in a 3d modelling package such as blender. When imported, as well as the roomlist, there will be a merged mesh which contains all the individual meshes merged into one.
-
-The next steps describe the process in blender but similar can be achieved in other packages.
-
-3) The next step is to uv map the merged mesh prior to baking. Select the merged mesh, go into edit mode, select all the faces and choose to UV map as desired.
-4) Before baking lightmaps, you should now export this merged mesh with the new UVs, as a wavefront 'obj' file (only include the selected mesh in the obj). This will be required later in Godot to 'unmerge' the new UVs to the secondary UVs on the objects within the room list, so that the lightmap is correctly mapped to the objects in Godot.
-5) Now you can create the lightmap, by baking to a texture assigned to the merged mesh. Consult the blender documentation for information on baking, I will not describe this here. You may wish to bake both lights and ambient occlusion, and combine them in photoshop or similar. Save the lightmap as a PNG (you can convert the lightmap as JPG to use with Godot if desired, but it is wise to keep an original uncompressed version as PNG or similar).
-6) Back to Godot, for the middle stage you should add a MeshInstance to your scene using the merged obj file you exported from blender (with UVs). We want to take these UVs and assign them as secondary UVs to the original objects making up the level. To do this we run again but use the command
-```
-lightmap_external_unmerge($Proxy, "final_level.tscn")
-```
-Where $Proxy is a MeshInstance containing the merged obj with UVs, and 'final_level' is the filename we wish to save our level after the UVs have been transferred.
-7) If all goes well, the final_level.tscn can be loaded in game and can be used to show the lightmaps, using a shader similar to that used in the internal workflow.
-
-Note that you should usually assign the shader to the materials while creating the level initially, and prior to creating the lightmap. You don't have to, but you may wish to re-export the lightmap several times to get it looking perfect in game, so the nearer the level is to 'finished' before going through this process, the easier it will be.
+This is now very easy to achieve by using LPortal in combination with my `LLightmap` module. You can generate lightmaps and lightprobe data with LLightmap, and use the level tscn files as normal with LPortal. LLightmap will even handle the realtime lighting for you.
 
 ### Command reference
 _(There is a full reference available from the help section in the IDE under 'LRoomManager')_
