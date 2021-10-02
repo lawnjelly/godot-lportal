@@ -1,3 +1,5 @@
+## NOTE - LPortal is deprecated as of Godot 3.4, Rooms & Portals is now available as part of the standard Godot engine.
+
 # godot-lportal 0.23
 _Sept 15th 2020_
 
